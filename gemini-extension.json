@@ -1,0 +1,19 @@
+{
+  "name": "couchbase",
+  "version": "0.1.0",
+  "description": "Official Couchbase extension (MCP Server + Skills) for Gemini CLI. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, design data models, and build full-text and vector search via the Couchbase MCP server.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "couchbase": {
+      "command": "uvx",
+      "args": ["couchbase-mcp-server"],
+      "env": {
+        "CB_CONNECTION_STRING": "${CB_CONNECTION_STRING}",
+        "CB_USERNAME": "${CB_USERNAME}",
+        "CB_PASSWORD": "${CB_PASSWORD}",
+        "CB_BUCKET_NAME": "${CB_BUCKET_NAME}",
+        "CB_MCP_READ_ONLY_QUERY_MODE": "true"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# Skill ownership manifest.
+# Tracks a Directly Responsible Individual (DRI) per skill, the last review
+# date, and how often the skill should be re-reviewed.
+#
+# TODO (maintainers): assign real DRIs and set last_reviewed when each skill
+# is authored. Skills below are the planned v1 set (MCP-centric, language-agnostic).
+
+skills:
+  - name: couchbase-mcp-setup
+    dris: [TODO]
+    review_cadence_days: 90
+  - name: couchbase-natural-language-querying
+    dris: [TODO]
+    review_cadence_days: 90
+  - name: couchbase-query-optimizer
+    dris: [TODO]
+    review_cadence_days: 90
+  - name: couchbase-data-modeling
+    dris: [TODO]
+    review_cadence_days: 90
+  - name: couchbase-search-and-ai
+    dris: [TODO]
+    review_cadence_days: 90
+  - name: couchbase-connection
+    dris: [TODO]
+    review_cadence_days: 90

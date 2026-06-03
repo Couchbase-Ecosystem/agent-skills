@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a problem with a Couchbase Agent Skill or the MCP wiring
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Affected skill
+      description: Which skill (or "MCP wiring" / "other")?
+      options:
+        - couchbase-mcp-setup
+        - couchbase-natural-language-querying
+        - couchbase-query-optimizer
+        - couchbase-data-modeling
+        - couchbase-search-and-ai
+        - couchbase-connection
+        - MCP wiring
+        - other
+    validations:
+      required: true
+  - type: input
+    id: harness
+    attributes:
+      label: Harness
+      description: e.g. Claude Code, Cursor, Codex, Gemini CLI, Copilot CLI
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include the prompt, the agent's response, and what you expected.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Couchbase Server/Capella version, MCP server version, plugin version
+    validations:
+      required: false

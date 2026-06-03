@@ -1,0 +1,12 @@
+{
+  "skill": "couchbase-skill-name",
+  "cases": [
+    {
+      "name": "example: triggers and produces SQL++",
+      "input": "Show me the 10 most recent orders for customer 42",
+      "expect": ["SELECT", "WHERE"],
+      "reject": ["aggregate", "$match", "db."],
+      "threshold": 2
+    }
+  ]
+}

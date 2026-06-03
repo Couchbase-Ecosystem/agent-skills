@@ -1,0 +1,23 @@
+{
+  "name": "couchbase",
+  "version": "0.1.0",
+  "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, write and run SQL++ queries, optimize queries and GSI indexes, design data models, and build full-text and vector search — grounded in your real cluster via the Couchbase MCP server.",
+  "author": {
+    "name": "Couchbase",
+    "url": "https://www.couchbase.com"
+  },
+  "homepage": "https://docs.couchbase.com/",
+  "repository": "https://github.com/couchbase/agent-skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "couchbase",
+    "capella",
+    "database",
+    "nosql",
+    "mcp",
+    "sql++",
+    "vector-search"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}
