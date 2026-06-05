@@ -45,5 +45,7 @@ skills:
     dris: [TODO]
     review_cadence_days: 90
   - name: couchbase-connection
-    dris: [TODO]
+    dris:
+      - ejscribner
+    last_reviewed: "2026-06-05"
     review_cadence_days: 90
