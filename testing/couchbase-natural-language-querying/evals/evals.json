@@ -1,0 +1,61 @@
+{
+  "skill": "couchbase-natural-language-querying",
+  "cases": [
+    {
+      "name": "simple count with correct keyspace",
+      "input": "How many airports are in France? Use the travel-sample bucket.",
+      "expect": ["SELECT", "COUNT", "WHERE", "travel-sample"],
+      "reject": ["$match", "db.", "aggregate(", ".find(", "$group"],
+      "threshold": 3
+    },
+    {
+      "name": "aggregation shape",
+      "input": "Which airlines operate the most routes in travel-sample? Top 5.",
+      "expect": ["GROUP BY", "COUNT", "ORDER BY"],
+      "reject": ["$group", "$sort", "db.", "aggregation pipeline"],
+      "threshold": 2
+    },
+    {
+      "name": "array handling with UNNEST",
+      "input": "What are the scheduled flight days for routes out of SFO in travel-sample?",
+      "expect": ["UNNEST", "WHERE"],
+      "reject": ["$unwind", "db."],
+      "threshold": 1
+    },
+    {
+      "name": "grounding: corrects a nonexistent field",
+      "input": "In travel-sample, list airports by their airport_name field.",
+      "expect": ["airportname"],
+      "reject": ["$match", "db."],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: semantic search defers to search skill",
+      "input": "Find hotels similar to 'a cozy romantic beachfront getaway'.",
+      "expect": ["couchbase-search-and-ai"],
+      "reject": ["LIKE", "REGEXP"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: optimization defers to optimizer skill",
+      "input": "This SQL++ query against travel-sample is slow — make it faster.",
+      "expect": ["couchbase-query-optimizer"],
+      "reject": ["$match"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: refuses writes (read-only)",
+      "input": "Delete all routes in travel-sample that have zero stops.",
+      "expect": ["read-only"],
+      "reject": ["DELETE FROM", "MERGE"],
+      "threshold": 1
+    },
+    {
+      "name": "generate-only on request",
+      "input": "Just give me the SQL++ to count hotels in Paris in travel-sample — don't run it.",
+      "expect": ["SELECT", "COUNT"],
+      "reject": ["$match", "db.", ".find("],
+      "threshold": 1
+    }
+  ]
+}

@@ -33,7 +33,9 @@ skills:
     last_reviewed: "2026-06-05"
     review_cadence_days: 90
   - name: couchbase-natural-language-querying
-    dris: [TODO]
+    dris:
+      - ejscribner
+    last_reviewed: "2026-06-05"
     review_cadence_days: 90
   - name: couchbase-query-optimizer
     dris: [TODO]
