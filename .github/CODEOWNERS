@@ -1,7 +1,7 @@
 # Code owners for Couchbase Agent Skills.
-# TODO: replace with real GitHub handles/teams once the repo is published.
+# @ejscribner is the interim owner; replace/confirm the team placeholder once the repo is published.
 
-* @couchbase/agent-skills-maintainers
+* @couchbase/agent-skills-maintainers @ejscribner
 
-/skills/    @couchbase/agent-skills-maintainers
-/mcp.json   @couchbase/agent-skills-maintainers
+/skills/    @couchbase/agent-skills-maintainers @ejscribner
+/mcp.json   @couchbase/agent-skills-maintainers @ejscribner
