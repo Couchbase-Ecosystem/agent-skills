@@ -1,13 +1,36 @@
-# Skill ownership manifest.
-# Tracks a Directly Responsible Individual (DRI) per skill, the last review
-# date, and how often the skill should be re-reviewed.
+# Agent Skill ownership and review manifest.
 #
-# TODO (maintainers): assign real DRIs and set last_reviewed when each skill
-# is authored. Skills below are the planned v1 set (MCP-centric, language-agnostic).
+# Every skill under skills/ must have an entry here. The PR template for agent
+# skills should require authors to add or update an entry when a skill is added
+# or changed.
+#
+# Fields:
+#   name                  string. Skill directory name (matches skills/<name>/).
+#   dris                  list of 1-2 strings. Directly Responsible
+#                         Individuals. Each entry is a GitHub username
+#                         (no leading @). The first entry is the primary DRI;
+#                         the second, if present, is the backup. DRIs own
+#                         maintenance, review, and response to issues for this
+#                         skill.
+#   last_reviewed         string (ISO date, YYYY-MM-DD). The most recent
+#                         review date. Update on any substantive change and
+#                         on periodic review passes.
+#   review_cadence_days   integer. Maximum days between reviews before the
+#                         skill is considered stale. Default 90.
+#
+# Example:
+#   - name: example-skill
+#     dris:
+#       - octocat
+#       - hubot
+#     last_reviewed: 2026-04-22
+#     review_cadence_days: 90
 
 skills:
   - name: couchbase-mcp-setup
-    dris: [TODO]
+    dris:
+      - ejscribner
+    last_reviewed: "2026-06-05"
     review_cadence_days: 90
   - name: couchbase-natural-language-querying
     dris: [TODO]

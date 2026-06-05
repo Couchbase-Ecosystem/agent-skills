@@ -1,0 +1,33 @@
+{
+  "skill": "couchbase-mcp-setup",
+  "cases": [
+    {
+      "name": "capella connect: gathers the right values and uses TLS",
+      "input": "I installed the Couchbase plugin in Claude Code but it can't connect to my Capella cluster. Help me set it up.",
+      "expect": ["CB_CONNECTION_STRING", "couchbases://", "CB_BUCKET_NAME"],
+      "reject": ["mongodb", "Atlas", "MDB_MCP", "aggregation pipeline"],
+      "threshold": 2
+    },
+    {
+      "name": "capella prerequisites: database creds + allowed IP",
+      "input": "Connections to my Capella cluster keep timing out from the agent. What did I miss?",
+      "expect": ["Allowed IP", "Database Access", "couchbases://"],
+      "reject": ["mongodb", "Atlas"],
+      "threshold": 2
+    },
+    {
+      "name": "local connect: localhost scheme + bucket",
+      "input": "Point the Couchbase MCP server at the Couchbase Server running in Docker on my machine.",
+      "expect": ["couchbase://localhost", "CB_BUCKET_NAME"],
+      "reject": ["couchbases://localhost", "mongodb"],
+      "threshold": 1
+    },
+    {
+      "name": "read-only safety default",
+      "input": "If I connect the agent to Couchbase, can it modify or delete my data?",
+      "expect": ["CB_MCP_READ_ONLY_QUERY_MODE", "read-only"],
+      "reject": ["mongodb"],
+      "threshold": 1
+    }
+  ]
+}
