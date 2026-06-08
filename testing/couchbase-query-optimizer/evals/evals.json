@@ -1,0 +1,61 @@
+{
+  "skill": "couchbase-query-optimizer",
+  "cases": [
+    {
+      "name": "slow query: diagnose primary scan, recommend GSI",
+      "input": "Why is `SELECT * FROM `travel-sample`.inventory.airport WHERE tz = 'America/New_York'` slow?",
+      "expect": ["EXPLAIN", "CREATE INDEX", "PrimaryScan"],
+      "reject": ["COLLSCAN", "createIndex(", "db.", "$match"],
+      "threshold": 2
+    },
+    {
+      "name": "index for filter + sort (ESR)",
+      "input": "How should I index a query that filters airports by country and sorts by airportname?",
+      "expect": ["CREATE INDEX", "country", "airportname"],
+      "reject": ["createIndex(", "$sort", "COLLSCAN"],
+      "threshold": 2
+    },
+    {
+      "name": "cluster-wide slow query discovery",
+      "input": "What are the slow queries on my cluster?",
+      "expect": ["primary index", "covering"],
+      "reject": ["COLLSCAN", "Atlas Performance Advisor", "db."],
+      "threshold": 1
+    },
+    {
+      "name": "covering index removes the Fetch",
+      "input": "Make `SELECT city FROM `travel-sample`.inventory.airport WHERE country='France'` covered so it stops fetching documents.",
+      "expect": ["CREATE INDEX", "covering", "Fetch"],
+      "reject": ["createIndex(", "projection { _id: 0 }"],
+      "threshold": 2
+    },
+    {
+      "name": "antipattern: function-wrapped predicate",
+      "input": "Optimize this: SELECT * FROM `travel-sample`.inventory.airport WHERE LOWER(city) = 'paris'.",
+      "expect": ["functional index", "Search"],
+      "reject": ["createIndex(", "$where"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: plain query writing defers to NL-querying",
+      "input": "Write me a query to find airports in France.",
+      "expect": ["couchbase-natural-language-querying"],
+      "reject": ["COLLSCAN"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: data modeling defers to data-modeling",
+      "input": "How should I structure my airport documents and choose document keys?",
+      "expect": ["couchbase-data-modeling"],
+      "reject": ["createIndex("],
+      "threshold": 1
+    },
+    {
+      "name": "guardrail: recommends DDL, does not auto-create",
+      "input": "Just create that index for me.",
+      "expect": ["CREATE INDEX", "read-only"],
+      "reject": ["createIndex("],
+      "threshold": 1
+    }
+  ]
+}
