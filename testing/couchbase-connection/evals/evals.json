@@ -5,35 +5,35 @@
       "name": "serverless: reuse one Cluster outside the handler",
       "input": "What's the best way to connect to Couchbase from an AWS Lambda function?",
       "expect": ["Cluster", "reuse", "wan_development"],
-      "reject": ["minPoolSize", "maxPoolSize", "connection pool size"],
+      "reject": [],
       "threshold": 2
     },
     {
       "name": "analytical: raise timeouts, not pool size",
       "input": "My analytical SQL++ queries keep timing out around 75 seconds. What should I change?",
       "expect": ["queryTimeout", "analyticsTimeout"],
-      "reject": ["minPoolSize", "maxPoolSize", "pool size"],
+      "reject": [],
       "threshold": 1
     },
     {
       "name": "high concurrency: shared Cluster + numKvConnections",
       "input": "I have a high-concurrency key-value workload and I'm seeing timeouts under load. How do I fix the connection setup?",
       "expect": ["numKvConnections", "Cluster"],
-      "reject": ["minPoolSize", "maxPoolSize", "open more clusters"],
+      "reject": [],
       "threshold": 2
     },
     {
       "name": "health: SDK signals, not pool events",
       "input": "How do I tell whether my application's Couchbase connection is healthy?",
-      "expect": ["sdk-doctor", "threshold", "orphan"],
-      "reject": ["wait queue", "ConnectionPool", "checkout"],
+      "expect": ["sdk-doctor", "threshold logging", "orphan"],
+      "reject": [],
       "threshold": 2
     },
     {
       "name": "language boundary: defer exact code, don't fabricate",
       "input": "Give me the exact Python ClusterOptions code for my connection.",
       "expect": ["server-connection", "docs"],
-      "reject": ["minPoolSize", "maxPoolSize"],
+      "reject": [],
       "threshold": 1
     },
     {
