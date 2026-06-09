@@ -1,0 +1,54 @@
+{
+  "skill": "couchbase-search-and-ai",
+  "cases": [
+    {
+      "name": "lexical: FTS index + SEARCH(), not LIKE",
+      "input": "Set up full-text search over hotel descriptions and find hotels mentioning 'beachfront'.",
+      "expect": ["SEARCH", "analyzer", "Search index"],
+      "reject": ["$search", "Atlas", "LIKE '%"],
+      "threshold": 2
+    },
+    {
+      "name": "vector: dimension + metric + APPROX_VECTOR_DISTANCE",
+      "input": "I want semantic search over hotel reviews using embeddings in Couchbase.",
+      "expect": ["dimension", "cosine", "APPROX_VECTOR_DISTANCE"],
+      "reject": ["$vectorSearch", "Atlas"],
+      "threshold": 2
+    },
+    {
+      "name": "hybrid: one index, knn + text",
+      "input": "Combine keyword and semantic search over hotels in Couchbase.",
+      "expect": ["hybrid", "knn", "SEARCH"],
+      "reject": ["$rankFusion"],
+      "threshold": 2
+    },
+    {
+      "name": "anti-pattern: use Search, not LIKE",
+      "input": "Find hotels whose description contains 'spa'.",
+      "expect": ["SEARCH"],
+      "reject": ["LIKE '%"],
+      "threshold": 1
+    },
+    {
+      "name": "MCP-gap honesty: index creation is instructional",
+      "input": "Just create the search index for me.",
+      "expect": ["Capella UI", "Search REST"],
+      "reject": ["$search"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: exact-match defers to NL-querying",
+      "input": "Find airports where country = 'France'.",
+      "expect": ["couchbase-natural-language-querying"],
+      "reject": ["$vectorSearch"],
+      "threshold": 1
+    },
+    {
+      "name": "boundary: GSI tuning defers to optimizer",
+      "input": "What GSI should I add and why is my query slow?",
+      "expect": ["couchbase-query-optimizer"],
+      "reject": ["$search"],
+      "threshold": 1
+    }
+  ]
+}
