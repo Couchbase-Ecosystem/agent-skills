@@ -15,3 +15,8 @@ jobs:
         run: |
           chmod +x tools/validate-skills.sh
           ./tools/validate-skills.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate eval suite schema (no API)
+        run: python3 tools/run-evals.py --dry-run

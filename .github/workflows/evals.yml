@@ -1,0 +1,32 @@
+name: evals
+
+# Behavioral (Tier 2, model-only) evals — they call a model API, cost tokens,
+# and are non-deterministic, so they are NOT a PR gate. They run on demand and
+# automatically when skill/eval content lands on main (no wasted idle runs).
+# Provider auto-detects from whichever key is set; set the OPENAI_API_KEY or
+# ANTHROPIC_API_KEY repo secret. (To also catch upstream model drift, add a
+# weekly `schedule:` cron — intentionally omitted to avoid no-op nightly runs.)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "testing/**"
+      - "tools/run-evals.py"
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run behavioral evals (Tier 2, model-only)
+        env:
+          # Provider auto-detects from whichever key is set. Set at least one secret.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python3 tools/run-evals.py --execute
