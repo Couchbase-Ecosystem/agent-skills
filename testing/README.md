@@ -17,7 +17,8 @@ definitions). Copy `testing/_template/evals/evals.json` to start a new suite.
       "input": "the user prompt",
       "expect": ["substrings that MUST appear in the response"],
       "reject": ["substrings that must NOT appear"],
-      "threshold": 1            // optional: min count of `expect` matches required
+      "threshold": 1,           // optional: min count of `expect` matches required
+      "tier": 2                 // optional: 2 = model-only (default); 3 = needs the real harness/cluster
     }
   ]
 }
@@ -45,4 +46,4 @@ python3 tools/run-evals.py --execute --provider openai --model gpt-4o
 - **Structural** — `./tools/validate-skills.sh`: frontmatter/links/sizes. Free, deterministic; runs on every PR.
 - **Schema (`--dry-run`)** — validates each `evals.json` shape (incl. `threshold ≤ expect` count). Free, deterministic; also runs on every PR.
 - **Tier 2 (`--execute`)** — sends the skill's `SKILL.md` as the system prompt + each case `input` to the model, then checks the response contains ≥ `threshold` of `expect` and none of `reject`. Provider auto-detects from `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (or `--provider`). Costs tokens and is **non-deterministic**, so it runs on a **schedule / manual dispatch** (`.github/workflows/evals.yml`) — **not** as a PR gate. A failure is a quality signal, not a merge blocker.
-- **Tier 3 (not built)** — end-to-end grounded evals that give the model live MCP/cluster access (a Couchbase Server / Capella project with `travel-sample` + `CB_*` env). Tier 2 only sends `SKILL.md`, so it tests a skill's guidance, not real query execution.
+- **Tier 3 (`tier: 3` cases, not yet runnable here)** — cross-skill routing/deferral and live MCP/cluster grounding (running real queries / `EXPLAIN`). These need the real harness (a Couchbase Server / Capella project with `travel-sample` + `CB_*` env), so `--execute` **skips them by default**; pass `--tier 3` to include them (they won't pass in this isolated runner until a real-harness runner exists). Tier 2 only sends `SKILL.md`, so it tests a skill's guidance — not routing or real query execution.

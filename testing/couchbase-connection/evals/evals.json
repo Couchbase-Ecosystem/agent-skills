@@ -34,14 +34,16 @@
       "input": "Give me the exact Python ClusterOptions code for my connection.",
       "expect": ["server-connection", "docs"],
       "reject": [],
-      "threshold": 1
+      "threshold": 1,
+      "tier": 3
     },
     {
       "name": "skill boundary: MCP setup belongs elsewhere",
       "input": "The agent can't connect to Couchbase — help me set up the MCP server connection.",
       "expect": ["couchbase-mcp-setup"],
       "reject": ["numKvConnections", "kvTimeout"],
-      "threshold": 1
+      "threshold": 1,
+      "tier": 3
     }
   ]
 }

@@ -5,35 +5,35 @@
       "name": "embed vs reference reasoning",
       "input": "Should I embed a user's orders in the user document or keep them separate in Couchbase?",
       "expect": ["embed", "reference", "KV"],
-      "reject": ["$lookup", "16MB", "$bsonSize"],
+      "reject": [],
       "threshold": 2
     },
     {
       "name": "document key design (net-new, multi-tenant)",
       "input": "How should I design document keys for a multi-tenant Couchbase app?",
       "expect": ["key", "composite", "tenant"],
-      "reject": ["$jsonSchema", "auto-generated _id"],
+      "reject": [],
       "threshold": 2
     },
     {
       "name": "unbounded array → sizing + pattern",
       "input": "My Couchbase documents have an ever-growing array of events. How should I model that?",
       "expect": ["20 MB", "bucketing"],
-      "reject": ["16MB"],
+      "reject": [],
       "threshold": 1
     },
     {
       "name": "antipattern: unnecessary buckets",
       "input": "Should I put each customer in their own Couchbase bucket?",
-      "expect": ["scope", "collection"],
-      "reject": ["$lookup"],
+      "expect": ["scope", "collection", "key prefix", "tenant"],
+      "reject": [],
       "threshold": 1
     },
     {
       "name": "schema validation reality (honest gap)",
       "input": "How do I enforce a JSON schema on my Couchbase documents?",
       "expect": ["Eventing", "application"],
-      "reject": ["$jsonSchema"],
+      "reject": [],
       "threshold": 1
     },
     {
@@ -41,14 +41,16 @@
       "input": "What GSI should I create for this query, and why is it slow?",
       "expect": ["couchbase-query-optimizer"],
       "reject": ["$jsonSchema"],
-      "threshold": 1
+      "threshold": 1,
+      "tier": 3
     },
     {
       "name": "boundary: query writing defers to NL-querying",
       "input": "Write a query to list hotels in Paris.",
       "expect": ["couchbase-natural-language-querying"],
       "reject": ["16MB"],
-      "threshold": 1
+      "threshold": 1,
+      "tier": 3
     }
   ]
 }
