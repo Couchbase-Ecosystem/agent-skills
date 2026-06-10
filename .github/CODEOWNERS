@@ -1,7 +1,7 @@
 # Code owners for Couchbase Agent Skills.
 # @ejscribner is the interim owner; replace/confirm the team placeholder once the repo is published.
 
-* @couchbase/agent-skills-maintainers @ejscribner
+* @Couchbase-Ecosystem/agent-skills-maintainers @ejscribner
 
-/skills/    @couchbase/agent-skills-maintainers @ejscribner
-/mcp.json   @couchbase/agent-skills-maintainers @ejscribner
+/skills/    @Couchbase-Ecosystem/agent-skills-maintainers @ejscribner
+/mcp.json   @Couchbase-Ecosystem/agent-skills-maintainers @ejscribner

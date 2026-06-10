@@ -2,7 +2,7 @@
 
 Official Couchbase **agent skills** + **MCP server** for your favorite coding agent. Connect to a live Couchbase cluster, explore data, write and run SQL++, optimize queries and GSI indexes, design data models, and build full-text and vector search — grounded in your real cluster.
 
-> **Status:** early scaffolding. The repository structure and skills are MCP-centric (the agent operates a live cluster via the Couchbase MCP server). Skill content is authored task-by-task; see `skills/` and the project's task breakdown.
+> **Status:** v1 skills built — MCP-centric (the agent operates a live cluster via the Couchbase MCP server): `couchbase-mcp-setup`, `couchbase-connection`, `couchbase-natural-language-querying`, `couchbase-query-optimizer`, `couchbase-data-modeling`, `couchbase-search-and-ai`.
 
 ## What's here
 
@@ -32,27 +32,30 @@ For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [M
 
 ## Install
 
-> Replace the repository URL below with the final published location once the org/repo is confirmed.
+The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ecosystem/agent-skills) is itself the plugin / marketplace source — install directly from it:
 
 | Harness | Install |
 |---------|---------|
-| **Claude Code** | Add the marketplace, then `/plugin install couchbase` |
-| **Cursor** | Install from the Cursor marketplace / `/add-plugin couchbase` |
-| **Codex** | `codex plugin marketplace add couchbase/agent-skills`, then install via the plugin browser |
-| **Gemini CLI** | `gemini extensions install https://github.com/couchbase/agent-skills` |
-| **GitHub Copilot CLI** | `/plugin install https://github.com/couchbase/agent-skills.git` (restart to activate the MCP server) |
-| **Vercel Agent Skills** | `npx skills add couchbase/agent-skills` |
+| **Claude Code** | `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` |
+| **Codex** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then install `couchbase` from the plugin browser |
+| **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
+| **GitHub Copilot CLI** | `copilot plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
+| **Cursor** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install `couchbase` via `/add-plugin` or the marketplace UI |
+| **Vercel Agent Skills** | `npx skills add Couchbase-Ecosystem/agent-skills` |
 
-After installing, ensure the `CB_*` environment variables above are set so the MCP server can connect.
+After installing, set the `CB_*` environment variables above so the MCP server can connect — or run the **`couchbase-mcp-setup`** skill, which walks you through it per harness.
 
 ## Local development
 
 ```bash
-# Validate skill structure
+# Validate skill structure (frontmatter, links, sizes)
 ./tools/validate-skills.sh
 
-# Run a skill's eval suite (see testing/)
-./tools/validate-skills.sh && echo "structure OK"
+# Validate eval-suite schema (no API key needed)
+python3 tools/run-evals.py --dry-run
+
+# Run behavioral evals against a model (needs ANTHROPIC_API_KEY or OPENAI_API_KEY) — see testing/
+python3 tools/run-evals.py --execute
 ```
 
 ## License

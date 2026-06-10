@@ -1,0 +1,19 @@
+{
+  "name": "couchbase-plugins",
+  "owner": {
+    "name": "Couchbase",
+    "url": "https://www.couchbase.com"
+  },
+  "metadata": {
+    "description": "Official Couchbase plugins (MCP Server + Skills) for GitHub Copilot CLI.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "couchbase",
+      "version": "0.1.0",
+      "source": "./",
+      "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, design data models, and build full-text and vector search via the Couchbase MCP server."
+    }
+  ]
+}

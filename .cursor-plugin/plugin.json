@@ -7,7 +7,7 @@
     "url": "https://www.couchbase.com"
   },
   "homepage": "https://docs.couchbase.com/",
-  "repository": "https://github.com/couchbase/agent-skills",
+  "repository": "https://github.com/Couchbase-Ecosystem/agent-skills",
   "license": "Apache-2.0",
   "keywords": [
     "couchbase",
@@ -18,6 +18,7 @@
     "sql++",
     "vector-search"
   ],
+  "category": "Productivity",
   "skills": "./skills/",
   "mcpServers": "./mcp.json"
 }

@@ -8,7 +8,12 @@
     {
       "name": "couchbase",
       "source": "./",
-      "description": "Official Couchbase plugin (MCP Server + Skills) for agent harnesses. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, design data models, and build full-text and vector search via the Couchbase MCP server."
+      "description": "Official Couchbase plugin (MCP Server + Skills) for agent harnesses. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, design data models, and build full-text and vector search via the Couchbase MCP server.",
+      "category": "Productivity",
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      }
     }
   ]
 }
