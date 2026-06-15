@@ -34,9 +34,9 @@
       "tier": 3
     },
     {
-      "name": "boundary: semantic search defers to search skill",
+      "name": "boundary: semantic search defers to the Search Service",
       "input": "Find hotels similar to 'a cozy romantic beachfront getaway'.",
-      "expect": ["couchbase-search-and-ai"],
+      "expect": ["Search Service"],
       "reject": ["LIKE", "REGEXP"],
       "threshold": 1,
       "tier": 3

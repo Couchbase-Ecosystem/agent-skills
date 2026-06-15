@@ -1,8 +1,8 @@
 # Couchbase Agent Skills
 
-Official Couchbase **agent skills** + **MCP server** for your favorite coding agent. Connect to a live Couchbase cluster, explore data, write and run SQL++, optimize queries and GSI indexes, design data models, and build full-text and vector search — grounded in your real cluster.
+Official Couchbase **agent skills** + **MCP server** for your favorite coding agent. Connect to a live Couchbase cluster, explore data, write and run SQL++, optimize queries and GSI indexes, and design data models — grounded in your real cluster.
 
-> **Status:** v1 skills built — MCP-centric (the agent operates a live cluster via the Couchbase MCP server): `couchbase-mcp-setup`, `couchbase-connection`, `couchbase-natural-language-querying`, `couchbase-query-optimizer`, `couchbase-data-modeling`, `couchbase-search-and-ai`.
+> **Status:** v1 skills built — MCP-centric (the agent operates a live cluster via the Couchbase MCP server): `couchbase-mcp-setup`, `couchbase-natural-language-querying`, `couchbase-query-optimizer`, `couchbase-data-modeling`.
 
 ## What's here
 

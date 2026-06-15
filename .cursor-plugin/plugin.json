@@ -1,7 +1,7 @@
 {
   "name": "couchbase",
   "version": "0.1.0",
-  "description": "Official Couchbase plugin (MCP Server + Skills) for Cursor. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, design data models, and build full-text and vector search via the Couchbase MCP server.",
+  "description": "Official Couchbase plugin (MCP Server + Skills) for Cursor. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server.",
   "author": {
     "name": "Couchbase",
     "url": "https://www.couchbase.com"
@@ -15,8 +15,7 @@
     "database",
     "nosql",
     "mcp",
-    "sql++",
-    "vector-search"
+    "sql++"
   ],
   "category": "Productivity",
   "skills": "./skills/",

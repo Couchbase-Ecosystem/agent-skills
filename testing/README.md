@@ -35,7 +35,7 @@ python3 tools/run-evals.py --dry-run
 # Run the behavioral evals against the model (Tier 2). Needs an API key.
 # Provider auto-detects from whichever key is set; force it with --provider.
 ANTHROPIC_API_KEY=sk-ant-... python3 tools/run-evals.py --execute
-OPENAI_API_KEY=sk-...        python3 tools/run-evals.py --execute --skill couchbase-connection
+OPENAI_API_KEY=sk-...        python3 tools/run-evals.py --execute --skill couchbase-natural-language-querying
 python3 tools/run-evals.py --execute --provider openai --model gpt-4o
 ```
 

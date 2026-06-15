@@ -47,13 +47,3 @@ skills:
       - ejscribner
     last_reviewed: "2026-06-08"
     review_cadence_days: 90
-  - name: couchbase-search-and-ai
-    dris:
-      - ejscribner
-    last_reviewed: "2026-06-08"
-    review_cadence_days: 90
-  - name: couchbase-connection
-    dris:
-      - ejscribner
-    last_reviewed: "2026-06-05"
-    review_cadence_days: 90

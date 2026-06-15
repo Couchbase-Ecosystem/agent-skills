@@ -72,4 +72,4 @@ Couchbase distinguishes a field that is `NULL` from one that is absent (`MISSING
 ## String matching (and what NOT to do here)
 
 - `LIKE 'foo%'` for prefix matches; `LOWER()`/`UPPER()` for case-insensitive comparisons.
-- Do **not** reach for `LIKE '%term%'` or `REGEXP_*` to satisfy a *search* request (relevance, fuzzy, semantic, "similar to") — that's a full-text/vector job. Hand off to `couchbase-search-and-ai`.
+- Do **not** reach for `LIKE '%term%'` or `REGEXP_*` to satisfy a *search* request (relevance, fuzzy, semantic, "similar to") — that's a full-text/vector job for the Couchbase **Search Service** (FTS).
