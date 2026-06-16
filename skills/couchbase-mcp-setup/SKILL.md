@@ -48,11 +48,11 @@ env | grep '^CB_' | sed 's/=.*/=<set>/'
 
 In Claude Code, also check whether a server is registered: `claude mcp list`, then `claude mcp get couchbase`. In Codex, inspect `~/.codex/config.toml` for an `[mcp_servers.couchbase]` block (mask values).
 
-If all four values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
+If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
 
 ## Step 2 — Choose where Couchbase lives
 
-Ask the user which applies; each path produces the four values above:
+Ask the user which applies; each path produces the three values above:
 
 - **A) Capella** (managed cloud) → follow [`references/capella-setup.md`](references/capella-setup.md)
 - **B) Local Couchbase Server** (Docker / dev machine) → follow [`references/local-setup.md`](references/local-setup.md)
