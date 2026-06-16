@@ -1,6 +1,6 @@
 # Per-client configuration
 
-How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command is `uvx couchbase-mcp-server@0.8.0`.
+How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command pins to the current minor version: `uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server` — it picks up `0.8.x` patches but not a potentially breaking `0.9`. (When the server reaches `1.0`, widen this to `>=1.0.0,<2.0.0`.)
 
 ## Claude Code
 
@@ -26,7 +26,7 @@ claude mcp add couchbase --scope user \
   -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
   -e CB_USERNAME="app_user" \
   -e CB_PASSWORD="…" \
-  -- uvx couchbase-mcp-server@0.8.0
+  -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
 ```
 
 Check it with `claude mcp list` / `claude mcp get couchbase`. Scopes: `--scope user` (all projects), `project` (writes `.mcp.json`, shared), `local` (default, this project only).
@@ -38,7 +38,7 @@ Add to `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`):
 ```toml
 [mcp_servers.couchbase]
 command = "uvx"
-args = ["couchbase-mcp-server@0.8.0"]
+args = ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"]
 
 [mcp_servers.couchbase.env]
 CB_CONNECTION_STRING = "couchbases://cb.abc.cloud.couchbase.com"
@@ -57,7 +57,7 @@ Add this JSON `mcpServers` entry in the client's MCP settings:
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["couchbase-mcp-server@0.8.0"],
+      "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
         "CB_USERNAME": "app_user",
@@ -78,8 +78,8 @@ Where to put it:
 One server instance connects to a single cluster (all of its buckets are reachable), so to work with multiple **clusters** register **distinct named servers** and address them by name:
 
 ```bash
-claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
-claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
+claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
+claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
 ```
 
 (The same idea applies in `config.toml`/JSON — use a distinct key per cluster.)
@@ -88,7 +88,7 @@ claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbase
 
 Swap the `command`/`args` in any of the blocks above.
 
-**Docker** (no Python toolchain needed). For a **local** cluster, use `host.docker.internal` in the connection string:
+**Docker** (no Python toolchain needed). Docker tags can't express a range, so pin to an exact version (e.g. `:0.8.0`). For a **local** cluster, use `host.docker.internal` in the connection string:
 
 ```json
 {
@@ -97,7 +97,7 @@ Swap the `command`/`args` in any of the blocks above.
     "-e", "CB_CONNECTION_STRING=couchbase://host.docker.internal",
     "-e", "CB_USERNAME=Administrator",
     "-e", "CB_PASSWORD=…",
-    "couchbaseecosystem/mcp-server-couchbase:latest"]
+    "couchbaseecosystem/mcp-server-couchbase:0.8.0"]
 }
 ```
 
