@@ -114,4 +114,4 @@ Swap the `command`/`args` in any of the blocks above.
 
 - Version: `uvx couchbase-mcp-server --version`
 - Read-only toggle: set `CB_MCP_READ_ONLY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
-- Transport defaults to `stdio` (what coding agents use); `http`/`sse` are for networked deployments.
+- Transport defaults to `stdio` (what coding agents use); `http` (Streamable HTTP) is for networked deployments. The legacy `sse` transport is deprecated — use `http` instead.
