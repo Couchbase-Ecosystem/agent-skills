@@ -30,4 +30,4 @@
 
 ## 8. Leading-wildcard `LIKE`
 **Problem:** `WHERE name LIKE '%term%'` (or other text/relevance/"similar to" searches) can't use a range scan.
-**Fix:** use the **Search service** (FTS) for text/relevance search — see `couchbase-search-and-ai`. A prefix match `LIKE 'term%'` *can* use an index.
+**Fix:** use the **Search service** (FTS) for text/relevance search. A prefix match `LIKE 'term%'` *can* use an index.

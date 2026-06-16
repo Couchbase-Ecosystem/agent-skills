@@ -6,7 +6,7 @@ description: >-
   return the results. Use when the user asks to write or generate a query, says
   "show me…", "how many…", "list…", "find documents where…", or wants to
   filter/group/aggregate Couchbase data in natural language. Does NOT handle
-  full-text, vector, or semantic search (use couchbase-search-and-ai); does NOT
+  full-text, vector, or semantic search (use the Couchbase Search Service); does NOT
   analyze, optimize, or speed up queries or design indexes (use
   couchbase-query-optimizer); does NOT perform writes or DDL. Requires the
   Couchbase MCP server.
@@ -56,7 +56,7 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 ## Scope
 
 - **In:** read-only `SELECT`/aggregation/`JOIN`/`UNNEST` queries, grounded in the live schema, run and returned.
-- **Out (hand off):** full-text / vector / semantic search and `SEARCH()` → `couchbase-search-and-ai`; query optimization, `EXPLAIN` analysis, index design → `couchbase-query-optimizer`; any write or DDL → refuse (read-only).
+- **Out (hand off):** full-text / vector / semantic search and `SEARCH()` → the Couchbase **Search Service** (FTS); query optimization, `EXPLAIN` analysis, index design → `couchbase-query-optimizer`; any write or DDL → refuse (read-only).
 
 ## References
 

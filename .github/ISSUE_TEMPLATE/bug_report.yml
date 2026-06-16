@@ -13,8 +13,6 @@ body:
         - couchbase-natural-language-querying
         - couchbase-query-optimizer
         - couchbase-data-modeling
-        - couchbase-search-and-ai
-        - couchbase-connection
         - MCP wiring
         - other
     validations:
