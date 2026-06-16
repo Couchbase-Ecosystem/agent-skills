@@ -68,9 +68,11 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 4 — Decide the access level (default: read-only)
 
+**Ask the user before generating any config:** should the agent have **read-only** access (the safe default) or **read-write** access? Default to read-only unless they explicitly ask for write.
+
 - `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
 - For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket) instead of reusing an admin account. See the reference for the chosen deployment.
-- Only set `CB_MCP_READ_ONLY_MODE=false` when the user explicitly wants the agent to write — and confirm first.
+- Set `CB_MCP_READ_ONLY_MODE=false` only when the user explicitly chose read-write access above — and confirm once more before generating it.
 - **Fine-grained tool control (optional):** `CB_MCP_DISABLED_TOOLS` takes a comma-separated list of tool names (or a file path) to drop specific tools; `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` makes the listed tools require explicit confirmation before they run (client-dependent). Note: disabling tools is **not** a security boundary — the database user's RBAC permissions are the authoritative control.
 
 ## Step 5 — Write the credentials into your client
