@@ -10,12 +10,12 @@ description: >-
 license: Apache-2.0
 metadata:
   version: "0.1.0"
-allowed-tools: Bash
+allowed-tools: Bash, Read, Edit
 ---
 
 # Couchbase MCP Server Setup
 
-This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it is mostly shell- and instruction-driven, ending with a verification that calls a Couchbase MCP tool.
+This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it's driven by editing the client's MCP config file (or running its CLI where one exists), ending with a verification that calls a Couchbase MCP tool.
 
 **The server needs three required values:**
 
@@ -77,7 +77,12 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 5 — Write the credentials into your client
 
-Pick the user's harness. Full config blocks (including Docker/source launch alternatives and the named multi-connection pattern) are in [`references/client-configs.md`](references/client-configs.md).
+Pick the user's harness. There are two equivalent ways to register the server — use whichever fits the environment:
+
+- **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
+- **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
+
+Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and the named multi-connection pattern) are in [`references/client-configs.md`](references/client-configs.md).
 
 - **Claude Code + plugin installed:** the bundled `mcp.json` already launches the server and reads `${CB_*}` from your environment, so just add persistent exports to your shell profile:
   ```bash
