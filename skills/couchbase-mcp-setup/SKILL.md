@@ -25,7 +25,7 @@ This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecos
 | Username | `CB_USERNAME` | a **database** user (not the Capella UI login) |
 | Password | `CB_PASSWORD` | the database user's password |
 
-Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
+Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` (fine-grained tool safety), `CB_MCP_TRANSPORT` (default `stdio`).
 
 > **One server instance connects to one cluster** (all of that cluster's buckets are reachable through the tools). There is no runtime "switch cluster" tool. To work with several **clusters**, register multiple **named** servers (see Step 5).
 
@@ -71,6 +71,7 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 - `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
 - For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket) instead of reusing an admin account. See the reference for the chosen deployment.
 - Only set `CB_MCP_READ_ONLY_MODE=false` when the user explicitly wants the agent to write — and confirm first.
+- **Fine-grained tool control (optional):** `CB_MCP_DISABLED_TOOLS` takes a comma-separated list of tool names (or a file path) to drop specific tools; `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` makes the listed tools require explicit confirmation before they run (client-dependent). Note: disabling tools is **not** a security boundary — the database user's RBAC permissions are the authoritative control.
 
 ## Step 5 — Write the credentials into your client
 
