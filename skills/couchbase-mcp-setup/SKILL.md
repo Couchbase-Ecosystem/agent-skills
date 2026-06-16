@@ -27,7 +27,7 @@ This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecos
 
 Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` (fine-grained tool safety), `CB_MCP_TRANSPORT` (default `stdio`).
 
-> **One server instance connects to one cluster** (all of that cluster's buckets are reachable through the tools). There is no runtime "switch cluster" tool. To work with several **clusters**, register multiple **named** servers (see Step 5).
+> **One server instance connects to one cluster**, fixed at startup (all of that cluster's buckets are reachable through the tools). There is no tool to switch clusters at runtime — to use a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the server (see Step 5).
 
 Work through the steps in order. Be imperative and never print secret values back to the user.
 
@@ -82,7 +82,7 @@ Pick the user's harness. There are two equivalent ways to register the server �
 - **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
 - **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
 
-Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and the named multi-connection pattern) are in [`references/client-configs.md`](references/client-configs.md).
+Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-configs.md`](references/client-configs.md).
 
 - **Claude Code + plugin installed:** the bundled `mcp.json` already launches the server and reads `${CB_*}` from your environment, so just add persistent exports to your shell profile:
   ```bash
@@ -101,7 +101,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
 
-**Multiple clusters:** register additional **named** servers — `couchbase-prod`, `couchbase-staging` — each with its own `CB_*`. Address them by name ("query staging").
+**Switching clusters:** a server connects to one cluster, fixed at startup — there is no runtime switch. To point it at a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client.
 
 **Secret hygiene:** never commit credentials; don't hardcode secrets into version-controlled files; `chmod 600` any env file holding them.
 
@@ -128,4 +128,4 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 
 - [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Database Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
-- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + named multi-connections.
+- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching.

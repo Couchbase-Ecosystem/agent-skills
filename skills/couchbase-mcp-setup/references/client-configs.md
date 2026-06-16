@@ -73,16 +73,9 @@ Where to put it:
 - **Windsurf:** Command Palette → Windsurf MCP Configuration (or Settings → Advanced → Cascade → MCP Servers).
 - **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
 
-## Multiple clusters (named connections)
+## Switching clusters
 
-One server instance connects to a single cluster (all of its buckets are reachable), so to work with multiple **clusters** register **distinct named servers** and address them by name:
-
-```bash
-claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
-claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
-```
-
-(The same idea applies in `config.toml`/JSON — use a distinct key per cluster.)
+One server instance connects to a single cluster, fixed at startup via `CB_CONNECTION_STRING` — there is no tool to switch clusters at runtime. To point the server at a different cluster, update `CB_CONNECTION_STRING` and the credentials in the config above and restart the client.
 
 ## Launch alternatives
 
