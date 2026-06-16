@@ -73,16 +73,16 @@ Where to put it:
 - **Windsurf:** Command Palette → Windsurf MCP Configuration (or Settings → Advanced → Cascade → MCP Servers).
 - **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
 
-## Multiple databases (named connections)
+## Multiple clusters (named connections)
 
-One server instance is pinned to one cluster + one bucket, so register **distinct named servers** and address them by name:
+One server instance connects to a single cluster (all of its buckets are reachable), so to work with multiple **clusters** register **distinct named servers** and address them by name:
 
 ```bash
 claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
 claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
 ```
 
-(The same idea applies in `config.toml`/JSON — use a distinct key per database.)
+(The same idea applies in `config.toml`/JSON — use a distinct key per cluster.)
 
 ## Launch alternatives
 

@@ -27,7 +27,7 @@ This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecos
 
 Optional: `CB_MCP_READ_ONLY_QUERY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
 
-> **One server instance = one cluster + one bucket.** There is no runtime "switch database" tool. To work with several databases, register multiple **named** servers (see Step 5).
+> **One server instance connects to one cluster** (all of that cluster's buckets are reachable through the tools). There is no runtime "switch cluster" tool. To work with several **clusters**, register multiple **named** servers (see Step 5).
 
 Work through the steps in order. Be imperative and never print secret values back to the user.
 
@@ -93,7 +93,7 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
 
-**Multiple databases:** register additional **named** servers — `couchbase-prod`, `couchbase-staging` — each with its own `CB_*`. Address them by name ("query staging").
+**Multiple clusters:** register additional **named** servers — `couchbase-prod`, `couchbase-staging` — each with its own `CB_*`. Address them by name ("query staging").
 
 **Secret hygiene:** never commit credentials; don't hardcode secrets into version-controlled files; `chmod 600` any env file holding them.
 
