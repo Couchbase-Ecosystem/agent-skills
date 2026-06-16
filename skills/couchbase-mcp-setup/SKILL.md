@@ -123,4 +123,4 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
 
 - [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Database Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
-- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source launch alternatives + named multi-connections.
+- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + named multi-connections.

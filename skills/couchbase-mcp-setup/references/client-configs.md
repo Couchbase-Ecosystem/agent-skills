@@ -110,6 +110,36 @@ Swap the `command`/`args` in any of the blocks above.
 }
 ```
 
+## Streamable HTTP transport
+
+By default the server uses `stdio` — the local transport coding agents launch directly. To run it instead as a long-lived networked server that multiple clients can share, start it with the `http` (Streamable HTTP) transport:
+
+```bash
+CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
+CB_USERNAME="app_user" CB_PASSWORD="…" \
+CB_MCP_READ_ONLY_MODE="true" \
+CB_MCP_TRANSPORT="http" CB_MCP_HOST="127.0.0.1" CB_MCP_PORT="8000" \
+uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
+```
+
+- `CB_MCP_TRANSPORT=http` selects Streamable HTTP (the legacy `sse` transport is deprecated).
+- `CB_MCP_HOST` (default `127.0.0.1`) and `CB_MCP_PORT` (default `8000`) set the bind address; the endpoint is `http://<host>:<port>/mcp`.
+- This mode has **no authorization support** — bind it to localhost or a trusted network only.
+
+Then point a client at the URL instead of giving it a launch command:
+
+```json
+{
+  "mcpServers": {
+    "couchbase-http": {
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+(Claude Code: `claude mcp add --transport http couchbase-http http://localhost:8000/mcp`.)
+
 ## Useful checks
 
 - Version: `uvx couchbase-mcp-server --version`
