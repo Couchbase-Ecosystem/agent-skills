@@ -113,5 +113,5 @@ Swap the `command`/`args` in any of the blocks above.
 ## Useful checks
 
 - Version: `uvx couchbase-mcp-server --version`
-- Read-only toggle: set `CB_MCP_READ_ONLY_QUERY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
+- Read-only toggle: set `CB_MCP_READ_ONLY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
 - Transport defaults to `stdio` (what coding agents use); `http`/`sse` are for networked deployments.

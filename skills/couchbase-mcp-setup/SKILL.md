@@ -25,7 +25,7 @@ This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecos
 | Username | `CB_USERNAME` | a **database** user (not the Capella UI login) |
 | Password | `CB_PASSWORD` | the database user's password |
 
-Optional: `CB_MCP_READ_ONLY_QUERY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
+Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
 
 > **One server instance connects to one cluster** (all of that cluster's buckets are reachable through the tools). There is no runtime "switch cluster" tool. To work with several **clusters**, register multiple **named** servers (see Step 5).
 
@@ -68,9 +68,9 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 4 — Decide the access level (default: read-only)
 
-- `CB_MCP_READ_ONLY_QUERY_MODE` defaults to **`true`**, which blocks data-modifying SQL++. **Keep it `true`** for exploration and for safety — most skills only read.
+- `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
 - For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket) instead of reusing an admin account. See the reference for the chosen deployment.
-- Only set `CB_MCP_READ_ONLY_QUERY_MODE=false` when the user explicitly wants the agent to write — and confirm first.
+- Only set `CB_MCP_READ_ONLY_MODE=false` when the user explicitly wants the agent to write — and confirm first.
 
 ## Step 5 — Write the credentials into your client
 
@@ -114,7 +114,7 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; fully restart / `/reload-plugins`. |
-| **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_QUERY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
+| **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
 ## References
 
