@@ -4,7 +4,7 @@
     {
       "name": "capella connect: gathers the right values and uses TLS",
       "input": "I installed the Couchbase plugin in Claude Code but it can't connect to my Capella cluster. Help me set it up.",
-      "expect": ["connection string", "credential", "couchbases://", "CB_BUCKET_NAME"],
+      "expect": ["connection string", "credential", "couchbases://"],
       "reject": ["mongodb", "Atlas", "MDB_MCP"],
       "threshold": 2
     },
@@ -18,7 +18,7 @@
     {
       "name": "local connect: localhost scheme + bucket",
       "input": "Point the Couchbase MCP server at the Couchbase Server running in Docker on my machine.",
-      "expect": ["couchbase://localhost", "CB_BUCKET_NAME"],
+      "expect": ["couchbase://localhost"],
       "reject": ["couchbases://localhost", "mongodb"],
       "threshold": 1
     },

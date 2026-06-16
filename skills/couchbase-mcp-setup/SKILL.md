@@ -17,14 +17,13 @@ allowed-tools: Bash
 
 This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it is mostly shell- and instruction-driven, ending with a verification that calls a Couchbase MCP tool.
 
-**The server needs four required values:**
+**The server needs three required values:**
 
 | Value | Env var | Example |
 |-------|---------|---------|
 | Connection string | `CB_CONNECTION_STRING` | `couchbases://cb.abc.cloud.couchbase.com` (Capella) · `couchbase://localhost` (local) |
 | Username | `CB_USERNAME` | a **database** user (not the Capella UI login) |
 | Password | `CB_PASSWORD` | the database user's password |
-| Bucket | `CB_BUCKET_NAME` | e.g. `travel-sample` |
 
 Optional: `CB_MCP_READ_ONLY_QUERY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
 
@@ -61,7 +60,7 @@ Ask the user which applies; each path produces the four values above:
 
 ## Step 3 — Get your connection details
 
-Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD`, and `CB_BUCKET_NAME`.
+Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`.
 
 **Connection-string scheme matters:**
 - `couchbase://…` — non-TLS, for local/self-managed dev clusters.
@@ -83,13 +82,12 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
   export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
   export CB_USERNAME="app_user"
   export CB_PASSWORD="…"
-  export CB_BUCKET_NAME="travel-sample"
   ```
 - **Claude Code, manual (no plugin):** register the server yourself (values stored in `~/.claude.json`):
   ```bash
   claude mcp add couchbase --scope user \
     -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
-    -e CB_PASSWORD="…" -e CB_BUCKET_NAME="…" \
+    -e CB_PASSWORD="…" \
     -- uvx couchbase-mcp-server@0.8.0
   ```
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
@@ -111,7 +109,7 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
 |---------|--------------------|
 | Connection **times out** | Capella: your IP isn't in the **Allowed IP** list; or you used `couchbase://` instead of `couchbases://`. Network: cluster unreachable. |
 | **Auth fails** | You used the Capella **UI login** instead of a **Database Access** credential; or the password's case is wrong (passwords are case-sensitive). |
-| **"bucket not found"** | `CB_BUCKET_NAME` is required and **case-sensitive**; confirm the bucket exists. |
+| **"bucket not found"** | The bucket name passed to a tool is wrong or **case-sensitive**; confirm the bucket exists in the cluster. |
 | `couchbase://` **rejected** | Capella requires TLS — use `couchbases://`. |
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |

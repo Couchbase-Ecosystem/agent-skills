@@ -1,6 +1,6 @@
 # Capella setup (managed cloud)
 
-Collect the four values the MCP server needs from a Couchbase Capella cluster.
+Collect the values the MCP server needs from a Couchbase Capella cluster.
 
 ## 1. Connection string
 
@@ -33,9 +33,9 @@ Capella **blocks all connections by default**. UI → cluster → **Connect → 
 
 If you skip this, connections will simply time out.
 
-## 4. Bucket
+## 4. A bucket with data
 
-`CB_BUCKET_NAME` must name an existing bucket. To get sample data: UI → **Data Tools → Buckets → Import Sample Data → `travel-sample` → Import**. Otherwise use an existing bucket name (case-sensitive).
+The server connects at the cluster level — there is no bucket env var — but you need at least one bucket with data to query. To load sample data: UI → **Data Tools → Buckets → Import Sample Data → `travel-sample` → Import**. Bucket names passed to tools are case-sensitive.
 
 ## Result
 
@@ -43,7 +43,6 @@ If you skip this, connections will simply time out.
 CB_CONNECTION_STRING = couchbases://cb.<cluster-id>.cloud.couchbase.com
 CB_USERNAME          = <database credential username>
 CB_PASSWORD          = <database credential password>
-CB_BUCKET_NAME       = travel-sample   # or your bucket
 ```
 
 ## Gotchas

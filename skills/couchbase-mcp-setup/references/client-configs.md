@@ -13,7 +13,6 @@ The plugin's bundled `mcp.json` already defines the `couchbase` server and reads
 export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
 export CB_USERNAME="app_user"
 export CB_PASSWORD="…"
-export CB_BUCKET_NAME="travel-sample"
 ```
 
 This keeps secrets out of any committed/config file. Apply with `/reload-plugins` or by restarting.
@@ -27,7 +26,6 @@ claude mcp add couchbase --scope user \
   -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
   -e CB_USERNAME="app_user" \
   -e CB_PASSWORD="…" \
-  -e CB_BUCKET_NAME="travel-sample" \
   -- uvx couchbase-mcp-server@0.8.0
 ```
 
@@ -46,7 +44,6 @@ args = ["couchbase-mcp-server@0.8.0"]
 CB_CONNECTION_STRING = "couchbases://cb.abc.cloud.couchbase.com"
 CB_USERNAME = "app_user"
 CB_PASSWORD = "…"
-CB_BUCKET_NAME = "travel-sample"
 ```
 
 Fully quit and relaunch Codex to apply (it does not inherit your shell env when launched from a GUI).
@@ -64,8 +61,7 @@ Add this JSON `mcpServers` entry in the client's MCP settings:
       "env": {
         "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
         "CB_USERNAME": "app_user",
-        "CB_PASSWORD": "…",
-        "CB_BUCKET_NAME": "travel-sample"
+        "CB_PASSWORD": "…"
       }
     }
   }
@@ -82,8 +78,8 @@ Where to put it:
 One server instance is pinned to one cluster + one bucket, so register **distinct named servers** and address them by name:
 
 ```bash
-claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_BUCKET_NAME="app" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
-claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_BUCKET_NAME="app" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
+claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
+claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
 ```
 
 (The same idea applies in `config.toml`/JSON — use a distinct key per database.)
@@ -101,7 +97,6 @@ Swap the `command`/`args` in any of the blocks above.
     "-e", "CB_CONNECTION_STRING=couchbase://host.docker.internal",
     "-e", "CB_USERNAME=Administrator",
     "-e", "CB_PASSWORD=…",
-    "-e", "CB_BUCKET_NAME=travel-sample",
     "couchbaseecosystem/mcp-server-couchbase:latest"]
 }
 ```
