@@ -10,7 +10,7 @@ description: >-
 license: Apache-2.0
 metadata:
   version: "0.1.0"
-allowed-tools: Bash, Read, Edit
+allowed-tools: Bash, Read, Edit, Write
 ---
 
 # Couchbase MCP Server Setup
@@ -27,7 +27,7 @@ This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecos
 
 Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` (fine-grained tool safety), `CB_MCP_TRANSPORT` (default `stdio`).
 
-> **One server instance connects to one cluster**, fixed at startup (all of that cluster's buckets are reachable through the tools). There is no tool to switch clusters at runtime — to use a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the server (see Step 5).
+> **One server instance connects to one cluster**, fixed at startup (all of that cluster's buckets are reachable through the tools). There is no tool to switch clusters at runtime — to use a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client (see Step 5).
 
 Work through the steps in order. Be imperative and never print secret values back to the user.
 
@@ -40,13 +40,10 @@ Determine two things before configuring anything:
 
 ## Step 1 — Check existing configuration (never reveal secrets)
 
-Show which values are already set, masked:
+Find which `CB_*` values are already set — they live either in your shell environment or in the client's MCP config file, depending on how the server was registered:
 
-```bash
-env | grep '^CB_' | sed 's/=.*/=<set>/'
-```
-
-In Claude Code, also check whether a server is registered: `claude mcp list`, then `claude mcp get couchbase`. In Codex, inspect `~/.codex/config.toml` for an `[mcp_servers.couchbase]` block (mask values).
+- **Shell environment** (plugin / `${CB_*}` setups): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
+- **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop).
 
 If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
 
@@ -71,7 +68,7 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 **Ask the user before generating any config:** should the agent have **read-only** access (the safe default) or **read-write** access? Default to read-only unless they explicitly ask for write.
 
 - `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
-- For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket) instead of reusing an admin account. See the reference for the chosen deployment.
+- For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket(s) you want readable) instead of reusing an admin account. See the reference for the chosen deployment.
 - Set `CB_MCP_READ_ONLY_MODE=false` only when the user explicitly chose read-write access above — and confirm once more before generating it.
 - **Fine-grained tool control (optional):** `CB_MCP_DISABLED_TOOLS` takes a comma-separated list of tool names (or a file path) to drop specific tools; `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` makes the listed tools require explicit confirmation before they run (client-dependent). Note: disabling tools is **not** a security boundary — the database user's RBAC permissions are the authoritative control.
 

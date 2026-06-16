@@ -34,4 +34,4 @@ Then:
 
 ## Least-privilege user (optional)
 
-Instead of the `Administrator` account, create a dedicated user in **Security → Users → Add User** with read-only roles (Data Reader + Query Select) scoped to the bucket, and use those credentials. This pairs with `CB_MCP_READ_ONLY_MODE=true` for two layers of safety.
+Instead of the `Administrator` account, create a dedicated user in **Security → Users → Add User** with read-only roles (Data Reader + Query Select) scoped to the bucket(s) you want readable, and use those credentials. This pairs with `CB_MCP_READ_ONLY_MODE=true` for two layers of safety.

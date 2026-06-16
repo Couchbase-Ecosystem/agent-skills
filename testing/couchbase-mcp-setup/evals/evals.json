@@ -16,7 +16,7 @@
       "threshold": 2
     },
     {
-      "name": "local connect: localhost scheme + bucket",
+      "name": "local connect: localhost scheme",
       "input": "Point the Couchbase MCP server at the Couchbase Server running in Docker on my machine.",
       "expect": ["couchbase://localhost"],
       "reject": ["couchbases://localhost", "mongodb"],

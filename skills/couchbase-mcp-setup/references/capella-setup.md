@@ -20,7 +20,7 @@ UI → cluster → **Connect → Database Access** (or **Settings → Database A
 
 - Set a username and password → these become `CB_USERNAME` / `CB_PASSWORD`.
 - The password is **shown once** — save it immediately. Passwords are **case-sensitive**.
-- **Grant least privilege.** For a read-only MCP setup, give the user **Read** access (data reads + `query_select`) scoped to the target bucket. Only add write privileges (`data_writer`, `query_insert/update/delete`) if the user intends the agent to modify data.
+- **Grant least privilege.** For a read-only MCP setup, give the user **Read** access (data reads + `query_select`) scoped to the bucket(s) you want readable. Only add write privileges (`data_writer`, `query_insert/update/delete`) if the user intends the agent to modify data.
 - Database credentials are **cluster-scoped** (one credential set per cluster, applied to the buckets/scopes you grant).
 
 ## 3. Allowed IP list

@@ -81,7 +81,7 @@ One server instance connects to a single cluster, fixed at startup via `CB_CONNE
 
 Swap the `command`/`args` in any of the blocks above.
 
-**Docker** (no Python toolchain needed). Docker tags can't express a range, so pin to an exact version (e.g. `:0.8.0`). For a **local** cluster, use `host.docker.internal` in the connection string:
+**Docker** (no Python toolchain needed). Docker tags can't express a range, so use the floating minor tag `:0.8` to track `0.8.x` patches (matching the uvx range above). For a **local** cluster, use `host.docker.internal` in the connection string:
 
 ```json
 {
@@ -90,7 +90,7 @@ Swap the `command`/`args` in any of the blocks above.
     "-e", "CB_CONNECTION_STRING=couchbase://host.docker.internal",
     "-e", "CB_USERNAME=Administrator",
     "-e", "CB_PASSWORD=…",
-    "couchbaseecosystem/mcp-server-couchbase:0.8.0"]
+    "couchbaseecosystem/mcp-server-couchbase:0.8"]
 }
 ```
 
