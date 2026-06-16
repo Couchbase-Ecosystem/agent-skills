@@ -1,6 +1,6 @@
 # Per-client configuration
 
-How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command pins to the current minor version: `uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server` — it picks up `0.8.x` patches but not a potentially breaking `0.9`. (When the server reaches `1.0`, widen this to `>=1.0.0,<2.0.0`.)
+How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command pins to the current minor version: `uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server` — it picks up `0.8.x` patches but not a potentially breaking `0.9`. (When the server reaches `1.0`, widen this to `>=1.0.0,<2.0.0`.)
 
 ## Claude Code
 
@@ -26,7 +26,7 @@ claude mcp add couchbase --scope user \
   -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
   -e CB_USERNAME="app_user" \
   -e CB_PASSWORD="…" \
-  -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
+  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
 ```
 
 Check it with `claude mcp list` / `claude mcp get couchbase`. Scopes: `--scope user` (all projects), `project` (writes `.mcp.json`, shared), `local` (default, this project only).
@@ -112,7 +112,7 @@ CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
 CB_USERNAME="app_user" CB_PASSWORD="…" \
 CB_MCP_READ_ONLY_MODE="true" \
 CB_MCP_TRANSPORT="http" CB_MCP_HOST="127.0.0.1" CB_MCP_PORT="8000" \
-uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
+uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
 ```
 
 - `CB_MCP_TRANSPORT=http` selects Streamable HTTP (the legacy `sse` transport is deprecated).

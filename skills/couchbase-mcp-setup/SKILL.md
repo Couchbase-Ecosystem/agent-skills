@@ -93,7 +93,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
   claude mcp add couchbase --scope user \
     -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
     -e CB_PASSWORD="…" \
-    -- uvx --from 'couchbase-mcp-server>=0.8.0,<0.9.0' couchbase-mcp-server
+    -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
   ```
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
