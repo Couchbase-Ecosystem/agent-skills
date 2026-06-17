@@ -60,7 +60,7 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 
 ## Step 5 — Note index coverage (don't optimize here)
 
-- From `list_indexes` (or a quick `EXPLAIN`), note whether the query is served by a GSI or would fall back to a primary/collection scan.
+- From `list_indexes` (or `explain_sql_plus_plus_query`, the dedicated tool that runs EXPLAIN and returns the plan — don't wrap your `SELECT` in `EXPLAIN` through the query tool), note whether the query is served by a GSI or would fall back to a primary/collection scan.
 - If it's a scan or otherwise slow, say so briefly and **hand off to `couchbase-query-optimizer`** — do not design indexes or tune the query in this skill.
 
 ## Scope
