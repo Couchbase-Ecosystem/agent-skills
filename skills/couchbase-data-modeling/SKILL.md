@@ -27,7 +27,7 @@ Guide Couchbase JSON data modeling and ground recommendations in the real cluste
 New design? Migration (from relational/Mongo)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest.
 
 ## Step 2 — Apply the fundamentals
-"Accessed together → stored together"; **embed vs reference** by cardinality + access pattern (references = KV `GET` by key); the **20 MB** document limit (keep documents small); and the **schema-validation reality** — Couchbase has no server-side `$jsonSchema`, so validation is app-level or via the Eventing service. → [`references/fundamentals.md`](references/fundamentals.md).
+"Accessed together → stored together"; **embed vs reference** by cardinality + access pattern (references = KV `GET` by key); the **20 MB** hard document limit (aim well under ~1 MB); and the **schema-validation reality** — Couchbase has no server-side `$jsonSchema`, so validation is app-level or via the Eventing service. → [`references/fundamentals.md`](references/fundamentals.md).
 
 ## Step 3 — Spot antipatterns
 Unnecessary buckets/scopes/collections; excessive SQL++ JOINs (denormalize); oversized documents / unbounded arrays; redundant GSIs. → [`references/antipatterns.md`](references/antipatterns.md).

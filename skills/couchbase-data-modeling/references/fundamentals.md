@@ -17,7 +17,7 @@ The Couchbase twist: a reference is a **key you resolve with a cheap KV `GET`**,
 
 ## Document size
 
-Hard limit **20 MB** per document; in practice keep documents small (large values hurt cache density and KV throughput). Drivers of bloat: unbounded arrays, embedding cold data, large binary blobs, deep nesting. Verify real sizes with SQL++ `ENCODED_SIZE(doc)` and array bounds with `ARRAY_LENGTH(arr)` (there is no `$bsonSize`/stats tool — query for it). If a document trends large, split cold/unbounded data into referenced documents.
+**20 MB** is the hard ceiling, not a target. Aim to keep documents well under **~1 MB** (ideally tens to low-hundreds of KB) — large values hurt cache density and KV throughput. Drivers of bloat: unbounded arrays, embedding cold data, large binary blobs, deep nesting. Verify real sizes with SQL++ `ENCODED_SIZE(doc)` and array bounds with `ARRAY_LENGTH(arr)` (there is no `$bsonSize`/stats tool — query for it). Note `ENCODED_SIZE(doc)` returns the **JSON-encoded byte size** — an upper-bound proxy, not the on-disk footprint (the Magma backend compresses). If a document trends large, split cold/unbounded data into referenced documents.
 
 ## Schema-validation reality (important divergence)
 
