@@ -30,7 +30,7 @@ Many sparse, variable optional fields → collapse them into an array of `{name,
 Move cold/old data off the hot working set: a separate collection/bucket, a lower tier, external object storage, or TTL-based expiry; the **Magma** storage backend suits large, mostly-cold datasets. Keep archive documents self-contained (denormalized). Use when most data is rarely read; avoid if access is uniform.
 
 ## Bucketing / grouping
-*(MongoDB's "bucket pattern" — renamed to avoid confusion with Couchbase **Buckets**.)* Group many small related items into one document with a bounded array (e.g. N events per doc, keyed `device::123::2026-06-08`) to cut document count and align with how data is read. Use for streams/logs read in ranges; avoid for random single-item access or highly variable group sizes.
+*(a.k.a. the "bucket pattern" — renamed here to avoid confusion with Couchbase **Buckets**.)* Group many small related items into one document with a bounded array (e.g. N events per doc, keyed `device::123::2026-06-08`) to cut document count and align with how data is read. Use for streams/logs read in ranges; avoid for random single-item access or highly variable group sizes.
 
 ## Time-series
 Append-only measurements (IoT, metrics). Use Couchbase **time-series support (7.2+)** and/or bucketed time-series documents (one doc per device per window) with rollups for older data. Choose a key encoding the series + time window. Use for high-volume time-stamped data; avoid for low volumes or frequent historical updates.

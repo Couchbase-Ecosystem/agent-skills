@@ -2,7 +2,7 @@
 
 ## Document model + KV-first
 
-Model around how data is **accessed**, not around normalized tables. Data read together should live in one document so it can be fetched with a single **KV `GET` by key** — the fastest path in Couchbase. Coming from relational/Mongo, stop mapping one table → one collection; identify what's always read together and unify it.
+Model around how data is **accessed**, not around normalized tables. Data read together should live in one document so it can be fetched with a single **KV `GET` by key** — the fastest path in Couchbase. Coming from a relational/normalized schema, stop mapping one table → one collection; identify what's always read together and unify it.
 
 ## Embed vs. reference (by cardinality + access pattern)
 

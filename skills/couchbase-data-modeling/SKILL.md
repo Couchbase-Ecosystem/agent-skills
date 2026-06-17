@@ -7,7 +7,7 @@ description: >-
   when the user asks to design a data model, "embed vs reference", choose
   document keys, do a schema review, model one-to-many / polymorphic / multi-tenant
   data, handle unbounded arrays or TTL/archive/time-series, or migrate a
-  relational/Mongo schema to Couchbase. Does NOT do GSI/query-index tuning or
+  relational schema to Couchbase. Does NOT do GSI/query-index tuning or
   "why is my query slow" (use couchbase-query-optimizer); does NOT write queries
   (use couchbase-natural-language-querying). Requires the Couchbase MCP server
   for verification.
@@ -24,7 +24,7 @@ Guide Couchbase JSON data modeling and ground recommendations in the real cluste
 > **Read to verify; writes need approval.** Inspect freely (read-only). Any migration write or DDL requires explicit user approval — and is blocked by the MCP server's read-only default anyway.
 
 ## Step 1 — Assess the situation
-New design? Migration (from relational/Mongo)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest.
+New design? Migration (from a relational/normalized schema)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest.
 
 ## Step 2 — Apply the fundamentals
 "Accessed together → stored together"; **embed vs reference** by cardinality + access pattern (references = KV `GET` by key); the **20 MB** hard document limit (aim well under ~1 MB); and the **schema-validation reality** — Couchbase has no server-side `$jsonSchema`, so validation is app-level or via the Eventing service. → [`references/fundamentals.md`](references/fundamentals.md).
@@ -33,7 +33,7 @@ New design? Migration (from relational/Mongo)? A performance problem caused by s
 Unnecessary buckets/scopes/collections; excessive SQL++ JOINs (denormalize); oversized documents / unbounded arrays; redundant GSIs. → [`references/antipatterns.md`](references/antipatterns.md).
 
 ## Step 4 — Design document keys & placement (Couchbase-specific)
-Unlike auto-generated `_id`s, Couchbase keys are designer-chosen and central: naming conventions, composite/natural keys (`tenant::user::123`), counter keys, and KV-first access. Decide bucket vs scope vs collection placement. → [`references/document-keys.md`](references/document-keys.md).
+Unlike auto-generated IDs, Couchbase keys are designer-chosen and central: naming conventions, composite/natural keys (`tenant::user::123`), counter keys, and KV-first access. Decide bucket vs scope vs collection placement. → [`references/document-keys.md`](references/document-keys.md).
 
 ## Step 5 — Recommend a pattern
 Match the schema shape to the library: approximation, computed, extended-reference, outlier, polymorphic, schema-versioning, document-versioning, attribute, archive, **bucketing/grouping**, time-series. → [`references/patterns.md`](references/patterns.md).
