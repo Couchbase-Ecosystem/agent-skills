@@ -1,6 +1,6 @@
 # Local Couchbase Server setup
 
-Collect the four values from a Couchbase Server running on your machine. Local clusters use plain `couchbase://` (no TLS).
+Collect the values from a Couchbase Server running on your machine. Local clusters use plain `couchbase://` (no TLS).
 
 ## Already have a local cluster?
 
@@ -10,7 +10,6 @@ If Couchbase Server is already running (e.g. a `couchbase/server` Docker contain
 CB_CONNECTION_STRING = couchbase://localhost      # or couchbase://127.0.0.1
 CB_USERNAME          = Administrator              # or a user you created
 CB_PASSWORD          = <your password>
-CB_BUCKET_NAME       = travel-sample              # or your bucket
 ```
 
 Open the Web Console at `http://localhost:8091` to confirm the cluster and bucket exist.
@@ -35,4 +34,4 @@ Then:
 
 ## Least-privilege user (optional)
 
-Instead of the `Administrator` account, create a dedicated user in **Security → Users → Add User** with read-only roles (Data Reader + Query Select) scoped to the bucket, and use those credentials. This pairs with `CB_MCP_READ_ONLY_QUERY_MODE=true` for two layers of safety.
+Instead of the `Administrator` account, create a dedicated user in **Security → Users → Add User** with read-only roles (Data Reader + Query Select) scoped to the bucket(s) you want readable, and use those credentials. This pairs with `CB_MCP_READ_ONLY_MODE=true` for two layers of safety.

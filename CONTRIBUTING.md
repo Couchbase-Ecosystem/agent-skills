@@ -32,7 +32,7 @@ metadata:
 - **MCP-centric.** Skills operate a live cluster through the Couchbase MCP server (`run_sql_plus_plus_query`, `explain_sql_plus_plus_query`, `get_schema_for_collection`, `list_indexes`, `get_index_advisor_recommendations`, KV doc tools, etc.). Prefer grounding advice in the real cluster over generic guidance.
 - **Language-agnostic.** Rely on SQL++ and MCP rather than per-language SDK code. (Per-language SDK code-generation lives in a separate effort.)
 - **Couchbase-native terminology.** Use Bucket → Scope → Collection, SQL++, GSI, the Search Service, Capella
-- **Read-only by default.** Treat the MCP server as read-only (`CB_MCP_READ_ONLY_QUERY_MODE=true`); require explicit user approval before any write/DDL.
+- **Read-only by default.** Treat the MCP server as read-only (`CB_MCP_READ_ONLY_MODE=true`); require explicit user approval before any write/DDL.
 - **Size.** Keep `SKILL.md` focused; push depth into `references/`.
 
 ## Validation

@@ -16,7 +16,7 @@ Official Couchbase **agent skills** + **MCP server** for your favorite coding ag
 
 ## Prerequisites: the Couchbase MCP server
 
-These skills act on a live cluster through the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) (`couchbase-mcp-server`). It runs via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker — **not** a plain `npx` command.
+These skills act on a live cluster through the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) (`couchbase-mcp-server`). It runs via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker — **not** a plain `npx` command.
 
 Set these environment variables (the manifests reference them):
 
@@ -25,10 +25,9 @@ Set these environment variables (the manifests reference them):
 | `CB_CONNECTION_STRING` | Cluster connection string, e.g. `couchbases://cb.xxxx.cloud.couchbase.com` | **required** |
 | `CB_USERNAME` | Database username | **required** |
 | `CB_PASSWORD` | Database password | **required** |
-| `CB_BUCKET_NAME` | Bucket to access | **required** |
-| `CB_MCP_READ_ONLY_QUERY_MODE` | Block data-modifying queries | `true` |
+| `CB_MCP_READ_ONLY_MODE` | Block all data modifications (KV and Query) | `true` |
 
-For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase#readme).
+For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/couchbase/mcp-server-couchbase#readme).
 
 ## Install
 

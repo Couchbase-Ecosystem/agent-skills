@@ -1,6 +1,6 @@
 # Per-client configuration
 
-How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command is `uvx couchbase-mcp-server@0.8.0`.
+How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command pins to the current minor version: `uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server` — it picks up `0.8.x` patches but not a potentially breaking `0.9`. (When the server reaches `1.0`, widen this to `>=1.0.0,<2.0.0`.)
 
 ## Claude Code
 
@@ -13,7 +13,10 @@ The plugin's bundled `mcp.json` already defines the `couchbase` server and reads
 export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
 export CB_USERNAME="app_user"
 export CB_PASSWORD="…"
-export CB_BUCKET_NAME="travel-sample"
+# optional — the bundled mcp.json passes these through if set:
+# export CB_MCP_READ_ONLY_MODE="false"               # allow writes (default: true)
+# export CB_MCP_DISABLED_TOOLS="tool_a,tool_b"        # drop specific tools
+# export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
 ```
 
 This keeps secrets out of any committed/config file. Apply with `/reload-plugins` or by restarting.
@@ -27,8 +30,7 @@ claude mcp add couchbase --scope user \
   -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
   -e CB_USERNAME="app_user" \
   -e CB_PASSWORD="…" \
-  -e CB_BUCKET_NAME="travel-sample" \
-  -- uvx couchbase-mcp-server@0.8.0
+  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
 ```
 
 Check it with `claude mcp list` / `claude mcp get couchbase`. Scopes: `--scope user` (all projects), `project` (writes `.mcp.json`, shared), `local` (default, this project only).
@@ -40,13 +42,12 @@ Add to `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`):
 ```toml
 [mcp_servers.couchbase]
 command = "uvx"
-args = ["couchbase-mcp-server@0.8.0"]
+args = ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"]
 
 [mcp_servers.couchbase.env]
 CB_CONNECTION_STRING = "couchbases://cb.abc.cloud.couchbase.com"
 CB_USERNAME = "app_user"
 CB_PASSWORD = "…"
-CB_BUCKET_NAME = "travel-sample"
 ```
 
 Fully quit and relaunch Codex to apply (it does not inherit your shell env when launched from a GUI).
@@ -60,12 +61,11 @@ Add this JSON `mcpServers` entry in the client's MCP settings:
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["couchbase-mcp-server@0.8.0"],
+      "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
         "CB_USERNAME": "app_user",
-        "CB_PASSWORD": "…",
-        "CB_BUCKET_NAME": "travel-sample"
+        "CB_PASSWORD": "…"
       }
     }
   }
@@ -77,22 +77,15 @@ Where to put it:
 - **Windsurf:** Command Palette → Windsurf MCP Configuration (or Settings → Advanced → Cascade → MCP Servers).
 - **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
 
-## Multiple databases (named connections)
+## Switching clusters
 
-One server instance is pinned to one cluster + one bucket, so register **distinct named servers** and address them by name:
-
-```bash
-claude mcp add couchbase-prod    --scope user -e CB_CONNECTION_STRING="couchbases://prod…"    -e CB_BUCKET_NAME="app" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
-claude mcp add couchbase-staging --scope user -e CB_CONNECTION_STRING="couchbases://staging…" -e CB_BUCKET_NAME="app" -e CB_USERNAME="…" -e CB_PASSWORD="…" -- uvx couchbase-mcp-server@0.8.0
-```
-
-(The same idea applies in `config.toml`/JSON — use a distinct key per database.)
+One server instance connects to a single cluster, fixed at startup via `CB_CONNECTION_STRING` — there is no tool to switch clusters at runtime. To point the server at a different cluster, update `CB_CONNECTION_STRING` and the credentials in the config above and restart the client.
 
 ## Launch alternatives
 
 Swap the `command`/`args` in any of the blocks above.
 
-**Docker** (no Python toolchain needed). For a **local** cluster, use `host.docker.internal` in the connection string:
+**Docker** (no Python toolchain needed). Docker tags can't express a range, so use the floating minor tag `:0.8` to track `0.8.x` patches (matching the uvx range above). For a **local** cluster, use `host.docker.internal` in the connection string:
 
 ```json
 {
@@ -101,8 +94,7 @@ Swap the `command`/`args` in any of the blocks above.
     "-e", "CB_CONNECTION_STRING=couchbase://host.docker.internal",
     "-e", "CB_USERNAME=Administrator",
     "-e", "CB_PASSWORD=…",
-    "-e", "CB_BUCKET_NAME=travel-sample",
-    "couchbaseecosystem/mcp-server-couchbase:latest"]
+    "couchbaseecosystem/mcp-server-couchbase:0.8"]
 }
 ```
 
@@ -115,8 +107,39 @@ Swap the `command`/`args` in any of the blocks above.
 }
 ```
 
+## Streamable HTTP transport
+
+By default the server uses `stdio` — the local transport coding agents launch directly. To run it instead as a long-lived networked server that multiple clients can share, start it with the `http` (Streamable HTTP) transport:
+
+```bash
+CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
+CB_USERNAME="app_user" CB_PASSWORD="…" \
+CB_MCP_READ_ONLY_MODE="true" \
+CB_MCP_TRANSPORT="http" CB_MCP_HOST="127.0.0.1" CB_MCP_PORT="8000" \
+uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
+```
+
+- `CB_MCP_TRANSPORT=http` selects Streamable HTTP (the legacy `sse` transport is deprecated).
+- `CB_MCP_HOST` (default `127.0.0.1`) and `CB_MCP_PORT` (default `8000`) set the bind address; the endpoint is `http://<host>:<port>/mcp`.
+- This mode has **no authorization support** — bind it to localhost or a trusted network only.
+
+Then point a client at the URL instead of giving it a launch command:
+
+```json
+{
+  "mcpServers": {
+    "couchbase-http": {
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
+```
+
+(Claude Code: `claude mcp add --transport http couchbase-http http://localhost:8000/mcp`.)
+
 ## Useful checks
 
 - Version: `uvx couchbase-mcp-server --version`
-- Read-only toggle: set `CB_MCP_READ_ONLY_QUERY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
-- Transport defaults to `stdio` (what coding agents use); `http`/`sse` are for networked deployments.
+- Read-only toggle: set `CB_MCP_READ_ONLY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
+- Disable tools / require confirmation: set `CB_MCP_DISABLED_TOOLS` and/or `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` to comma-separated tool names (or a file path); empty means none.
+- Transport defaults to `stdio` (what coding agents use); `http` (Streamable HTTP) is for networked deployments. The legacy `sse` transport is deprecated — use `http` instead.

@@ -6,13 +6,14 @@
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["couchbase-mcp-server@0.8.0"],
+      "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "${CB_CONNECTION_STRING}",
         "CB_USERNAME": "${CB_USERNAME}",
         "CB_PASSWORD": "${CB_PASSWORD}",
-        "CB_BUCKET_NAME": "${CB_BUCKET_NAME}",
-        "CB_MCP_READ_ONLY_QUERY_MODE": "true"
+        "CB_MCP_READ_ONLY_MODE": "true",
+        "CB_MCP_DISABLED_TOOLS": "${CB_MCP_DISABLED_TOOLS}",
+        "CB_MCP_CONFIRMATION_REQUIRED_TOOLS": "${CB_MCP_CONFIRMATION_REQUIRED_TOOLS}"
       }
     }
   }

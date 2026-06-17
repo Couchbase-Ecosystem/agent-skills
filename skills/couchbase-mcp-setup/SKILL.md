@@ -10,25 +10,24 @@ description: >-
 license: Apache-2.0
 metadata:
   version: "0.1.0"
-allowed-tools: Bash
+allowed-tools: Bash, Read, Edit, Write
 ---
 
 # Couchbase MCP Server Setup
 
-This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it is mostly shell- and instruction-driven, ending with a verification that calls a Couchbase MCP tool.
+This skill connects the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it's driven by editing the client's MCP config file (or running its CLI where one exists), ending with a verification that calls a Couchbase MCP tool.
 
-**The server needs four required values:**
+**The server needs three required values:**
 
 | Value | Env var | Example |
 |-------|---------|---------|
 | Connection string | `CB_CONNECTION_STRING` | `couchbases://cb.abc.cloud.couchbase.com` (Capella) · `couchbase://localhost` (local) |
 | Username | `CB_USERNAME` | a **database** user (not the Capella UI login) |
 | Password | `CB_PASSWORD` | the database user's password |
-| Bucket | `CB_BUCKET_NAME` | e.g. `travel-sample` |
 
-Optional: `CB_MCP_READ_ONLY_QUERY_MODE` (default `true`), `CB_MCP_TRANSPORT` (default `stdio`).
+Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` (fine-grained tool safety), `CB_MCP_TRANSPORT` (default `stdio`).
 
-> **One server instance = one cluster + one bucket.** There is no runtime "switch database" tool. To work with several databases, register multiple **named** servers (see Step 5).
+> **One server instance connects to one cluster**, fixed at startup (all of that cluster's buckets are reachable through the tools). There is no tool to switch clusters at runtime — to use a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client (see Step 5).
 
 Work through the steps in order. Be imperative and never print secret values back to the user.
 
@@ -41,19 +40,16 @@ Determine two things before configuring anything:
 
 ## Step 1 — Check existing configuration (never reveal secrets)
 
-Show which values are already set, masked:
+Find which `CB_*` values are already set — they live either in your shell environment or in the client's MCP config file, depending on how the server was registered:
 
-```bash
-env | grep '^CB_' | sed 's/=.*/=<set>/'
-```
+- **Shell environment** (plugin / `${CB_*}` setups): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
+- **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop).
 
-In Claude Code, also check whether a server is registered: `claude mcp list`, then `claude mcp get couchbase`. In Codex, inspect `~/.codex/config.toml` for an `[mcp_servers.couchbase]` block (mask values).
-
-If all four values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
+If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
 
 ## Step 2 — Choose where Couchbase lives
 
-Ask the user which applies; each path produces the four values above:
+Ask the user which applies; each path produces the three values above:
 
 - **A) Capella** (managed cloud) → follow [`references/capella-setup.md`](references/capella-setup.md)
 - **B) Local Couchbase Server** (Docker / dev machine) → follow [`references/local-setup.md`](references/local-setup.md)
@@ -61,7 +57,7 @@ Ask the user which applies; each path produces the four values above:
 
 ## Step 3 — Get your connection details
 
-Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD`, and `CB_BUCKET_NAME`.
+Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`.
 
 **Connection-string scheme matters:**
 - `couchbase://…` — non-TLS, for local/self-managed dev clusters.
@@ -69,13 +65,21 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 4 — Decide the access level (default: read-only)
 
-- `CB_MCP_READ_ONLY_QUERY_MODE` defaults to **`true`**, which blocks data-modifying SQL++. **Keep it `true`** for exploration and for safety — most skills only read.
-- For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket) instead of reusing an admin account. See the reference for the chosen deployment.
-- Only set `CB_MCP_READ_ONLY_QUERY_MODE=false` when the user explicitly wants the agent to write — and confirm first.
+**Ask the user before generating any config:** should the agent have **read-only** access (the safe default) or **read-write** access? Default to read-only unless they explicitly ask for write.
+
+- `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
+- For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket(s) you want readable) instead of reusing an admin account. See the reference for the chosen deployment.
+- Set `CB_MCP_READ_ONLY_MODE=false` only when the user explicitly chose read-write access above — and confirm once more before generating it.
+- **Fine-grained tool control (optional):** `CB_MCP_DISABLED_TOOLS` takes a comma-separated list of tool names (or a file path) to drop specific tools; `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` makes the listed tools require explicit confirmation before they run (client-dependent). Note: disabling tools is **not** a security boundary — the database user's RBAC permissions are the authoritative control.
 
 ## Step 5 — Write the credentials into your client
 
-Pick the user's harness. Full config blocks (including Docker/source launch alternatives and the named multi-connection pattern) are in [`references/client-configs.md`](references/client-configs.md).
+Pick the user's harness. There are two equivalent ways to register the server — use whichever fits the environment:
+
+- **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
+- **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
+
+Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-configs.md`](references/client-configs.md).
 
 - **Claude Code + plugin installed:** the bundled `mcp.json` already launches the server and reads `${CB_*}` from your environment, so just add persistent exports to your shell profile:
   ```bash
@@ -83,19 +87,24 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
   export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
   export CB_USERNAME="app_user"
   export CB_PASSWORD="…"
-  export CB_BUCKET_NAME="travel-sample"
+  # optional — the bundled mcp.json passes these through if set:
+  # export CB_MCP_READ_ONLY_MODE="false"               # allow writes (default: true)
+  # export CB_MCP_DISABLED_TOOLS="tool_a,tool_b"        # drop specific tools
+  # export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
   ```
 - **Claude Code, manual (no plugin):** register the server yourself (values stored in `~/.claude.json`):
   ```bash
   claude mcp add couchbase --scope user \
     -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
-    -e CB_PASSWORD="…" -e CB_BUCKET_NAME="…" \
-    -- uvx couchbase-mcp-server@0.8.0
+    -e CB_PASSWORD="…" \
+    -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
   ```
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
 
-**Multiple databases:** register additional **named** servers — `couchbase-prod`, `couchbase-staging` — each with its own `CB_*`. Address them by name ("query staging").
+**Safety vars without editing the plugin:** the bundled `mcp.json` already passes `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` through from your environment — set them like the connection values (an `export`, or `-e` on `claude mcp add`). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
+
+**Switching clusters:** a server connects to one cluster, fixed at startup — there is no runtime switch. To point it at a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client.
 
 **Secret hygiene:** never commit credentials; don't hardcode secrets into version-controlled files; `chmod 600` any env file holding them.
 
@@ -111,15 +120,15 @@ Pick the user's harness. Full config blocks (including Docker/source launch alte
 |---------|--------------------|
 | Connection **times out** | Capella: your IP isn't in the **Allowed IP** list; or you used `couchbase://` instead of `couchbases://`. Network: cluster unreachable. |
 | **Auth fails** | You used the Capella **UI login** instead of a **Database Access** credential; or the password's case is wrong (passwords are case-sensitive). |
-| **"bucket not found"** | `CB_BUCKET_NAME` is required and **case-sensitive**; confirm the bucket exists. |
+| **"bucket not found"** | The bucket name passed to a tool is wrong or **case-sensitive**; confirm the bucket exists in the cluster. |
 | `couchbase://` **rejected** | Capella requires TLS — use `couchbases://`. |
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; fully restart / `/reload-plugins`. |
-| **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_QUERY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
+| **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
 ## References
 
 - [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Database Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
-- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source launch alternatives + named multi-connections.
+- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching.
