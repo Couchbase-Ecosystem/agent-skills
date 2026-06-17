@@ -87,6 +87,10 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
   export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
   export CB_USERNAME="app_user"
   export CB_PASSWORD="…"
+  # optional — the bundled mcp.json passes these through if set:
+  # export CB_MCP_READ_ONLY_MODE="false"               # allow writes (default: true)
+  # export CB_MCP_DISABLED_TOOLS="tool_a,tool_b"        # drop specific tools
+  # export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
   ```
 - **Claude Code, manual (no plugin):** register the server yourself (values stored in `~/.claude.json`):
   ```bash
@@ -97,6 +101,8 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
   ```
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
+
+**Safety vars without editing the plugin:** the bundled `mcp.json` already passes `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` through from your environment — set them like the connection values (an `export`, or `-e` on `claude mcp add`). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
 
 **Switching clusters:** a server connects to one cluster, fixed at startup — there is no runtime switch. To point it at a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client.
 

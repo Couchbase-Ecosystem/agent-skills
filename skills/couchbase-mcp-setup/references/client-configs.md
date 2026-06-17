@@ -13,6 +13,10 @@ The plugin's bundled `mcp.json` already defines the `couchbase` server and reads
 export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
 export CB_USERNAME="app_user"
 export CB_PASSWORD="…"
+# optional — the bundled mcp.json passes these through if set:
+# export CB_MCP_READ_ONLY_MODE="false"               # allow writes (default: true)
+# export CB_MCP_DISABLED_TOOLS="tool_a,tool_b"        # drop specific tools
+# export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
 ```
 
 This keeps secrets out of any committed/config file. Apply with `/reload-plugins` or by restarting.
@@ -137,4 +141,5 @@ Then point a client at the URL instead of giving it a launch command:
 
 - Version: `uvx couchbase-mcp-server --version`
 - Read-only toggle: set `CB_MCP_READ_ONLY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
+- Disable tools / require confirmation: set `CB_MCP_DISABLED_TOOLS` and/or `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` to comma-separated tool names (or a file path); empty means none.
 - Transport defaults to `stdio` (what coding agents use); `http` (Streamable HTTP) is for networked deployments. The legacy `sse` transport is deprecated — use `http` instead.
