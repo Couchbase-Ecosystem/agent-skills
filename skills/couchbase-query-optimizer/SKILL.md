@@ -44,10 +44,12 @@ Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using
 
 ## Step 3 — Diagnose the plan
 
-Read the `EXPLAIN` output for the tell-tale operators:
-- **`PrimaryScan`** → no suitable GSI; the query scans every key. The biggest red flag in production.
+Read the `EXPLAIN` output for the tell-tale operators. Scan operators carry a version suffix (e.g. `PrimaryScan3`, `IndexScan3`), so match on the prefix, not the literal string:
+- **`PrimaryScan3`** → no suitable GSI; the query scans every key. The biggest red flag in production.
+- **`IndexScan3`** → the normal secondary-index scan; check its `covers` field (and whether the plan has a `Fetch`) to tell if it's covered.
 - **`Fetch`** present → not covered; documents are fetched after the index scan.
-- **`IntersectScan`** → multiple single-key indexes intersected; usually a sign you want one composite index.
+- **`IntersectScan` / `OrderedIntersectScan`** → multiple single-key indexes intersected; usually a sign you want one composite index.
+- **`DistinctScan` / `UnionScan`** → a scan wrapping an index scan (array-index dedup, `OR`/`IN` unions); usually fine, but check selectivity and whether one composite index is better.
 - **Large `OFFSET` / no `LIMIT`** → pagination/selectivity problem.
 
 Assess selectivity (how many items the index scan returns vs. the final result). → [`references/core-indexing-principles.md`](references/core-indexing-principles.md), [`references/index-antipatterns.md`](references/index-antipatterns.md).

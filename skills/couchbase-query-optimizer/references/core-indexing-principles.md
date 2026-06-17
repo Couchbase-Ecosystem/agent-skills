@@ -2,7 +2,7 @@
 
 ## Primary vs. secondary indexes
 
-The **primary index** indexes every document key — a `PrimaryScan` means the query has no usable secondary index and scans the whole keyspace. Fine for ad-hoc dev, **bad in production**. Build targeted **GSIs** on the fields your queries filter and sort on.
+The **primary index** indexes every document key — a `PrimaryScan3` means the query has no usable secondary index and scans the whole keyspace. Fine for ad-hoc dev, **bad in production**. Build targeted **GSIs** on the fields your queries filter and sort on.
 
 ## ESR key order (Equality → Sort → Range)
 
