@@ -66,7 +66,7 @@ Couchbase groups functions into categories — Aggregate, Array, String, Date, N
   ```sql
   SELECT a.name
   FROM airline AS a
-  WHERE a.icao IN (SELECT RAW r.airline FROM route AS r WHERE r.sourceairport = "SFO");
+  WHERE a.iata IN (SELECT DISTINCT RAW r.airline FROM route AS r WHERE r.sourceairport = "SFO");
   ```
 - For per-document array computation, prefer array comprehensions (`ARRAY x FOR x IN … END`) or `FIRST x FOR x IN … END` over a correlated subquery when it reads more simply.
 
