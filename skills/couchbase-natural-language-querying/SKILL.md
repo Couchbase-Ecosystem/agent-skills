@@ -50,7 +50,7 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 - **Pick the shape:** `SELECT … WHERE` for filters; `GROUP BY` + `COUNT/SUM/AVG` for aggregation; `JOIN` (`ON KEYS` / `ON`) for references; `UNNEST` for arrays.
 - **Reference bare collection names** (e.g. `FROM route`), not `` `bucket`.`scope`.`collection` `` — `bucket_name`/`scope_name` are passed as tool arguments (the default scope is `scope_name="_default"`). Backtick-quote a collection name only if it's a reserved word or has special characters.
 - Project only what's asked (avoid `SELECT *`); filter early in `WHERE`; prefer keyset pagination over large `OFFSET`.
-- See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for MQL→SQL++ mappings and SQL++ idioms (arrays, `NULL` vs `MISSING`, `META().id`, `USE KEYS`).
+- See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for SQL++ literals, operators, functions, query shapes, subqueries, arrays, and `NULL` vs `MISSING` — and look up functions in the linked official reference rather than guessing.
 
 ## Step 4 — Run it read-only and return the results
 
@@ -70,4 +70,4 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 
 ## References
 
-- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — MQL→SQL++ translation, keyspace syntax, arrays, `NULL` vs `MISSING`, projection, pagination.
+- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — SQL++ literals, operators, functions, query shapes, subqueries, arrays, `NULL` vs `MISSING`, projection, pagination (with links to the official function and reserved-word references).
