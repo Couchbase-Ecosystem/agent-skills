@@ -61,7 +61,7 @@ LIMIT 5;
 Couchbase distinguishes a field that is `NULL` from one that is absent (`MISSING`).
 - Field-exists check: `field IS NOT MISSING` (analog of `$exists: true`); absent: `field IS MISSING`.
 - `field IS NULL` only matches an explicit null value.
-- A wrong/nonexistent field name yields `MISSING` (no error, empty results) — validate names against `INFER` first.
+- A wrong/nonexistent field name yields `MISSING` (no error, empty results) — validate names against `INFER` first. `INFER` samples documents, so a field can be real yet absent from the inferred shape; if a field you expect is missing, sample more docs before assuming it doesn't exist.
 
 ## Projection & efficiency
 

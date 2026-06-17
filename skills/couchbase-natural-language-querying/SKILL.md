@@ -35,13 +35,13 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 ## Step 1 — Ground in the live cluster (before writing any SQL++)
 
 - **Resolve the keyspace.** If the bucket/scope/collection isn't given, list them with `get_buckets_in_cluster` and `get_scopes_and_collections_in_bucket`, and confirm with the user.
-- **Infer the structure.** Call `get_schema_for_collection` (it runs SQL++ `INFER`) to get fields, types, and nesting.
+- **Infer the structure.** Call `get_schema_for_collection` (it runs SQL++ `INFER`) to get fields, types, and nesting. `INFER` samples a subset of documents, so it can miss rare fields or schema variants — treat the result as a strong hint, not a complete catalog.
 - **Look at real data.** Pull a few sample docs (a small `SELECT … LIMIT 4`, or `get_document_by_id`) to see actual values and shapes.
 - **Know the indexes.** Call `list_indexes` for the keyspace (used for the coverage note in Step 5).
 
 ## Step 2 — Validate fields against the schema
 
-- Every field/path you reference must exist in the inferred schema (including nested paths and array-element fields).
+- Check each field/path you reference against the inferred schema (including nested paths and array-element fields). Because `INFER` is sample-based, absence from the inferred shape isn't proof a field doesn't exist — if you expect a field that's missing, sample more docs or fetch a known key before concluding it's absent.
 - **Couchbase silently returns `MISSING` for nonexistent fields** — a wrong field name yields empty or odd results, not an error. Cross-check names and correct or flag mismatches (e.g. `airport_name` → `airportname`).
 - Respect case sensitivity of both field names and string values.
 
