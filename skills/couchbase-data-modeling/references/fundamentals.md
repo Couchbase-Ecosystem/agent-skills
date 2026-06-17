@@ -9,11 +9,13 @@ Model around how data is **accessed**, not around normalized tables. Data read t
 | Relationship | Default | Why |
 |--------------|---------|-----|
 | **1:1** | Embed | Always accessed together; one `GET`. |
-| **1:few** (bounded, e.g. ≤ dozens) | Embed a bounded array | Stays well under 20 MB; atomic updates. |
+| **1:few** (bounded, e.g. ≤ dozens) | Embed a bounded array | One `GET`; no N+1 child fetches. Stays well under 20 MB. |
 | **1:many** (unbounded) | Reference (child holds parent key) | Avoids unbounded growth; fetch children by key/query. |
 | **many:many** | Reference on the most-queried side | Use a key list; resolve with KV `GET` or JOIN. |
 
 The Couchbase twist: a reference is a **key you resolve with a cheap KV `GET`**, not only a SQL++ JOIN — so referencing costs less than in systems where every lookup is a join. Embed when the data is bounded and read together; reference when it's unbounded, large, independently accessed, or shared.
+
+The real reasons to embed are **single-GET read efficiency** and **avoiding N+1 fetches** — not atomicity. Couchbase has multi-document **ACID transactions** (SDK 6.6+, SQL++ 7.0+), so you can update referenced documents atomically too; atomicity by itself is not a reason to embed.
 
 ## Document size
 
