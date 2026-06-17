@@ -4,8 +4,12 @@ description: >-
   Turn a plain-English data question into a read-only SQL++ query, grounded in
   the live cluster's actual schema, sample data, and indexes — then run it and
   return the results. Use when the user asks to write or generate a query, says
-  "show me…", "how many…", "list…", "find documents where…", or wants to
-  filter/group/aggregate Couchbase data in natural language. Does NOT handle
+  "show me…", "how many…", "list…", "find documents where…", uses an
+  analytical/computation opener like "what was the average…", "calculate…",
+  "compute…", "what's the mean/max/total…", or otherwise wants to
+  filter/group/aggregate Couchbase data in natural language. Applies even
+  mid-conversation when a session that began as schema/setup/modeling pivots to
+  answering a data question. Does NOT handle
   full-text, vector, or semantic search (use the Couchbase Search Service); does NOT
   analyze, optimize, or speed up queries or design indexes (use
   couchbase-query-optimizer); does NOT perform writes or DDL. Requires the

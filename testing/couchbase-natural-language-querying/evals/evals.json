@@ -10,6 +10,14 @@
       "tier": 3
     },
     {
+      "name": "analytical opener triggers aggregation",
+      "input": "What was the average number of stops across routes in travel-sample?",
+      "expect": ["AVG"],
+      "reject": ["$avg", "db.", ".aggregate(", "`travel-sample`.inventory"],
+      "threshold": 1,
+      "tier": 3
+    },
+    {
       "name": "aggregation shape",
       "input": "Which airlines operate the most routes in travel-sample? Top 5.",
       "expect": ["GROUP BY", "COUNT", "ORDER BY"],
