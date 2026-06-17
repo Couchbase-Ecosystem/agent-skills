@@ -48,6 +48,14 @@
       "tier": 3
     },
     {
+      "name": "boundary: generating a (slow) query is authoring, not optimization",
+      "input": "Give me a query that could run beyond 5 seconds.",
+      "expect": ["couchbase-natural-language-querying"],
+      "reject": ["CREATE INDEX", "EXPLAIN"],
+      "threshold": 1,
+      "tier": 3
+    },
+    {
       "name": "boundary: data modeling defers to data-modeling",
       "input": "How should I structure my airport documents and choose document keys?",
       "expect": ["couchbase-data-modeling"],

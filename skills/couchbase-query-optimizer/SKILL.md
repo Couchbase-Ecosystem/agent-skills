@@ -5,9 +5,11 @@ description: >-
   grounded in real EXPLAIN plans and the index advisor on the live cluster. Use
   ONLY when the user asks for performance or indexing help — "why is this query
   slow?", "how do I index this?", "optimize this SQL++", "what are the slow
-  queries on my cluster?", "my query does a primary scan". Do NOT use for general
-  query writing without a performance angle (use
-  couchbase-natural-language-querying), or for document/data modeling and key
+  queries on my cluster?", "my query does a primary scan". Only engage to
+  diagnose or speed up an *existing* query or design an index. Do NOT use to
+  write or generate a query — even one meant to run slowly or "beyond N
+  seconds"; that is query authoring, not optimization (use
+  couchbase-natural-language-querying). Not for document/data modeling or key
   design (use couchbase-data-modeling). Prefer GSI indexing as the optimization
   strategy. Requires the Couchbase MCP server.
 license: Apache-2.0
