@@ -1,18 +1,18 @@
 # SQL++ patterns (and MQL → SQL++ translation)
 
-Reference for generating read-only SQL++. Examples use `travel-sample` keyspaces (`` `travel-sample`.inventory.{airport,airline,route,hotel} ``).
+Reference for generating read-only SQL++. Examples use the `travel-sample` collections `airport`, `airline`, `route`, `hotel` (bucket `travel-sample`, scope `inventory`).
 
 ## Keyspaces & identifiers
 
-- Fully-qualify and backtick-quote: `` `bucket`.`scope`.`collection` ``. The default scope and collection are both `_default` (so a bucket with no custom scopes is `` `bucket`._default._default `` or just `` `bucket` ``).
-- Backtick-quote any identifier that is a reserved word or contains special characters.
-- The document key is `META().id` (the analog of Mongo's `_id`). Fetch by key directly with `USE KEYS`.
+- **Don't qualify the keyspace in the query.** `bucket_name` and `scope_name` are passed as **arguments** to the MCP query tools, which set the scope context automatically — so `FROM` takes a **bare collection name** (`FROM route`), never `` `bucket`.`scope`.`collection` ``. The default scope is passed as `scope_name="_default"`.
+- Backtick-quote a collection name only if it is a reserved word or contains special characters.
+- The document key is `META().id`. Fetch by key directly with `USE KEYS`.
 
 ## find → SELECT
 
 | MQL | SQL++ |
 |-----|-------|
-| `db.c.find({country: "France"})` | `SELECT * FROM `travel-sample`.inventory.airport WHERE country = "France"` |
+| `db.c.find({country: "France"})` | `SELECT * FROM airport WHERE country = "France"` (bucket/scope passed as args) |
 | projection `{name: 1, _id: 0}` | `SELECT name FROM …` (list the fields; no `SELECT *`) |
 | `{a: {$gte: 1, $lte: 5}}` | `WHERE a BETWEEN 1 AND 5` (or `a >= 1 AND a <= 5`) |
 | `{a: {$in: [...]}}` | `WHERE a IN [...]` |
@@ -35,7 +35,7 @@ Reference for generating read-only SQL++. Examples use `travel-sample` keyspaces
 Example (top airlines by route count):
 ```sql
 SELECT airline, COUNT(*) AS routes
-FROM `travel-sample`.inventory.route
+FROM route
 GROUP BY airline
 ORDER BY routes DESC
 LIMIT 5;
@@ -46,7 +46,7 @@ LIMIT 5;
 - **Flatten** an array to query its elements: `UNNEST`.
   ```sql
   SELECT r.sourceairport, s.day, s.flight
-  FROM `travel-sample`.inventory.route AS r
+  FROM route AS r
   UNNEST r.schedule AS s
   WHERE r.sourceairport = "SFO";
   ```

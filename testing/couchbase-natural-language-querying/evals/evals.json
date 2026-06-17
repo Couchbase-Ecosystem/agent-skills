@@ -5,7 +5,7 @@
       "name": "simple count with correct keyspace",
       "input": "How many airports are in France? Use the travel-sample bucket.",
       "expect": ["SELECT", "COUNT", "WHERE", "travel-sample"],
-      "reject": ["$match", "db.", "aggregate(", ".find(", "$group"],
+      "reject": ["$match", "db.", "aggregate(", ".find(", "$group", "`travel-sample`.inventory"],
       "threshold": 3,
       "tier": 3
     },
@@ -13,7 +13,7 @@
       "name": "aggregation shape",
       "input": "Which airlines operate the most routes in travel-sample? Top 5.",
       "expect": ["GROUP BY", "COUNT", "ORDER BY"],
-      "reject": ["$group", "$sort", "db.", "aggregation pipeline"],
+      "reject": ["$group", "$sort", "db.", "aggregation pipeline", "`travel-sample`.inventory"],
       "threshold": 2,
       "tier": 3
     },
@@ -21,7 +21,7 @@
       "name": "array handling with UNNEST",
       "input": "What are the scheduled flight days for routes out of SFO in travel-sample?",
       "expect": ["UNNEST", "WHERE"],
-      "reject": ["$unwind", "db."],
+      "reject": ["$unwind", "db.", "`travel-sample`.inventory"],
       "threshold": 1,
       "tier": 3
     },
@@ -29,7 +29,7 @@
       "name": "grounding: corrects a nonexistent field",
       "input": "In travel-sample, list airports by their airport_name field.",
       "expect": ["airportname"],
-      "reject": ["$match", "db."],
+      "reject": ["$match", "db.", "`travel-sample`.inventory"],
       "threshold": 1,
       "tier": 3
     },
@@ -60,7 +60,7 @@
       "name": "generate-only on request",
       "input": "Just give me the SQL++ to count hotels in Paris in travel-sample — don't run it.",
       "expect": ["SELECT", "COUNT"],
-      "reject": ["$match", "db.", ".find("],
+      "reject": ["$match", "db.", ".find(", "`travel-sample`.inventory"],
       "threshold": 1,
       "tier": 3
     }

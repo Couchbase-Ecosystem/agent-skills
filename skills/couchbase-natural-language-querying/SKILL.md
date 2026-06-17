@@ -22,6 +22,16 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 
 > **Read-only.** Never generate or run writes or DDL (`INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP`). The MCP server defaults to read-only mode — keep it that way for this skill.
 
+> **Tool-call contract.** The query tools — `run_sql_plus_plus_query`, `explain_sql_plus_plus_query`, and `get_schema_for_collection` — take `bucket_name` and `scope_name` as **separate arguments** and set the scope context automatically. Write the query against **bare collection names**; never prefix or fully-qualify with bucket/scope. For example:
+>
+> ```
+> run_sql_plus_plus_query(
+>   bucket_name="travel-sample", scope_name="inventory",
+>   query="SELECT airline, COUNT(*) AS routes FROM route GROUP BY airline ORDER BY routes DESC LIMIT 5")
+> ```
+>
+> Putting the keyspace inside the query string (`` FROM `travel-sample`.inventory.route ``) is **incorrect**.
+
 ## Step 1 — Ground in the live cluster (before writing any SQL++)
 
 - **Resolve the keyspace.** If the bucket/scope/collection isn't given, list them with `get_buckets_in_cluster` and `get_scopes_and_collections_in_bucket`, and confirm with the user.
@@ -38,13 +48,13 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 ## Step 3 — Generate the SQL++
 
 - **Pick the shape:** `SELECT … WHERE` for filters; `GROUP BY` + `COUNT/SUM/AVG` for aggregation; `JOIN` (`ON KEYS` / `ON`) for references; `UNNEST` for arrays.
-- **Fully-qualify the keyspace with backticks:** `` `bucket`.`scope`.`collection` `` (default scope/collection is `_default`).
+- **Reference bare collection names** (e.g. `FROM route`), not `` `bucket`.`scope`.`collection` `` — `bucket_name`/`scope_name` are passed as tool arguments (the default scope is `scope_name="_default"`). Backtick-quote a collection name only if it's a reserved word or has special characters.
 - Project only what's asked (avoid `SELECT *`); filter early in `WHERE`; prefer keyset pagination over large `OFFSET`.
 - See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for MQL→SQL++ mappings and SQL++ idioms (arrays, `NULL` vs `MISSING`, `META().id`, `USE KEYS`).
 
 ## Step 4 — Run it read-only and return the results
 
-- Execute via `run_sql_plus_plus_query`. Read-only mode blocks data modification, so this is safe.
+- Execute via `run_sql_plus_plus_query`, passing `bucket_name` and `scope_name` as arguments. Read-only mode blocks data modification, so this is safe.
 - For open-ended questions, add a sensible `LIMIT` before running so you don't pull a huge result set.
 - Show the user **both the SQL++ and the results**. If the user only wants the query text ("don't run it"), skip execution.
 
