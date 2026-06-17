@@ -37,6 +37,14 @@
       "threshold": 1
     },
     {
+      "name": "create/seed a new collection (advise on design, confirm before writing)",
+      "input": "Add a games collection to the NBA bucket and put 20 game documents in it.",
+      "expect": ["key", "approv"],
+      "reject": [],
+      "threshold": 1,
+      "tier": 3
+    },
+    {
       "name": "boundary: index tuning defers to optimizer",
       "input": "What GSI should I create for this query, and why is it slow?",
       "expect": ["couchbase-query-optimizer"],
