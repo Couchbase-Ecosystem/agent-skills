@@ -15,7 +15,7 @@ allowed-tools: Bash, Read, Edit, Write
 
 # Couchbase MCP Server Setup
 
-This skill connects the [Couchbase MCP server](https://github.com/Couchbase-Ecosystem/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it's driven by editing the client's MCP config file (or running its CLI where one exists), ending with a verification that calls a Couchbase MCP tool.
+This skill connects the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it's driven by editing the client's MCP config file (or running its CLI where one exists), ending with a verification that calls a Couchbase MCP tool.
 
 **The server needs three required values:**
 
