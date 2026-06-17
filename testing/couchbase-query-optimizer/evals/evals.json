@@ -10,7 +10,7 @@
       "tier": 3
     },
     {
-      "name": "index for filter + sort (ESR)",
+      "name": "index for filter + sort (key order)",
       "input": "How should I index a query that filters airports by country and sorts by airportname?",
       "expect": ["CREATE INDEX", "country", "airportname"],
       "reject": ["createIndex(", "$sort", "COLLSCAN"],

@@ -4,9 +4,9 @@
 
 The **primary index** indexes every document key — a `PrimaryScan3` means the query has no usable secondary index and scans the whole keyspace. Fine for ad-hoc dev, **bad in production**. Build targeted **GSIs** on the fields your queries filter and sort on.
 
-## ESR key order (Equality → Sort → Range)
+## Compound key order
 
-For a compound GSI, order the keys to match the query's access pattern:
+For a compound GSI, order the keys to match the query's access pattern — equality, then sort, then range:
 1. **Equality** predicates first (`=`, `IN` with few values).
 2. **Sort** fields next (the `ORDER BY` keys).
 3. **Range** predicates last (`>`, `<`, `BETWEEN`, large `IN`, `!=`).

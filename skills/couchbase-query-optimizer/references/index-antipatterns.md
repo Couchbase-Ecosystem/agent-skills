@@ -6,7 +6,7 @@
 
 ## 2. Range/sort before equality in the key
 **Problem:** a compound key like `(date, status)` for `WHERE status = "active" AND date > …` forces inefficient scanning.
-**Fix:** follow ESR — equality keys lead: `(status, date)`.
+**Fix:** lead with equality keys, then sort, then range: `(status, date)`.
 
 ## 3. Function-wrapped predicate
 **Problem:** wrapping the indexed field in a function (`WHERE LOWER(city) = "paris"`, `WHERE SUBSTR(code,0,2) = …`) prevents a plain index on `city` from being used.

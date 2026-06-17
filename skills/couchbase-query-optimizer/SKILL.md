@@ -56,7 +56,7 @@ Assess selectivity (how many items the index scan returns vs. the final result).
 
 ## Step 4 — Recommend a GSI design
 
-- **ESR key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
+- **Key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
 - **Covering:** include the `WHERE` + `SELECT` + `ORDER BY` fields in the index keys so the plan drops the `Fetch`.
 - **Partial** (`WHERE` on the index) for filtered subsets; **array** (`DISTINCT ARRAY …`) for array/`UNNEST` predicates.
 - If statistics are stale (e.g., after a bulk load), recommend `UPDATE STATISTICS`.
@@ -75,7 +75,7 @@ Assess selectivity (how many items the index scan returns vs. the final result).
 
 ## References
 
-- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — ESR, covering, sort direction, array indexing, selectivity, statistics.
+- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — key order, covering, sort direction, array indexing, selectivity, statistics.
 - [`references/index-antipatterns.md`](references/index-antipatterns.md) — common indexing mistakes + fixes.
 - [`references/index-ddl.md`](references/index-ddl.md) — `CREATE`/`ALTER`/`DROP`/`BUILD INDEX`, replicas/partitioning, monitoring, hints, statistics.
 - [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (pushdown, JOIN order, `UNNEST`, pagination, `UPDATE`/`MERGE`).
