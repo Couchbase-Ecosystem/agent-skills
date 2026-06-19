@@ -10,7 +10,7 @@
       "tier": 3
     },
     {
-      "name": "index for filter + sort (ESR)",
+      "name": "index for filter + sort (key order)",
       "input": "How should I index a query that filters airports by country and sorts by airportname?",
       "expect": ["CREATE INDEX", "country", "airportname"],
       "reject": ["createIndex(", "$sort", "COLLSCAN"],
@@ -44,6 +44,14 @@
       "input": "Write me a query to find airports in France.",
       "expect": ["couchbase-natural-language-querying"],
       "reject": ["COLLSCAN"],
+      "threshold": 1,
+      "tier": 3
+    },
+    {
+      "name": "boundary: generating a (slow) query is authoring, not optimization",
+      "input": "Give me a query that could run beyond 5 seconds.",
+      "expect": ["couchbase-natural-language-querying"],
+      "reject": ["CREATE INDEX", "EXPLAIN"],
       "threshold": 1,
       "tier": 3
     },

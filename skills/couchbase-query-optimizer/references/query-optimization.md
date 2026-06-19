@@ -29,4 +29,4 @@ Indexing is the primary lever, but the query's shape matters too.
 
 ## UPDATE / MERGE
 - Constrain mutations with an **indexed predicate** (`UPDATE ks SET … WHERE <indexed pred>`) so they don't scan the whole keyspace.
-- Use `MERGE` for conditional upserts. Keep mutation predicates selective and indexed — the same `EXPLAIN`/ESR/covering reasoning applies to the `WHERE` of a DML statement.
+- Use `MERGE` for conditional upserts. Keep mutation predicates selective and indexed — the same `EXPLAIN`/key-order/covering reasoning applies to the `WHERE` of a DML statement.

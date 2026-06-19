@@ -2,16 +2,16 @@
 
 ## Primary vs. secondary indexes
 
-The **primary index** indexes every document key — a `PrimaryScan` means the query has no usable secondary index and scans the whole keyspace. Fine for ad-hoc dev, **bad in production**. Build targeted **GSIs** on the fields your queries filter and sort on.
+The **primary index** indexes every document key — a `PrimaryScan3` means the query has no usable secondary index and scans the whole keyspace. Fine for ad-hoc dev, **bad in production**. Build targeted **GSIs** on the fields your queries filter and sort on.
 
-## ESR key order (Equality → Sort → Range)
+## Compound key order
 
-For a compound GSI, order the keys to match the query's access pattern:
+For a compound GSI, order the keys to match the query's access pattern — equality, then sort, then range:
 1. **Equality** predicates first (`=`, `IN` with few values).
 2. **Sort** fields next (the `ORDER BY` keys).
 3. **Range** predicates last (`>`, `<`, `BETWEEN`, large `IN`, `!=`).
 
-The **leading index key must appear in the query's `WHERE` (equality) or `ORDER BY`**, or the index can't be used. Exception: if the equality predicate is not selective but a range predicate is, leading with the range key can win — let selectivity guide ordering.
+As a strong default, the **leading index key should appear in the query's `WHERE` (equality) or `ORDER BY`** — otherwise the planner usually won't use the index. It's not absolute: a **covering index can still be chosen for a full index scan** even when the leading key isn't in a predicate (the planner prefers it over a `PrimaryScan3`), and **`INCLUDE MISSING`** on the leading key (see below) deliberately changes this. Also, if the equality predicate is not selective but a range predicate is, leading with the range key can win — let selectivity guide ordering.
 
 Example — for `WHERE country = "France" ORDER BY airportname`:
 ```sql

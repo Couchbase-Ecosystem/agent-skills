@@ -1,12 +1,12 @@
 # GSI antipatterns (and fixes)
 
 ## 1. Relying on the primary index in production
-**Problem:** queries fall back to `PrimaryScan`, scanning every key.
+**Problem:** queries fall back to `PrimaryScan3`, scanning every key.
 **Fix:** build targeted GSIs on the fields in your `WHERE`/`ORDER BY`. Avoid leaving a primary index as the only index on a hot keyspace.
 
 ## 2. Range/sort before equality in the key
 **Problem:** a compound key like `(date, status)` for `WHERE status = "active" AND date > …` forces inefficient scanning.
-**Fix:** follow ESR — equality keys lead: `(status, date)`.
+**Fix:** lead with equality keys, then sort, then range: `(status, date)`.
 
 ## 3. Function-wrapped predicate
 **Problem:** wrapping the indexed field in a function (`WHERE LOWER(city) = "paris"`, `WHERE SUBSTR(code,0,2) = …`) prevents a plain index on `city` from being used.

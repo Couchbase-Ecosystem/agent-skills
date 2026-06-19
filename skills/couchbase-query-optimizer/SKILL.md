@@ -5,9 +5,11 @@ description: >-
   grounded in real EXPLAIN plans and the index advisor on the live cluster. Use
   ONLY when the user asks for performance or indexing help — "why is this query
   slow?", "how do I index this?", "optimize this SQL++", "what are the slow
-  queries on my cluster?", "my query does a primary scan". Do NOT use for general
-  query writing without a performance angle (use
-  couchbase-natural-language-querying), or for document/data modeling and key
+  queries on my cluster?", "my query does a primary scan". Only engage to
+  diagnose or speed up an *existing* query or design an index. Do NOT use to
+  write or generate a query — even one meant to run slowly or "beyond N
+  seconds"; that is query authoring, not optimization (use
+  couchbase-natural-language-querying). Not for document/data modeling or key
   design (use couchbase-data-modeling). Prefer GSI indexing as the optimization
   strategy. Requires the Couchbase MCP server.
 license: Apache-2.0
@@ -42,17 +44,19 @@ Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using
 
 ## Step 3 — Diagnose the plan
 
-Read the `EXPLAIN` output for the tell-tale operators:
-- **`PrimaryScan`** → no suitable GSI; the query scans every key. The biggest red flag in production.
+Read the `EXPLAIN` output for the tell-tale operators. Scan operators carry a version suffix (e.g. `PrimaryScan3`, `IndexScan3`), so match on the prefix, not the literal string:
+- **`PrimaryScan3`** → no suitable GSI; the query scans every key. The biggest red flag in production.
+- **`IndexScan3`** → the normal secondary-index scan; check its `covers` field (and whether the plan has a `Fetch`) to tell if it's covered.
 - **`Fetch`** present → not covered; documents are fetched after the index scan.
-- **`IntersectScan`** → multiple single-key indexes intersected; usually a sign you want one composite index.
+- **`IntersectScan` / `OrderedIntersectScan`** → multiple single-key indexes intersected; usually a sign you want one composite index.
+- **`DistinctScan` / `UnionScan`** → a scan wrapping an index scan (array-index dedup, `OR`/`IN` unions); usually fine, but check selectivity and whether one composite index is better.
 - **Large `OFFSET` / no `LIMIT`** → pagination/selectivity problem.
 
 Assess selectivity (how many items the index scan returns vs. the final result). → [`references/core-indexing-principles.md`](references/core-indexing-principles.md), [`references/index-antipatterns.md`](references/index-antipatterns.md).
 
 ## Step 4 — Recommend a GSI design
 
-- **ESR key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
+- **Key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
 - **Covering:** include the `WHERE` + `SELECT` + `ORDER BY` fields in the index keys so the plan drops the `Fetch`.
 - **Partial** (`WHERE` on the index) for filtered subsets; **array** (`DISTINCT ARRAY …`) for array/`UNNEST` predicates.
 - If statistics are stale (e.g., after a bulk load), recommend `UPDATE STATISTICS`.
@@ -71,7 +75,7 @@ Assess selectivity (how many items the index scan returns vs. the final result).
 
 ## References
 
-- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — ESR, covering, sort direction, array indexing, selectivity, statistics.
+- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — key order, covering, sort direction, array indexing, selectivity, statistics.
 - [`references/index-antipatterns.md`](references/index-antipatterns.md) — common indexing mistakes + fixes.
 - [`references/index-ddl.md`](references/index-ddl.md) — `CREATE`/`ALTER`/`DROP`/`BUILD INDEX`, replicas/partitioning, monitoring, hints, statistics.
 - [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (pushdown, JOIN order, `UNNEST`, pagination, `UPDATE`/`MERGE`).
