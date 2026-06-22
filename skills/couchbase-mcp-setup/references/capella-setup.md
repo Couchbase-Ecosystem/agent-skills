@@ -18,9 +18,9 @@ These are **separate from your Capella UI login** (the email/password you sign i
 
 UI → cluster → **Settings → Access Control** → **Create Access**. (The **Connect** page can also surface these, but **Settings → Access Control** is the direct path for SDK/MCP credential setup.)
 
-- Set a username (Capella also labels this the **Cluster Access Name**) → this becomes `CB_USERNAME`.
+- Set a **username** — labeled **Cluster Access Name** on the Create Access page → this becomes `CB_USERNAME`. (When telling the user what to enter, call it the "Cluster Access Name" so it matches the field they see.)
 - **Password** → `CB_PASSWORD`. Two cases:
-  - **Auto-generated** (you click **Auto-generate password**): copy/save it immediately — it's shown only once and can't be retrieved afterward. When auto-generated you can also **download the credentials** here instead of copying by hand.
+  - **Auto-generated** (you click **Auto-generate password**): **copy it — or click Download to save the credentials file — immediately**; it's shown only once and can't be retrieved afterward. (Tell the user about both options: copy the password, or download the credentials.)
   - **You type your own**: you already know it, so there's nothing extra to save.
   - Passwords are **case-sensitive** either way.
 - **Access level — Basic (all tiers, the default for MCP):** choose **Read**, **Write**, or **Read & Write**, scoped to a **bucket** → **scope** (or **All Scopes**) → **collection** (or **All Collections**); use **Add Another Selection** to grant more. For a read-only MCP setup give **Read**; add **Write** only if the agent should modify data.

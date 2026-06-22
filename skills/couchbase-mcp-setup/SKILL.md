@@ -22,7 +22,7 @@ This skill connects the [Couchbase MCP server](https://github.com/couchbase/mcp-
 | Value | Env var | Example |
 |-------|---------|---------|
 | Connection string | `CB_CONNECTION_STRING` | `couchbases://cb.abc.cloud.couchbase.com` (Capella) · `couchbase://localhost` (local) |
-| Username | `CB_USERNAME` | a **database** user (not the Capella UI login) |
+| Username | `CB_USERNAME` | a **database** user — on Capella this is the **Cluster Access Name** (not the UI login) |
 | Password | `CB_PASSWORD` | the database user's password |
 
 Optional: `CB_MCP_READ_ONLY_MODE` (default `true`), `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` (fine-grained tool safety), `CB_MCP_TRANSPORT` (default `stdio`).
