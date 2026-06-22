@@ -68,7 +68,7 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 **Ask the user before generating any config:** should the agent have **read-only** access (the safe default) or **read-write** access? Default to read-only unless they explicitly ask for write.
 
 - `CB_MCP_READ_ONLY_MODE` defaults to **`true`**, which blocks all writes — KV mutations and data-modifying SQL++ (write tools are not even loaded). **Keep it `true`** for exploration and for safety — most skills only read.
-- For a stronger guarantee, have the user create a **least-privilege database user** (`data_reader` + `query_select`, scoped to the bucket(s) you want readable) instead of reusing an admin account. See the reference for the chosen deployment.
+- For a stronger guarantee, have the user create a **least-privilege credential** with only **Read** access scoped to the bucket(s)/scope(s) you want readable, instead of reusing an admin account — on Capella this is a **Basic Cluster Access credential** (available on all tiers; role-based fine-grained privileges like `data_reader` / `query_select` are an Advanced, **paid-plan** option). See the reference for the chosen deployment.
 - Set `CB_MCP_READ_ONLY_MODE=false` only when the user explicitly chose read-write access above — and confirm once more before generating it.
 - **Fine-grained tool control (optional):** `CB_MCP_DISABLED_TOOLS` takes a comma-separated list of tool names (or a file path) to drop specific tools; `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` makes the listed tools require explicit confirmation before they run (client-dependent). Note: disabling tools is **not** a security boundary — the database user's RBAC permissions are the authoritative control.
 
@@ -119,7 +119,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 | Symptom | Likely cause / fix |
 |---------|--------------------|
 | Connection **times out** | Capella: your IP isn't in the **Allowed IP** list; or you used `couchbase://` instead of `couchbases://`. Network: cluster unreachable. |
-| **Auth fails** | You used the Capella **UI login** instead of a **Database Access** credential; or the password's case is wrong (passwords are case-sensitive). |
+| **Auth fails** | You used the Capella **UI login** instead of a **Cluster Access** credential; or the password's case is wrong (passwords are case-sensitive). |
 | **"bucket not found"** | The bucket name passed to a tool is wrong or **case-sensitive**; confirm the bucket exists in the cluster. |
 | `couchbase://` **rejected** | Capella requires TLS — use `couchbases://`. |
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
@@ -129,6 +129,6 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 
 ## References
 
-- [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Database Access credentials, Allowed IP, sample bucket.
+- [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Cluster Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
 - [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching.
