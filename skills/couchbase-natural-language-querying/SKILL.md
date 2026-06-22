@@ -36,6 +36,15 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 >
 > Putting the keyspace inside the query string (`` FROM `travel-sample`.inventory.route ``) is **incorrect**.
 
+## Step 0 — Confirm the connection (pre-flight)
+
+Before your **first cluster tool call**, verify connectivity once — so a missing connection fails fast and clearly instead of surfacing as a slow timeout deep in a data call:
+
+1. Call `get_server_configuration_status` — it returns server status and `connections.cluster_connected` **without opening a connection** (instant, no timeout).
+2. If it isn't already connected, call `test_cluster_connection` **once**. It returns a structured `{status, message}` rather than throwing a long `UnAmbiguousTimeoutException`.
+3. If the cluster isn't reachable (`status: "error"` / not connected), **stop — do not retry cluster tools.** Tell the user the MCP server is installed but not connected, then hand off to **`couchbase-mcp-setup`** to configure the connection string and credentials.
+4. Continue only once the connection is confirmed.
+
 ## Step 1 — Ground in the live cluster (before writing any SQL++)
 
 - **Resolve the keyspace.** If the bucket/scope/collection isn't given, list them with `get_buckets_in_cluster` and `get_scopes_and_collections_in_bucket`, and confirm with the user.

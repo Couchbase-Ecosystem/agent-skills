@@ -24,6 +24,15 @@ Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using
 
 > **Recommend, don't apply.** This skill **diagnoses (read-only)** and **outputs `CREATE INDEX` DDL** — it does not create indexes. The MCP server is read-only by default, so DDL won't run unless the user explicitly enables writes. Have the user run the DDL in the Query Workbench / `cbq`, or grant explicit approval.
 
+## Step 0 — Confirm the connection (pre-flight)
+
+Before your **first cluster tool call**, verify connectivity once — so a missing connection fails fast and clearly instead of surfacing as a slow timeout deep in a data call:
+
+1. Call `get_server_configuration_status` — it returns server status and `connections.cluster_connected` **without opening a connection** (instant, no timeout).
+2. If it isn't already connected, call `test_cluster_connection` **once**. It returns a structured `{status, message}` rather than throwing a long `UnAmbiguousTimeoutException`.
+3. If the cluster isn't reachable (`status: "error"` / not connected), **stop — do not retry cluster tools.** Tell the user the MCP server is installed but not connected, then hand off to **`couchbase-mcp-setup`** to configure the connection string and credentials.
+4. Continue only once the connection is confirmed.
+
 ## Step 1 — Determine the context
 
 - **Specific query** ("why is *this* slow / how do I index this") → single-query diagnosis.
