@@ -4,12 +4,28 @@ How to register the Couchbase MCP server in each harness, plus launch alternativ
 
 ## Claude Code
 
-### With the Couchbase plugin installed (recommended)
+### Recommended — `claude mcp add --scope local`
 
-The plugin's bundled `mcp.json` already defines the `couchbase` server and reads `${CB_*}` from your environment. Just set the values persistently in your shell profile:
+Register the server with its credentials in Claude Code's own per-project config. The values are stored in `~/.claude.json` (outside your repo) and injected only into the server process — they are **never exported to your shell**, so they can't leak into other shells, tools, or projects:
 
 ```bash
-# ~/.zshrc (or ~/.bashrc) — then: source ~/.zshrc && restart Claude Code
+claude mcp add couchbase --scope local \
+  -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
+  -e CB_USERNAME="app_user" \
+  -e CB_PASSWORD="…" \
+  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
+```
+
+Add the optional safety vars the same way, e.g. `-e CB_MCP_READ_ONLY_MODE="false"`. Check it with `claude mcp list` / `claude mcp get couchbase`.
+
+**Scopes** (highest precedence first; a same-named server in a higher scope wins outright — entries are *not* merged): `local` (default, this project only — **recommended for credentials**) › `project` (writes a committed `.mcp.json` — **don't put secrets here**) › `user` (all your projects) › plugin-provided. Because `local` outranks the plugin, this registration overrides the plugin's bundled `couchbase` server, so it works the same whether or not the plugin is installed — and needs no `${CB_*}` shell exports.
+
+### Alternative — the plugin's bundled template
+
+If you installed the Couchbase plugin, its bundled `mcp.json` defines `couchbase` and reads `${CB_*}` from the environment Claude Code is launched in. This route means the values live as environment variables, so **scope them to the project** — use a git-ignored `.envrc` loaded by `direnv` rather than a global `~/.zshrc` export:
+
+```bash
+# .envrc (git-ignored) — run `direnv allow` once, then restart Claude Code
 export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
 export CB_USERNAME="app_user"
 export CB_PASSWORD="…"
@@ -19,21 +35,7 @@ export CB_PASSWORD="…"
 # export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
 ```
 
-This keeps secrets out of any committed/config file. Apply with `/reload-plugins` or by restarting.
-
-### Manual (no plugin)
-
-Register the server directly (values are stored in `~/.claude.json`):
-
-```bash
-claude mcp add couchbase --scope user \
-  -e CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
-  -e CB_USERNAME="app_user" \
-  -e CB_PASSWORD="…" \
-  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
-```
-
-Check it with `claude mcp list` / `claude mcp get couchbase`. Scopes: `--scope user` (all projects), `project` (writes `.mcp.json`, shared), `local` (default, this project only).
+A global `~/.zshrc` export also works but is visible to every shell, subprocess, and project and persists indefinitely — keep it to throwaway local clusters, not Capella or production credentials. Apply with `/reload-plugins` or by restarting.
 
 ## Codex
 
