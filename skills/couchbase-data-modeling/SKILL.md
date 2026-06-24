@@ -25,6 +25,15 @@ Guide Couchbase JSON data modeling and ground recommendations in the real cluste
 
 > **Read to verify; writes need approval.** Inspect freely (read-only). Any write or DDL — including creating or seeding a collection — requires explicit user approval, and is blocked by the MCP server's read-only default anyway.
 
+## Step 0 — Confirm the connection (pre-flight)
+
+This skill can advise without a live cluster, but before your **first cluster tool call** (verification in Step 6, or any create/seed in Step 7) verify connectivity once — so a missing connection fails fast and clearly instead of surfacing as a slow timeout deep in a data call:
+
+1. Call `get_server_configuration_status` — it returns server status and `connections.cluster_connected` **without opening a connection** (instant, no timeout).
+2. If it isn't already connected, call `test_cluster_connection` **once**. It returns a structured `{status, message}` rather than throwing a long `UnambiguousTimeoutException`.
+3. If the cluster isn't reachable (`status: "error"` / not connected), **stop — do not retry cluster tools.** Tell the user the MCP server is installed but not connected, then hand off to **`couchbase-mcp-setup`** to configure the connection string and credentials.
+4. Continue only once the connection is confirmed.
+
 ## Step 1 — Assess the situation
 New design? Migration (from a relational/normalized schema)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest.
 
