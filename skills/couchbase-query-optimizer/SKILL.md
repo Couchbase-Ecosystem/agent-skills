@@ -1,17 +1,20 @@
 ---
 name: couchbase-query-optimizer
 description: >-
-  Diagnose and fix slow SQL++ queries and design GSI indexes for Couchbase,
-  grounded in real EXPLAIN plans and the index advisor on the live cluster. Use
-  ONLY when the user asks for performance or indexing help — "why is this query
-  slow?", "how do I index this?", "optimize this SQL++", "what are the slow
-  queries on my cluster?", "my query does a primary scan". Only engage to
-  diagnose or speed up an *existing* query or design an index. Do NOT use to
-  write or generate a query — even one meant to run slowly or "beyond N
-  seconds"; that is query authoring, not optimization (use
-  couchbase-natural-language-querying). Not for document/data modeling or key
-  design (use couchbase-data-modeling). Prefer GSI indexing as the optimization
-  strategy. Requires the Couchbase MCP server.
+  Diagnose and fix slow SQL++ (N1QL) queries and design GSI indexes for
+  Couchbase, grounded in real EXPLAIN plans, the cost-based optimizer, and the
+  index advisor (ADVISE) on the live cluster. Use ONLY when the user asks for
+  performance or indexing help — "why is this query slow?", "why isn't my index
+  used?", "how do I index this?", "optimize this SQL++", "what are the slow
+  queries on my cluster?", or when they share an EXPLAIN plan or mention a
+  primary scan, IntersectScan, covering/partial/array indexes, ANY/EVERY/UNNEST,
+  the cost-based optimizer, UPDATE STATISTICS, prepared statements, pagination
+  cost, or system:completed_requests. Only engage to diagnose or speed up an
+  *existing* query or design an index. Do NOT use to write or generate a query —
+  even one meant to run slowly or "beyond N seconds"; that is query authoring,
+  not optimization (use couchbase-natural-language-querying). Not for
+  document/data modeling or key design (use couchbase-data-modeling). Prefer GSI
+  indexing as the optimization strategy. Requires the Couchbase MCP server.
 license: Apache-2.0
 metadata:
   version: "0.1.0"
@@ -24,7 +27,7 @@ Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using
 
 > **Recommend, don't apply.** This skill **diagnoses (read-only)** and **outputs `CREATE INDEX` DDL** — it does not create indexes. The MCP server is read-only by default, so DDL won't run unless the user explicitly enables writes. Have the user run the DDL in the Query Workbench / `cbq`, or grant explicit approval.
 
-> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and file names still use "N1QL" (e.g. `n1ql-query-performance-guide`) — treat every such mention as SQL++.
+> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and tool names still use "N1QL" (e.g. `/n1ql/n1ql-language-reference/`, `N1QLQuery`) — treat every such mention as SQL++.
 
 ## Step 0 — Confirm the connection (pre-flight)
 
@@ -49,9 +52,11 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 - `get_schema_for_collection` — field names/types, so recommended keys are valid.
 
 **Cluster-wide:**
-- `get_queries_using_primary_index`, `get_queries_not_using_covering_index`, `get_queries_not_selective`, `get_longest_running_queries`, `get_most_frequent_queries`.
+- `get_queries_using_primary_index`, `get_queries_not_using_covering_index`, `get_queries_not_selective`, `get_longest_running_queries`, `get_most_frequent_queries`, `get_queries_with_largest_response_sizes`, `get_queries_with_large_result_count`.
 
 (A fresh local cluster may have little query history — say so if these come back empty.)
+
+`run_sql_plus_plus_query` is available for read-only diagnostics too — e.g. `SELECT COUNT(…)` cardinality checks, or querying `system:completed_requests` directly for control beyond the wrapper tools. → [`references/diagnosis.md`](references/diagnosis.md).
 
 ## Step 3 — Diagnose the plan
 
@@ -63,14 +68,16 @@ Read the `EXPLAIN` output for the tell-tale operators. Scan operators carry a ve
 - **`DistinctScan` / `UnionScan`** → a scan wrapping an index scan (array-index dedup, `OR`/`IN` unions); usually fine, but check selectivity and whether one composite index is better.
 - **Large `OFFSET` / no `LIMIT`** → pagination/selectivity problem.
 
-Assess selectivity (how many items the index scan returns vs. the final result). → [`references/core-indexing-principles.md`](references/core-indexing-principles.md), [`references/index-antipatterns.md`](references/index-antipatterns.md).
+Assess selectivity (how many items the index scan returns vs. the final result). For the full operator table, scan spans, runtime timings, and the three-questions method, see [`references/diagnosis.md`](references/diagnosis.md); symptom→fix in [`references/index-antipatterns.md`](references/index-antipatterns.md).
+
+**CBO check (joins / "right index not used"):** look for `optimizer_estimates` on the plan operators. If they're absent, or joins are always `NestedLoopJoin`, statistics are missing/stale → see [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md).
 
 ## Step 4 — Recommend a GSI design
 
 - **Key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
 - **Covering:** include the `WHERE` + `SELECT` + `ORDER BY` fields in the index keys so the plan drops the `Fetch`.
 - **Partial** (`WHERE` on the index) for filtered subsets; **array** (`DISTINCT ARRAY …`) for array/`UNNEST` predicates.
-- If statistics are stale (e.g., after a bulk load), recommend `UPDATE STATISTICS`.
+- If statistics are stale (e.g., after a bulk load), recommend `UPDATE STATISTICS` — it's a **write** (blocked in read-only mode), so hand it to the user like `CREATE INDEX`. → [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md).
 - Output the **exact `CREATE INDEX` statement**. → [`references/index-ddl.md`](references/index-ddl.md) (syntax), [`references/query-optimization.md`](references/query-optimization.md) (query-shape fixes beyond indexing).
 
 ## Step 5 — Communicate (recommend, don't apply)
@@ -86,20 +93,11 @@ Assess selectivity (how many items the index scan returns vs. the final result).
 
 ## References
 
-- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — key order, covering, sort direction, array indexing, selectivity, statistics.
-- [`references/index-antipatterns.md`](references/index-antipatterns.md) — common indexing mistakes + fixes.
+Load the one that fits the current sub-task (progressive disclosure — each has its own table of contents):
+
+- [`references/diagnosis.md`](references/diagnosis.md) — reading `EXPLAIN` (operator table + version suffixes, scan spans, runtime timings) and finding slow queries cluster-wide (the perf tools + `system:completed_requests`). Pairs with Steps 2–3.
+- [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md) — CBO version gates, `optimizer_estimates`, `UPDATE STATISTICS`, join algorithms/order, and hints. Read for joins or "the right index isn't used."
+- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — key order, covering, sort direction, partial/array/functional indexing, selectivity, statistics.
+- [`references/index-antipatterns.md`](references/index-antipatterns.md) — symptom→fix quick reference for common indexing mistakes.
 - [`references/index-ddl.md`](references/index-ddl.md) — `CREATE`/`ALTER`/`DROP`/`BUILD INDEX`, replicas/partitioning, monitoring, hints, statistics.
-- [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (pushdown, JOIN order, `UNNEST`, pagination, `UPDATE`/`MERGE`).
-
-### Query performance guide (deep-dive tutorials)
-
-[`references/n1ql-query-performance-guide/`](references/n1ql-query-performance-guide/) is the official Couchbase query-performance tutorial series — read a part when the concise references above don't go deep enough on a concept. File names use the legacy "n1ql" name; same language as SQL++ (see the terminology note above).
-
-- `01-understanding-query-workflow-and-optimization.md` — how queries are optimized and executed; access-path and index selection.
-- `02-understand-index-scans.md` — index scans and the span ranges different predicates produce.
-- `03-identifying-top-slow-queries.md` — finding the slowest queries on a cluster (pairs with the cluster-wide tools in Step 2).
-- `04-understanding-explain-plan.md` — reading the `EXPLAIN` plan and its attributes (Step 3).
-- `05-understanding-cardinality-and-selectivity.md` — cardinality/selectivity and how they drive index tuning.
-- `06-understanding-covering-indexes-and-ttls.md` — covering indexes, TTL, and `meta().expiration()`.
-- `07-tuning-tips-and-advice.md` — `USE KEYS`, partial/covering indexes, prepared statements, and more.
-- `08-operators-guide.md` — reference to the query-plan operators (pairs with the operator list in Step 3).
+- [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (`USE KEYS`, pushdown, pagination, prepared statements, scan consistency, `UPDATE`/`MERGE`).

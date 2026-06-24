@@ -2,6 +2,14 @@
 
 > The MCP server is read-only by default — these statements are **recommendations to give the user**, who runs them in the Query Workbench / `cbq` (or after enabling write mode with approval). Creating an index requires the `Query Manage Index` RBAC privilege.
 
+## Contents
+- [CREATE INDEX](#create-index)
+- [Deferred build (create many, build once)](#deferred-build-create-many-build-once)
+- [Replicas & partitioning (scale / HA)](#replicas--partitioning-scale--ha)
+- [Monitor](#monitor)
+- [Alter / drop](#alter--drop)
+- [Hints & statistics](#hints--statistics)
+
 ## CREATE INDEX
 
 ```sql
@@ -29,9 +37,12 @@ BUILD INDEX ON ks(idx_a, idx_b);          -- builds both in a single scan
 ## Replicas & partitioning (scale / HA)
 
 ```sql
-CREATE INDEX idx_a ON ks(a) WITH { "num_replica": 2 };           -- index replicas (Enterprise)
-CREATE INDEX idx_b ON ks(b) PARTITION BY HASH(b);               -- partitioned across index nodes
+CREATE INDEX idx_a ON ks(a) WITH { "num_replica": 2 };                          -- N+1 copies; needs ≥ N+1 index nodes
+CREATE INDEX idx_b ON ks(b) PARTITION BY HASH(b) WITH { "num_partitions": 8 };  -- spread one index over index nodes (16 default)
 ```
+- Index replicas are **active** (load-balanced across copies), unlike passive KV replicas. Enterprise only.
+- Pin to nodes with `WITH { "nodes": [...] }`; if both given, `num_replica` must equal `len(nodes) - 1`.
+- Partition by the index's **equality** key to get *partition elimination* (scan one partition, not all).
 
 ## Monitor
 
