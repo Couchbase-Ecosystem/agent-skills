@@ -79,7 +79,7 @@ Pick the user's harness. There are two equivalent ways to register the server �
 - **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
 - **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
 
-Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-configs.md`](references/client-configs.md).
+Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-setup.md`](references/client-setup.md).
 
 - **Claude Code (recommended):** register the server with `claude mcp add` at **`--scope local`**. The credentials are stored in Claude Code's own per-project config (`~/.claude.json`, *not* your repo), injected only into the server process, and **never exported to your shell** — so they can't leak into other shells, tools, or projects:
   ```bash
@@ -113,31 +113,25 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 | **Auth fails** | You used the Capella **UI login** instead of a **Cluster Access** credential; or the password's case is wrong (passwords are case-sensitive). |
 | **"bucket not found"** | The bucket name passed to a tool is wrong or **case-sensitive**; confirm the bucket exists in the cluster. |
 | `couchbase://` **rejected** | Capella requires TLS — use `couchbases://`. |
+| **TLS cert rejected** (self-signed / untrusted) | Set `CB_CA_CERT_PATH` to the CA root cert. Not needed for Capella (bundled CA used automatically). |
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; run `/reload-plugins`, then fully restart if they still don't appear. |
+| HTTP transport **port in use** | Change `CB_MCP_PORT` (default `8000`). |
 | **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
 ## References
 
-Skill-specific guides (start here):
+Load the one that matches what you're doing — each is self-contained.
+
+**Deployment** (Steps 2–3, get connection string + credentials):
 
 - [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Cluster Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
-- [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching.
 
-### Upstream MCP server docs (canonical, version-scoped)
+**Wiring & server reference:**
 
-For deeper detail than the guides above, the full official Couchbase MCP server documentation is mirrored under [`references/versioned_docs/`](references/versioned_docs/), one directory per server version (e.g. `version-0.8/`). **Read from the directory matching the user's installed server version** — this skill pins `>=0.8.0,<0.9.0`, so default to `version-0.8/` unless the user is on a different release. Pull a file from here only when the guides above don't cover the question.
-
-What's in each version directory:
-
-- `01-overview.md` — what the server is and what it connects.
-- `02-get-started/` — `01-prerequisites`, `02-quickstart`, `03-registries` (where the server is published).
-- `03-troubleshooting.md` — fuller troubleshooting than the table above (uv/uvx, connection, tools).
-- `04-tools.md` — the full catalog of MCP tools and what each does.
-- `05-configuration/` — `01-environment-variables` (complete `CB_*` reference + CLI args), `02-read-only-mode`, `03-streamable-http`, `04-disabling-tools`, `05-elicitation-for-tools` (confirmation prompts).
-- `06-security.md` — security model and best practices.
-- `07-build-from-source.md` — building/running the server from the repo.
-- `08-product-notes/01-release-notes.md` — version history.
-- `09-contributing/` — contributing to the server (`01-server`) and docs (`02-docs`).
+- [`references/client-setup.md`](references/client-setup.md) — *how each client registers the server*: per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching (Step 5).
+- [`references/configuration.md`](references/configuration.md) — *the server's own knobs*: full `CB_*` env var table (+ CLI args), authentication modes (basic/mTLS/TLS CA), transport, version/package requirements.
+- [`references/safety.md`](references/safety.md) — read-only mode (truth table + gated tools), disabling tools, confirmation prompts, RBAC (Step 4).
+- [`references/tools.md`](references/tools.md) — the MCP tool catalog (exact tool names) for verification and disable/confirm lists.

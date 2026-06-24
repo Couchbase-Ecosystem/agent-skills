@@ -142,6 +142,5 @@ Then point a client at the URL instead of giving it a launch command:
 ## Useful checks
 
 - Version: `uvx couchbase-mcp-server --version`
-- Read-only toggle: set `CB_MCP_READ_ONLY_MODE` to `"false"` in the `env` block to allow writes (default `"true"`).
-- Disable tools / require confirmation: set `CB_MCP_DISABLED_TOOLS` and/or `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` to comma-separated tool names (or a file path); empty means none.
-- Transport defaults to `stdio` (what coding agents use); `http` (Streamable HTTP) is for networked deployments. The legacy `sse` transport is deprecated — use `http` instead.
+- Access safety (read-only mode, disabling tools, confirmation prompts): [`safety.md`](safety.md).
+- Full env var / auth / transport reference: [`configuration.md`](configuration.md).
