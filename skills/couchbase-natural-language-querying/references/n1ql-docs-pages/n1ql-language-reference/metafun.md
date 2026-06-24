@@ -1,0 +1,2229 @@
+# Miscellaneous Utility Functions
+
+Miscellaneous utility functions enable you to perform tasks beyond the usual evaluation and transformation of data.
+For example, there are functions to retrieve information about a document or item, perform base64 encoding and decoding, generate UUIDs, and control the flow of a query.
+
+## ABORT(`expression`)
+
+### Description
+
+Generates an error.
+The error message contains the text specified by the given `expression`.
+
+This function is useful for flow control when [creating inline user-defined functions](n1ql:n1ql-language-reference/createfunction.adoc).
+You can use [conditional operators](n1ql:n1ql-language-reference/conditionalops.adoc) to check the parameters, and use this function to generate an error if something is wrong.
+
+### Arguments
+
+* **expression**\
+An expression resolving to a string.
+
+### Return Value
+
+The function does not return a return value.
+
+If this function is executed in a query, it causes the query to halt with an error code 5011.
+The error message contains the text specified by the given `expression`.
+
+When this function is executed by a user-defined function, it causes the query to halt with an error code 10109.
+The error message shows the name of the user-defined function and contains the text specified by the given `expression`.
+
+### Examples
+
+<a name="abort-ex1"></a>**Abort a query**
+
+**Query**
+
+```sqlpp
+SELECT ABORT("Something went wrong");
+```
+
+**Result**
+
+```json
+[
+  {
+    "code": 5011,
+    "msg": "Abort: \"Something went wrong\". - cause: \"Something went wrong\""
+  }
+]
+```
+
+<a name="abort-ex2"></a>**User-defined function with error checking**
+
+**Function**
+
+```sqlpp
+CREATE OR REPLACE FUNCTION rstr(vString, vLen) LANGUAGE INLINE AS
+CASE
+  WHEN NOT IS_STRING(vString)
+    THEN ABORT("Search string is not a string")
+  WHEN NOT IS_NUMBER(vLen)
+    THEN ABORT("Substring length is not a number")
+  WHEN vLen > LENGTH(vString)
+    THEN ABORT("Substring longer than search string")
+  ELSE SUBSTR(vString, LENGTH(vString) - vLen, vLen)
+END;
+```
+
+**Test invalid string argument**
+
+```sqlpp
+EXECUTE FUNCTION rstr(100, 4);
+```
+
+**Result**
+
+```json
+[
+  {
+    "code": 10109,
+    "msg": "Error executing function rstr : \"Search string is not a string\" - cause: \"Search string is not a string\""
+  }
+]
+```
+
+**Test invalid number argument**
+
+```sqlpp
+EXECUTE FUNCTION rstr("Couchbase", "foo");
+```
+
+**Result**
+
+```json
+[
+  {
+    "code": 10109,
+    "msg": "Error executing function rstr : \"Substring length is not a number\" - cause: \"Substring length is not a number\""
+  }
+]
+```
+
+**Test out-of-range value**
+
+```sqlpp
+EXECUTE FUNCTION rstr("Couchbase", 10);
+```
+
+**Result**
+
+```json
+[
+  {
+    "code": 10109,
+    "msg": "Error executing function rstr : \"Substring longer than search string\" - cause: \"Substring longer than search string\""
+  }
+]
+```
+
+**Test with valid arguments**
+
+```sqlpp
+EXECUTE FUNCTION rstr("Couchbase", 4);
+```
+
+**Result**
+
+```json
+[
+  "base"
+]
+```
+
+## BASE64(`expression`)
+
+_Alias_: [BASE64_ENCODE()](#base64_encodeexpression)
+
+### Description
+
+Returns the [base64](https://en.wikipedia.org/wiki/Base64) encoding of the given `expression`.
+
+### Arguments
+
+* **expression**\
+An expression representing any supported {sqlpp} datatype.
+
+### Return Value
+
+A string representing the base64 encoding of the input expression.
+If the input expression is `missing`, the return value is also `missing`.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT BASE64([1, 2, 3, 4]) AS `array`,
+       BASE64(false) AS `boolean`,
+       BASE64(missing) AS `missing`,
+       BASE64(null) AS `null`,
+       BASE64(1234) AS `number`,
+       BASE64( {"a": 1, "b": 2, "c": [1, 2, 3]} ) AS `object`,
+       BASE64("Couchbase") AS `string`;
+```
+
+**Result**
+
+```json
+[
+  {
+    "array": "WzEsMiwzLDRd",
+    "boolean": "ZmFsc2U=",
+    "null": "bnVsbA==",
+    "number": "MTIzNA==",
+    "object": "eyJhIjoxLCJiIjoyLCJjIjpbMSwyLDNdfQ==",
+    "string": "IkNvdWNoYmFzZSI="
+  }
+]
+```
+
+## BASE64_ENCODE(`expression`)
+
+Alias of [BASE64()](#base64expression).
+
+## BASE64_DECODE(`expression`)
+
+### Description
+
+Reverses the encoding done by the [BASE64()](#base64expression) or [BASE64_ENCODE()](#base64_encodeexpression) functions.
+
+### Arguments
+
+* **expression**\
+An expression representing a valid base64-encoded string.
+
+### Return Value
+
+The decoded value of the input expression.
+If the input expression is `missing`, the return value is also `missing`.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT BASE64_DECODE("WzEsMiwzLDRd") AS `array`,
+       BASE64_DECODE("ZmFsc2U=") AS `boolean`,
+       BASE64_DECODE(missing) AS `missing`,
+       BASE64_DECODE("bnVsbA==") AS `null`,
+       BASE64_DECODE("MTIzNA==") AS `number`,
+       BASE64_DECODE("eyJhIjoxLCJiIjoyLCJjIjpbMSwyLDNdfQ==") AS `object`,
+       BASE64_DECODE("IkNvdWNoYmFzZSI=") AS `string`;
+```
+
+**Result**
+
+```json
+[
+  {
+    "array": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "boolean": false,
+    "null": null,
+    "number": 1234,
+    "object": {
+      "a": 1,
+      "b": 2,
+      "c": [
+        1,
+        2,
+        3
+      ]
+    },
+    "string": "Couchbase"
+  }
+]
+```
+
+## CURRENT_USERS()
+
+### Description
+
+Returns the authenticated users for the current statement.
+
+### Arguments
+
+None.
+
+### Return Value
+
+An array of strings, each representing a user name.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT CURRENT_USERS() as current_users;
+```
+
+**Results**
+
+```json
+[
+  {
+    "current_users": [
+      "builtin:Administrator"
+    ]
+  }
+]
+```
+
+## DS_VERSION()
+
+### Description
+
+Returns the Couchbase Server version.
+
+### Arguments
+
+None.
+
+### Return Value
+
+Returns string containing the Couchbase Server version.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT DS_VERSION() as server_version;
+```
+
+**Results**
+
+```json
+[
+  {
+    "server_version": "7.6.0-1886-enterprise"
+  }
+]
+```
+
+## EVALUATE(`statement` [ ,`params` ])
+
+### Description
+
+This function enables you to execute a SQL++ statement provided as a string and returns the result as an array.
+It can be used as a part of larger query or request, or wherever arrays are permitted within a statement.
+
+The function evaluates the statement dynamically using the same permissions as the invoking statement.
+The statement must be read-only. If it tries to modify data (like with UPDATE or INSERT), the function fails with `error 5010, "not a readonly request”`.
+
+**📌 NOTE**\
+The results are materialized in memory, so large result sets may require a lot of memory.
+To limit memory usage, you can use quotas (the evaluated statement operates within the invoking statement’s quota).
+
+### Arguments
+
+* **statement**\
+A string containing the statement to evaluate.
+* **params**\
+Can be one of the following:
+
+  * An object containing named parameters.
+  * An array containing positional parameters.
+
+### Return Value
+
+An array that contains the result of the evaluated statement.
+
+### Examples
+
+<a name="evaluate-ex1"></a>**Example 1: Using named parameters**
+
+**Query**
+
+```sqlpp
+SELECT EVALUATE("SELECT $named_param AS example",
+        {"named_param":"This is the named parameter's value"})
+        eval_result;
+```
+
+**Results**
+
+```json
+[
+  {
+    "eval_result": [
+      {
+        "example": "This is the named parameter's value"
+      }
+    ]
+  }
+]
+```
+
+<a name="evaluate-ex2"></a>**Example 2: Using EVALUATE with INFER**
+
+**Query**
+
+```sqlpp
+SELECT `Flavor` FROM EVALUATE("INFER `travel-sample`")[0] inf;
+```
+
+**Results**
+
+```json
+[
+  {
+    "Flavor": "`type` = \"airport\""
+  },
+  {
+    "Flavor": "`stops` = 0, `type` = \"route\""
+  },
+  {
+    "Flavor": "`type` = \"landmark\""
+  },
+  {
+    "Flavor": "`type` = \"hotel\""
+  },
+  {
+    "Flavor": "`type` = \"airline\""
+  }
+]
+```
+
+## EXTRACTDDL(`filter` [ ,`options` ])
+
+Couchbase Server 8.0
+
+### Description
+
+This function extracts Data Definition Language (DDL) statements of buckets and returns them as an array of strings.
+It retrieves definitions for buckets, scopes, collections, indexes, sequences, functions, and prepared statements.
+
+You can use these definitions for purposes such as replication, backup, or auditing.
+
+The function supports the following statements:
+
+* CREATE BUCKET
+* CREATE SCOPE
+* CREATE COLLECTION
+* CREATE INDEX
+* CREATE SEQUENCE
+* CREATE OR REPLACE FUNCTION Couchbase Server 8.0.1
+* PREPARE Couchbase Server 8.0.1
+
+**📌 NOTE**\
+To execute this function, you must have the `query_system_catalog` role.
+Also, to extract DDLs from a specific bucket, you need necessary permissions on that bucket.
+For more information about roles and permissions, see [Authorization](learn:security/authorization-overview.adoc).
+
+### Arguments
+
+* **filter**\
+[Required]
+A string pattern to match against bucket names using the LIKE operator.
+To match all bucket names, use an empty string (`""`).
+* **options**\
+[Optional]
+A JSON object specifying options for the function.
+If you omit this argument, the output includes all supported DDL statements.
+
+### Options
+
+| Name | Description | Schema |
+| --- | --- | --- |
+| ***flags***<br> __optional__ | Specifies the types of DDL statements to extract. Accepts either a number or an array of strings, but not both. !=== ! Statement ! String ! Number ! CREATE BUCKET ! `"bucket"` ! `1` ! CREATE SCOPE ! `"scope"` ! `2` ! CREATE COLLECTION ! `"collection"` ! `4` ! CREATE INDEX ! `"index"` ! `8` ! CREATE SEQUENCE ! `"sequence"` ! `16` ! CREATE OR REPLACE FUNCTION<br> Couchbase Server 8.0.1 ! `"function"` ! `32` ! PREPARE<br> Couchbase Server 8.0.1 ! `"prepared"` ! `64` !=== To extract multiple statement types, specify an array of their string values or a single numeric value that represents the sum of their respective numeric values. For example, to extract CREATE BUCKET and CREATE INDEX statements, input the value as `9` (sum of `1` + `8`) or as an array of strings `["bucket", "index"]`. | String array or Number |
+
+### Return Value
+
+An array of strings, with each string containing a DDL statement.
+
+### Examples
+
+<a name="extract-ddl-ex1"></a>**Extract CREATE INDEX statements from the `travel-sample` bucket using a string flag**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("travel-sample",{"flags":["index"]});
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE INDEX `def_airportname` ON `travel-sample`(`airportname`) ;",
+      "CREATE INDEX `def_city` ON `travel-sample`(`city`) ;",
+      "CREATE INDEX `def_faa` ON `travel-sample`(`faa`) ;",
+      "CREATE INDEX `def_icao` ON `travel-sample`(`icao`) ;",
+      ...
+    ]
+  }
+]
+```
+
+<a name="extract-ddl-ex2"></a>**Extract CREATE INDEX statements from the `travel-sample` bucket using a numeric flag**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("travel-sample", {"flags":8});
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE INDEX `def_airportname` ON `travel-sample`(`airportname`) ;",
+      "CREATE INDEX `def_city` ON `travel-sample`(`city`) ;",
+      "CREATE INDEX `def_faa` ON `travel-sample`(`faa`) ;",
+      "CREATE INDEX `def_icao` ON `travel-sample`(`icao`) ;",
+      ...
+    ]
+  }
+]
+```
+
+<a name="extract-ddl-ex3"></a>**Extract CREATE BUCKET and CREATE SCOPE statements from the `travel-sample` bucket using a numeric flag**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("travel-sample",{"flags":3});
+```
+In this query, the value `3` represents the sum of the flags for bucket (`1`) and scope (`2`).
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE BUCKET `travel-sample` WITH {
+              'evictionPolicy':'fullEviction',
+              'numVBuckets':128,
+              'ramQuota':200,
+              'replicaNumber':0,
+              'storageBackend':'magma'
+          };",
+      "CREATE SCOPE `travel-sample`.`inventory`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_00`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_01`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_02`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_03`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_04`;"
+    ]
+  }
+]
+```
+
+<a name="extract-ddl-ex4"></a>**Extract CREATE FUNCTION and PREPARE statements from the `travel-sample` bucket**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("travel-sample",{"flags":["function","prepared"]});
+```
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE OR REPLACE FUNCTION `celsius`(...)
+          LANGUAGE INLINE AS (args[0] - 32) * 5/9;",
+      "PREPARE SELECT * FROM route\n
+              WHERE airline = \"FL\";",
+      "PREPARE NameParam AS\nSELECT * FROM hotel\n
+          WHERE city=$city AND country=$country;"
+    ]
+  }
+]
+```
+
+<a name="extract-ddl-ex5"></a>**Extract all supported DDL statements from the `travel-sample` bucket**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("travel-sample");
+```
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE OR REPLACE FUNCTION `celsius`(...)
+          LANGUAGE INLINE AS (args[0] - 32) * 5/9;",
+      "CREATE BUCKET `travel-sample`
+           WITH {'evictionPolicy':'fullEviction',
+                  'numVBuckets':128,
+                  'ramQuota':200,
+                  'replicaNumber':0,
+                  'storageBackend':'magma'
+                };",
+      "CREATE SCOPE `travel-sample`.`inventory`;",
+      "CREATE COLLECTION `travel-sample`.`inventory`.`airline;",
+      "CREATE COLLECTION `travel-sample`.`inventory`.`airport;",
+      "CREATE COLLECTION `travel-sample`.`inventory`.`hotel;",
+      "CREATE COLLECTION `travel-sample`.`inventory`.`landmark;",
+      "CREATE COLLECTION `travel-sample`.`inventory`.`route;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_00`;",
+      ...
+      "CREATE INDEX `def_airportname`
+          ON `travel-sample`(`airportname`) ;",
+      "CREATE INDEX `def_city`
+          ON `travel-sample`(`city`) ;",
+      ...
+    ]
+  }
+]
+```
+
+<a name="extract-ddl-ex6"></a>**Extract DDL statements from all buckets**
+
+**Query**
+
+```sqlpp
+SELECT extractddl("",{"flags":["bucket","scope"]});
+```
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      "CREATE BUCKET `travel-sample`
+           WITH {'evictionPolicy':'fullEviction',
+                'numVBuckets':128,
+                'ramQuota':200,
+                'replicaNumber':0,
+                'storageBackend':'magma'
+              };",
+      "CREATE SCOPE `travel-sample`.`inventory`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_00`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_01`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_02`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_03`;",
+      "CREATE SCOPE `travel-sample`.`tenant_agent_04`;"
+    ]
+  }
+]
+```
+
+## FINDERR(`expression`)
+
+### Description
+
+Returns the full details of any Query service or cbq shell error.
+
+### Arguments
+
+* **expression**\
+One of the following:
+
+  * A number representing an error code.
+  In this case, the function returns the full details of the error matching the error code.
+  * A string.
+  In this case, the function searches for the target string in all of the error message fields except for `user_error`, and returns the full details of any errors that match the string.
+  * A regular expression.
+  In this case, the function searches for the regular expression in all of the error message fields except for `user_error`, and returns the full details of any errors that match the pattern.
+
+### Return Value
+
+The return value is an array of one or more objects, each of which contains the details of an error that matches the find expression.
+
+For each error, the function returns the following fields.
+
+| Name | Description | Schema |
+| --- | --- | --- |
+| ***applies_to***<br> __required__ | One of the following: * `cbq-shell`: The error applies to the cbq shell. * `Server`: The error applies to the server. | enum (cbq-shell, Server) |
+| ***code***<br> __required__ | A number representing the error. | Integer |
+| ***description***<br> __required__ | Message describing why the error occurred. | String |
+| ***reason***<br> __optional__ | List of possible causes of the error. | String array |
+| ***user_action***<br> __optional__ | List of possible steps a user can take to mitigate the error. | String array |
+| ***user_error***<br> __optional__ | One of the following: * `Yes`: The error was caused by the user. * `No`: The error was caused by other services, or was internal to the server. * `Maybe`: A combination of both. | enum (Yes, No, Maybe) |
+
+**📌 NOTE**\
+The error details also include a `symbol` field, which contains a representation string for the error.
+This field is for internal use only, and is not shown in the results.
+However, the FINDERR function does search this field when the find expression is a string or a regular expression.
+
+### Examples
+
+<a name="finderr-ex1"></a>**Find error details by code number**
+
+**Query**
+
+```sqlpp
+SELECT FINDERR(5011);
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      {
+        "applies_to": "Server",
+        "code": 5011,
+        "description": "Abort: «reason»",
+        "reason": [
+          [
+            "The SQL++ abort() function was called in the statement.",
+            "e.g. SELECT abort('An example cause')"
+          ]
+        ],
+        "user_error": "Yes"
+      }
+    ]
+  }
+]
+```
+
+<a name="finderr-ex2"></a>**Find error details by matching a string**
+
+**Query**
+
+```sqlpp
+SELECT FINDERR("A semantic error is present in the statement.");
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      {
+        "applies_to": "Server",
+        "code": 3100,
+        "description": "A semantic error is present in the statement.",
+        "reason": [
+          "The statement includes portions that violate semantic constraints."
+        ],
+        "user_action": [
+          "The cause will contain more detail on the violation; revise the statement and re-submit."
+        ],
+        "user_error": "Yes"
+      }
+    ]
+  }
+]
+```
+
+<a name="finderr-ex3"></a>**Find multiple error details by matching a string**
+
+**Query**
+
+```sqlpp
+SELECT FINDERR("semantic");
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      {
+        "applies_to": "Server",
+        "code": 3100,
+        "description": "A semantic error is present in the statement.",
+        "reason": [
+          "The statement includes portions that violate semantic constraints."
+        ],
+        "user_action": [
+          "The cause will contain more detail on the violation; revise the statement and re-submit."
+        ],
+        "user_error": "Yes"
+      },
+      {
+        "applies_to": "Server",
+        "code": 3220,
+        "description": "«name» window function «clause» «reason»",
+        "reason": [
+          "A violation of the window function semantic restrictions was present in the statement."
+        ],
+        "user_action": [
+          "Revise the statement to remove the violation."
+        ],
+        "user_error": "Yes"
+      },
+      {
+        "applies_to": "Server",
+        "code": 3300,
+        "description": "recursive_with semantics: «cause»",
+        "reason": [
+          "The statement specifies restricted syntax in a recursive common table expression definition."
+        ],
+        "user_action": [
+          "Revise the statement removing the restricted syntax."
+        ],
+        "user_error": "Yes"
+      }
+    ]
+  }
+]
+```
+
+<a name="finderr-ex4"></a>**Find multiple error details by matching a regular expression**
+
+**Query**
+
+```sqlpp
+SELECT FINDERR("[IU][NP]SERT");
+```
+
+**Results**
+
+```json
+[
+  {
+    "$1": [
+      {
+        "applies_to": "Server",
+        "code": 3150,
+        "description": "MERGE with ON KEY clause cannot have document key specification in INSERT action.",
+        "reason": [
+          [
+            "A lookup merge statement specified a document key.",
+            "e.g. MERGE INTO default USING [{},{}] AS source ON KEY 'aaa' WHEN NOT MATCHED THEN INSERT ('key',{})"
+          ]
+        ],
+        "user_action": [
+          "Refer to the documentation for lookup merge statements."
+        ],
+        "user_error": "Yes"
+      },
+// ...
+      {
+        "applies_to": "Server",
+        "code": 5072,
+        "description": "No UPSERT key for «value»",
+        "user_action": [
+          "Contact support."
+        ]
+      },
+// ...
+      {
+        "applies_to": "Server",
+        "code": 15005,
+        "description": "No keys to insert «details»"
+      }
+    ]
+  }
+]
+```
+
+### See Also
+
+* The [finderr](cli:finderr.adoc) command line tool
+* [n1ql:n1ql-language-reference/n1ql-error-codes.adoc](n1ql:n1ql-language-reference/n1ql-error-codes.adoc)
+
+## FLATTEN_KEYS(`expr1` [ `modifiers` ], `expr2` [ `modifiers` ], ...)
+
+### Description
+
+This function can only be used when defining an index key for an [array index](n1ql:n1ql-language-reference/indexing-arrays.adoc).
+
+If you need to index multiple fields within an array, this function enables you to _flatten_ the specified expressions, and index them as if they were separate index keys.
+All subsequent index keys are accordingly moved to the right.
+Queries will be [sargable](n1ql-language-reference/selectintro.adoc#index-selection) and will generate spans.
+
+### Arguments
+
+* **expr1, expr2, ...**\
+[At least 1 and at most 32 argument-values are required]
+Each argument is an expression over a field within an array, which constitutes an array index key.
+* **modifiers**\
+[Optional]
+Arguments can be modified with `ASC` or `DESC` to specify the [sort order](n1ql:n1ql-language-reference/createindex.adoc#index-order) of the index key.
+If this modifier is omitted, the default sort order is `ASC`.
+
+  The first argument may be also modified with `IGNORE MISSING`.
+  This modifier may only be used when the function is being used in the definition of the leading index key.
+  If this modifier is present, documents which do not contain the specified field are indexed anyway.
+  If this modifier is omitted, documents which do not contain the specified field are not indexed.
+
+  When the `IGNORE MISSING` modifier and the `ASC` or `DESC` modifier are used together, the order of the modifiers does not matter.
+
+Note that `FLATTEN_KEYS()` cannot be used recursively.
+
+### Return Value
+
+The return value is a flattened list of array elements for use in an array index key.
+
+### Examples
+
+For examples, refer to [Array Indexing Examples](n1ql:n1ql-language-reference/indexing-arrays.adoc#examples).
+
+## FORMALIZE(`statement` [ `,query_context` ])
+
+### Description
+
+Fully expands all references within a query, using the specified query context.
+
+This function has a synonym FORMALISE().
+
+### Arguments
+
+* **statement**\
+A string containing the statement to formalize.
+* **query_context**\
+[ Optional ]
+A string query context value for the function to use when formalizing.
+
+### Return Value
+
+Returns a query with all references fully specified.
+
+### Examples
+
+<a name="formalize-ex1"></a>**Formalize a query**
+
+**Query**
+
+```sqlpp
+SELECT formalize("SELECT * FROM landmark WHERE country = 'United Kingdom'","default:`travel-sample`.inventory")
+```
+**Results**
+
+```json
+[
+  {
+    "$1": "select self.* from `default`:`travel-sample`.`inventory`.`landmark` where ((`landmark`.`country`) = \"United Kingdom\")"
+  }
+]
+```
+
+<a name="formalize-ex2"></a>**Formalize recently completed requests**
+
+**Query**
+
+```sqlpp
+SELECT statement,
+       NVL(queryContext,"") AS queryContext,
+       formalize(statement, queryContext) AS formalized
+FROM system:completed_requests;
+
+```
+**Results**
+
+```json
+[
+  {
+      "statement": "select * from `travel-sample`.inventory.landmark where country = 'United Kingdom' limit 1;",
+      "queryContext": "",
+      "formalized": "select self.* from `default`:`travel-sample`.`inventory`.`landmark` where ((`landmark`.`country`) = \"United Kingdom\") limit 1"
+  },
+  {
+      "statement": "select * from landmark where country = 'United Kingdom' limit 1;",
+      "queryContext": "`travel-sample`.inventory",
+      "formalized": "select self.* from `default`:`travel-sample`.`inventory`.`landmark` where ((`landmark`.`country`) = \"United Kingdom\") limit 1"
+  },
+  // ...
+]
+```
+
+## HASHBYTES(`input`, [ `options` ])
+
+### Description
+
+This function returns a binary hash value for a given input using a specified hashing algorithm.
+By using this function, you can verify or compare data quickly, or protect your data by masking its original form while still allowing verification or comparison.
+
+### Arguments
+
+* **input**\
+A binary object or any {sqlpp} data type.
+The JSON marshalled value of the data is used as the input.
+* **options**\
+ [Optional]
+An object that specifies the hashing algorithm and other options for the function.
+If omitted, the default hashing algorithm is `sha256`.
+
+### Options
+
+| Name | Description | Schema |
+| --- | --- | --- |
+| ***algorithm***<br> __required__ | Specifies the hashing algorithm to be used. Supported algorithms are: `crc32`, `md4`, `md5`, `sha224`, `sha256`, `sha384`, `sha512`, `sha512/224`, and `sha512/256`. | String |
+| ***polynomial***<br> __optional__ | The polynomial to use. This only applies if the algorithm is `crc32`. This property may have one of the following values: * `ieee` (the default value) * `castagnoli` * `koopman` * A valid 32-bit integer, provided either as a JSON number (decimal) or a string that can be parsed as a numeric value (supports hexadecimal with a "0x" prefix) **Default:** `ieee` | String or integer |
+
+### Return Value
+
+A binary hash value.
+The size or length of the value depends on the algorithm you choose.
+
+### Examples
+
+**Find the hash value using the `sha256` algorithm**
+
+**Query**
+
+```sqlpp
+SELECT HASHBYTES('Hello World', {"algorithm":"sha256"});
+```
+**Results**
+
+```json
+[
+  {
+    "$1": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e"
+  }
+]
+```
+
+**Find the hash value using the `crc32` algorithm**
+
+**Query**
+
+```sqlpp
+SELECT HASHBYTES("hello world", {"algorithm":"crc32", "polynomial":"koopman"});
+```
+**Results**
+
+```json
+[
+  {
+    "$1": "df373d3c"
+  }
+]
+```
+
+## LEN(`expression`)
+
+### Description
+
+A general function to return the length of an item.
+
+### Arguments
+
+* **expression**\
+An expression representing any supported {sqlpp} datatype.
+
+### Return Value
+
+The return value is usually a number, depending on the datatype of the input expression.
+
+| Input Expression | Return Value |
+| --- | --- |
+| String | The number of code points in the string -- equivalent to [LENGTH()](n1ql-language-reference/stringfun.adoc#fn-str-length). |
+| Object | The field count -- equivalent to [OBJECT_LENGTH()](n1ql-language-reference/objectfun.adoc#fn-obj-length). |
+| Array | The number of elements -- equivalent to [ARRAY_LENGTH()](n1ql-language-reference/arrayfun.adoc#fn-array-length). |
+| Binary | The size of the binary object. |
+| Boolean | `1` |
+| Number | The number of characters in the number’s text representation. |
+| MISSING | `missing` |
+| NULL | `null` |
+
+For any item not listed above, the return value is `null`.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT LEN([1, 2, 3, 4]) AS `array`,
+       LEN(false) AS `boolean`,
+       LEN(missing) AS `missing`,
+       LEN(null) AS `null`,
+       LEN(1234) AS `number`,
+       LEN( {"a": 1, "b": 2, "c": [1, 2, 3]} ) AS `object`,
+       LEN("Couchbase") AS `string`;
+```
+
+**Result**
+
+```json
+[
+  {
+    "array": 4,
+    "boolean": 1,
+    "null": null,
+    "number": 4,
+    "object": 3,
+    "string": 9
+  }
+]
+```
+
+## META( {startsb} `keyspace_expr` {endsb} ) {startsb} .`property` {endsb}
+
+### Description
+
+This function returns the [metadata](learn:data/data.adoc#metadata) for the document or keyspace specified by `keyspace_expr`.
+The metadata is returned as a JSON object.
+
+To return a single property from the metadata, you must use a [nested expression](n1ql-language-reference/nestedops.adoc#field-selection) containing the `META()` function and the required property, for example `META().id`.
+The supported metadata properties are described below.
+
+You can use the `META()` function with a property to [index metadata information](n1ql-language-reference/indexing-meta-info.adoc).
+Only certain metadata properties are indexable; these are indicated in the description below.
+
+You can also use the `META()` function with a property in the predicate of an [ANSI JOIN Clause](n1ql:n1ql-language-reference/join.adoc#section_ek1_jnx_1db).
+
+If your database is running Couchbase Server version 7.6.2 and later, use the `META()` function with the [SEARCH() function](searchfun.adoc) when you want to return XATTRs data through the Search Service and do not have a suitable Search index for your query.
+
+### Arguments
+
+* **keyspace_expr**\
+[Optional.
+Default is current keyspace.]
+
+  String or an expression that results in a keyspace or a document.
+  This argument is not required when creating an index, since the `META()` function implicitly uses the keyspace being indexed.
+* **property**\
+[Optional] The name of a single metadata property.
+The property name must be separated from the `META()` function by a dot (`.`) and may be one of the following:
+  * **cas**\
+  Value representing the current state of an item which changes every time the item is modified.
+  For details, refer to [Concurrent Document Mutations](java-sdk:howtos:concurrent-document-mutations.adoc).
+
+    This property is indexable.
+  * **expiration**\
+  Value representing a document’s expiration date.
+  A value of 0 (zero) means no expiration date.
+  For details, refer to [KV Operations](java-sdk:howtos:kv-operations.adoc#document-expiration).
+
+    This property is indexable.
+  * **flags**\
+  Value set by the SDKs for non-JSON documents.
+  For details, refer to [Non-JSON Documents](java-sdk:howtos:transcoders-nonjson.adoc).
+
+    This property is not indexable.
+    If you attempt to build an index on this property, an error is returned.
+  * **id**\
+  Value representing a document’s unique ID number.
+
+    This property is indexable.
+  * **type**\
+  Value for the type of document; currently only `json` is supported.
+
+    This property is not indexable.
+    If you attempt to build an index on this property, an error is returned.
+  * **xattrs**\
+  Value representing extended attributes (XATTRs) of a document.
+
+    To access XATTRs, use the syntax `META().xattrs.<attribute>[.<path>]`, where:
+
+    * `<attribute>` is a top-level attribute name or key of the XATTR object.
+    * `<path>` is an optional subpath within that attribute.
+
+    While you can create an index on a specific extended attribute like `META().xattrs.attr1`, you cannot create an index on the entire `META().xattrs` object itself.
+
+    Attempting to select the entire `META().xattrs` object will return an empty result.
+
+    <dl><dt><strong>📌 NOTE</strong></dt><dd>
+
+    * Starting with Couchbase Server 8.0, you can include up to 15 XATTRs per query.
+    * You can also use the `META().xattrs` property to access [virtual XATTRs](learn:data/extended-attributes-fundamentals.adoc#virtual-extended-attributes)
+    (see [Example 5](#meta-ex5)).
+    However, this is an expensive operation and may increase query latency.
+    </dd></dl>
+
+### Return Value
+
+The bare function returns a JSON object containing the specified document’s metadata.
+When the function is used with a property as part of a nested expression, the expression returns the JSON value of the property.
+
+### Examples
+
+To try the examples in this section, set the query context to the `inventory` scope in the travel sample dataset.
+For more information, see [Query Context](n1ql:n1ql-intro/queriesandresults.adoc#query-context).
+
+<a name="meta-ex1"></a>**Return all metadata**
+
+**Query**
+
+```sqlpp
+SELECT META() AS metadata
+FROM airline
+LIMIT 3;
+```
+
+**Results**
+
+```json
+[
+  {
+      "metadata": {
+          "cas": 1583859008179798016,
+          "expiration": 0,
+          "flags": 33554432,
+          "id": "airline_10",
+          "type": "json"
+      }
+  },
+  {
+      "metadata": {
+          "cas": 1583859008180846592,
+          "expiration": 0,
+          "flags": 33554432,
+          "id": "airline_10123",
+          "type": "json"
+      }
+  },
+  {
+      "metadata": {
+          "cas": 1583859008181895168,
+          "expiration": 0,
+          "flags": 33554432,
+          "id": "airline_10226",
+          "type": "json"
+      }
+  }
+]
+```
+
+<a name="meta-ex2"></a>**Return a single metadata property**
+
+**Query**
+
+```sqlpp
+SELECT META().id AS id
+FROM airline
+LIMIT 3;
+```
+
+**Results**
+
+```json
+[
+  {
+    "id": "airline_10"
+  },
+  {
+    "id": "airline_10123"
+  },
+  {
+    "id": "airline_10226"
+  }
+]
+```
+
+<a name="meta-ex3"></a>**Return a single metadata property for a specified keyspace**
+
+**Query**
+
+```sqlpp
+SELECT META(route).id AS id -- ①
+FROM route
+JOIN airport
+ON route.sourceairport = airport.faa
+WHERE airport.city = "Paris"
+LIMIT 3;
+```
+
+1. You must specify a keyspace for the `META()` function because there is more than one FROM term.
+
+**Results**
+
+```json
+[
+  {
+    "id": "route_10136"
+  },
+  {
+    "id": "route_10137"
+  },
+  {
+    "id": "route_10138"
+  }
+]
+```
+
+<a name="meta-ex4"></a>**Return a specific XATTR**
+
+To run this example, you must first create a document with key `landmark_1001` and add an XATTR attribute `metadata` to it.
+
+**Query to insert**
+
+```sqlpp
+INSERT INTO `travel-sample`.`inventory`.`landmark` (KEY, VALUE, OPTIONS)
+VALUES (
+    "landmark_1001",
+    {
+        "title": "Gillingham (Kent)",
+        "name": "Hollywood Bowl",
+        "alt": null,
+        "address": "4 High Street, ME7 1BB",
+        "directions": null,
+        "phone": null,
+        "tollfree": null,
+        "email": null,
+        "url": "http://www.thehollywoodbowl.co.uk",
+        "hours": null,
+        "image": null,
+        "price": null,
+        "content": "A newly extended lively restaurant
+              located in the high street,
+              an American Hollywood style restaurant
+              beautifully decorated with old photos
+              and a great menu including burgers and ribs.",
+        "geo": {
+            "lat": 51.38937,
+            "lon": 0.5427,
+            "accuracy": "RANGE_INTERPOLATED"
+        },
+        "activity": "eat",
+        "type": "landmark",
+        "id": 10020,
+        "country": "United Kingdom",
+        "city": "Gillingham",
+        "state": null
+    },
+    {
+        "xattrs": {
+            "metadata": {
+                "created_by": "admin",
+                "created_at": "2026-01-05"
+            }
+        }
+    }
+);
+```
+
+Next, run the following query to retrieve the XATTR attribute `metadata`.
+
+**Query to retrieve**
+
+```sqlpp
+SELECT META().xattrs.metadata
+FROM `travel-sample`.`inventory`.`landmark`
+USE KEYS ["landmark_1001"];
+```
+
+**Results**
+
+```json
+[{
+    "metadata": {
+        "created_at": "2026-01-05",
+        "created_by": "admin"
+    }
+}]
+```
+
+<a name="meta-ex5"></a>**Return a virtual XATTR**
+
+**Query**
+
+```sqlpp
+SELECT META().xattrs.`$document`
+FROM airline
+USE KEYS ["airline_10123"];
+```
+**Results**
+
+```json
+[{
+    "$document": {
+        "CAS": "0x1877771a5c980000",
+        "datatype": [
+            "snappy",
+            "json"
+        ],
+        "deleted": false,
+        "exptime": 0,
+        "flags": 0,
+        "last_modified": "1763008734",
+        "revid": "1",
+        "seqno": "0x0000000000000025",
+        "value_bytes": 118,
+        "value_crc32c": "0x85aa593e",
+        "vbucket_uuid": "0x0000e287931a14fb"
+    }
+}]
+```
+
+For examples showing how to index metadata information, refer to [Indexing Meta Info](n1ql-language-reference/indexing-meta-info.adoc).
+
+For examples showing how to use metadata information in the predicate of an ANSI JOIN clause, refer to [JOIN Clause](n1ql:n1ql-language-reference/join.adoc).
+
+## NODE_NAME()
+
+### Description
+
+Returns the name of the node on which the query is running.
+
+### Arguments
+
+None.
+
+### Return Value
+
+A string representing a node name.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT NODE_NAME() AS node_name;
+```
+
+**Results**
+
+```json
+[
+  {
+    "node_name": "127.0.0.1:8091"
+  }
+]
+```
+
+## NODE_UUID(`expression`)
+
+### Description
+
+Returns the UUID of a node.
+
+### Arguments
+
+* **expression**\
+A string, or an expression resolving to a string, representing a node name.
+To get the UUID of the node on which the query is running, use the empty string `""`.
+
+### Return Value
+
+A string representing the node UUID.
+
+If the input expression is not a string, the return value is `null`.
+
+If the input expression is `missing`, the return value is also `missing`.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT NODE_UUID("") AS from_empty_string,
+       NODE_UUID("127.0.0.1:8091") AS from_node_name,
+       NODE_UUID(NODE_NAME()) AS from_node_name_function;
+```
+
+**Result**
+
+```json
+[
+  {
+    "from_empty_string": "<redacted UUID>",
+    "from_node_name": "<redacted UUID>",
+    "from_node_name_function": "<redacted UUID>"
+  }
+]
+```
+
+## PAIRS(`obj`)
+
+### Description
+
+This function generates an array of arrays of {startsb}``field_name``, ``value``{endsb} pairs of all possible fields in the given JSON object [.var]`obj`.
+
+**📌 NOTE**\
+Nested sub-object fields are explored recursively.
+
+### Arguments
+
+* **obj**\
+An expression resolving to an object.
+
+### Return Value
+
+Array of {startsb}``field_name``, ``value``{endsb} arrays for each field in the input object [.var]`obj`.
+
+* If `obj` has nested objects, then fields of such nested sub-objects are also explored and corresponding inner-array elements are produced.
+* If `obj` is an array, then each element of the array is explored and corresponding inner-array elements are produced.
+* If `obj` is a primitive data type of integer or string, then it returns NULL, as they don’t have a name.
+* If `obj` is an array of primitive data types, then it returns an empty array `[]`.
+* If `obj` is an array of objects, then it returns an array of objects.
+
+<dl><dt><strong>💡 TIP</strong></dt><dd>
+
+If you wrap an array of primitive data types in an [object constructor](n1ql-language-reference/constructionops.adoc#object-construction), it’s treated as an object and returns an array; without the object constructor, it’s treated as an array of primitive data types and returns `[]`.
+For example, in [PAIRS() Example 2](#pairs-example2):
+
+* `PAIRS(public_likes)` returns `[]`
+* `PAIRS({public_likes})` returns an array
+</dd></dl>
+
+### Examples
+
+To try the examples in this section, set the query context to the `inventory` scope in the travel sample dataset.
+For more information, see [Query Context](n1ql:n1ql-intro/queriesandresults.adoc#query-context).
+
+<a name="pairs-example1"></a>**Input value of a nested object**
+
+**Query**
+
+```sqlpp
+SELECT t        AS orig_t,
+       PAIRS(t) AS pairs_t
+FROM   airport t
+LIMIT  1;
+```
+
+**Result**
+
+```json
+[
+  {
+    "orig_t": {
+      "airportname": "Calais Dunkerque",
+      "city": "Calais",
+      "country": "France",
+      "faa": "CQF",
+      "geo": {
+        "alt": 12,
+        "lat": 50.962097,
+        "lon": 1.954764
+      },
+      "icao": "LFAC",
+      "id": 1254,
+      "type": "airport",
+      "tz": "Europe/Paris"
+    },
+    "pairs_t": [
+      [
+        "id",
+        1254
+      ],
+      [
+        "city",
+        "Calais"
+      ],
+      [
+        "faa",
+        "CQF"
+      ],
+      [
+        "geo",
+        {
+          "alt": 12,
+          "lat": 50.962097,
+          "lon": 1.954764
+        }
+      ],
+      [
+        "lon",
+        1.954764
+      ],
+      [
+        "alt",
+        12
+      ],
+      [
+        "lat",
+        50.962097
+      ],
+      [
+        "type",
+        "airport"
+      ],
+      [
+        "tz",
+        "Europe/Paris"
+      ],
+      [
+        "airportname",
+        "Calais Dunkerque"
+      ],
+      [
+        "country",
+        "France"
+      ],
+      [
+        "icao",
+        "LFAC"
+      ]
+    ]
+  }
+]
+```
+
+<a name="pairs-example2"></a>**Input value of an array**
+
+**Query**
+
+```sqlpp
+SELECT public_likes          AS orig_t,
+       PAIRS(public_likes)   AS pairs_array_t,
+       PAIRS({public_likes}) AS pairs_obj_t
+FROM   hotel
+LIMIT  1;
+```
+
+**Result**
+
+```json
+[
+  {
+    "orig_t": [
+      "Julius Tromp I",
+      "Corrine Hilll",
+      "Jaeden McKenzie",
+      "Vallie Ryan",
+      "Brian Kilback",
+      "Lilian McLaughlin",
+      "Ms. Moses Feeney",
+      "Elnora Trantow"
+    ],
+    "pairs_array_t": [],
+    "pairs_obj_t": [
+      [
+        "public_likes",
+        [
+          "Julius Tromp I",
+          "Corrine Hilll",
+          "Jaeden McKenzie",
+          "Vallie Ryan",
+          "Brian Kilback",
+          "Lilian McLaughlin",
+          "Ms. Moses Feeney",
+          "Elnora Trantow"
+        ]
+      ],
+      [
+        "public_likes",
+        "Julius Tromp I"
+      ],
+      [
+        "public_likes",
+        "Corrine Hilll"
+      ],
+      [
+        "public_likes",
+        "Jaeden McKenzie"
+      ],
+      [
+        "public_likes",
+        "Vallie Ryan"
+      ],
+      [
+        "public_likes",
+        "Brian Kilback"
+      ],
+      [
+        "public_likes",
+        "Lilian McLaughlin"
+      ],
+      [
+        "public_likes",
+        "Ms. Moses Feeney"
+      ],
+      [
+        "public_likes",
+        "Elnora Trantow"
+      ]
+    ]
+  }
+]
+```
+
+<a name="pairs-example3a"></a>**Input value of a primitive (field document string) data type**
+
+**Query**
+
+```sqlpp
+SELECT country        AS orig_t,
+       PAIRS(country) AS pairs_t
+FROM   airport
+LIMIT  1;
+```
+
+**Result**
+
+```json
+[
+  {
+    "orig_t": "France",
+    "pairs_t": null
+  }
+]
+```
+
+<a name="pairs-example3b"></a>**Input value of a primitive (constant) data type**
+
+**Query**
+
+```sqlpp
+SELECT PAIRS("N1QL")             AS constant_string,
+       PAIRS(4)                  AS constant_int,
+       PAIRS([1,2,3])            AS constant_int_array,
+       PAIRS({"name" : 3})       AS object_constant_int,
+       PAIRS({"name" : [1,2,3]}) AS object_constant_int_array;
+```
+
+**Result**
+
+```json
+[
+  {
+    "constant_int": null,
+    "constant_int_array": [],
+    "constant_string": null,
+    "object_constant_int": [
+      [
+        "name",
+        3
+      ]
+    ],
+    "object_constant_int_array": [
+      [
+        "name",
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      [
+        "name",
+        1
+      ],
+      [
+        "name",
+        2
+      ],
+      [
+        "name",
+        3
+      ]
+    ]
+  }
+]
+```
+
+<a name="pairs-example4"></a>**Input value of an array of objects**
+
+**Query**
+
+```sqlpp
+SELECT reviews[*].ratings,
+       PAIRS({reviews[*].ratings}) AS pairs_t
+FROM   hotel
+LIMIT  1;
+```
+
+**Result**
+
+```json
+[
+  {
+    "pairs_t": [
+      [
+        "ratings",
+        [
+          {
+            "Cleanliness": 5,
+            "Location": 4,
+            "Overall": 4,
+            "Rooms": 3,
+            "Service": 5,
+            "Value": 4
+          },
+          {
+            "Business service (e.g., internet access)": 4,
+            "Check in / front desk": 4,
+            "Cleanliness": 4,
+            "Location": 4,
+            "Overall": 4,
+            "Rooms": 3,
+            "Service": 3,
+            "Value": 5
+          }
+        ]
+      ],
+      [
+        "ratings",
+        {
+          "Cleanliness": 5,
+          "Location": 4,
+          "Overall": 4,
+          "Rooms": 3,
+          "Service": 5,
+          "Value": 4
+        }
+      ],
+      [
+        "ratings",
+        {
+          "Business service (e.g., internet access)": 4,
+          "Check in / front desk": 4,
+          "Cleanliness": 4,
+          "Location": 4,
+          "Overall": 4,
+          "Rooms": 3,
+          "Service": 3,
+          "Value": 5
+        }
+      ],
+      [
+        "Cleanliness",
+        5
+      ],
+      [
+        "Location",
+        4
+      ],
+      [
+        "Overall",
+        4
+      ],
+      [
+        "Rooms",
+        3
+      ],
+      [
+        "Service",
+        5
+      ],
+      [
+        "Value",
+        4
+      ],
+      [
+        "Cleanliness",
+        4
+      ],
+      [
+        "Location",
+        4
+      ],
+      [
+        "Rooms",
+        3
+      ],
+      [
+        "Value",
+        5
+      ],
+      [
+        "Business service (e.g., internet access)",
+        4
+      ],
+      [
+        "Check in / front desk",
+        4
+      ],
+      [
+        "Overall",
+        4
+      ],
+      [
+        "Service",
+        3
+      ]
+    ],
+    "ratings": [
+      {
+        "Cleanliness": 5,
+        "Location": 4,
+        "Overall": 4,
+        "Rooms": 3,
+        "Service": 5,
+        "Value": 4
+      },
+      {
+        "Business service (e.g., internet access)": 4,
+        "Check in / front desk": 4,
+        "Cleanliness": 4,
+        "Location": 4,
+        "Overall": 4,
+        "Rooms": 3,
+        "Service": 3,
+        "Value": 5
+      }
+    ]
+  }
+]
+```
+
+## REDACT (`expression` [ , `filter-obj1`, `filter-obj2`, ... ] )
+
+### Description
+
+Redacts field names or values in a JSON object based on specific filtering criteria.
+
+Use this function to protect sensitive data such as credit card numbers or personally identifiable information (PII).
+You can either mask data with a specified string or omit it entirely from the output.
+
+**📌 NOTE**\
+Masking applies to only string values.
+The function cannot mask non-string data types such as numbers, booleans, or dates.
+To redact non-string values, you must omit the fields entirely from the output instead.
+
+### Arguments
+
+* **expression**\
+[Required] An expression resolving to a JSON object that you want to redact.
+* **filter-obj1, filter-obj2, ...**\
+[Optional] One or more JSON objects that specify the filtering criteria, such as which fields to redact, how to redact them, and whether to redact field names, values, or both.
+
+  Each object can include the following fields:
+
+  | Name | Description | Schema |
+  | --- | --- | --- |
+  | **pattern**<br> __optional__ | A pattern to match against the field names in the object to redact. The function only redacts fields that match the pattern and only supports single-level field names. It does not support nested field paths. For example, the pattern `"parent.child"` cannot match the nested field `{ "parent": { "child": "value" } }`. If you do not specify a pattern, the function redacts all fields based on other filters. | String |
+  | **regex**<br> __optional__ | Specifies whether the pattern is a regular expression or a simple string. If `true`, treats the pattern as a regular expression. If `false`, treats the pattern as a simple string. **Default:** `false` | Boolean |
+  | **exact**<br> __optional__ | Specifies whether the pattern must match the entire field name or just a portion of it. If `true`, the pattern must match the entire field name. If `false`, the pattern can match any part of the field name. **Default:** `false` | Boolean |
+  | **ignorecase**<br> __optional__ | Specifies whether pattern matching is case-sensitive. If `true`, the pattern matching ignores case. If `false`, the pattern matching is case-sensitive. **Default:** `false` | Boolean |
+  | **name**<br> __optional__ | Specifies whether to redact field names in addition to field values. If `true`, redacts both field names and values. If `false`, redacts only field values. **Default:** `false` | Boolean |
+  | **strict**<br> __optional__ | Specifies whether to apply strict value redaction. If `true`, applies the mask to all characters including whitespaces and special characters. See [Example 6](#redact-ex6). If `false`, applies the mask only to alphanumeric characters and preserves whitespaces and special characters. **Default:** `false` | Boolean |
+  | **omit**<br> __optional__ | Specifies whether to omit fields entirely from the output. If `true`, removes matching fields entirely. If `false`, the fields remain in the output but their values are redacted according to the other filters. **Default:** `false` | Boolean |
+  | **mask**<br> __optional__ | The string to mask the redacted string values. **Default:** `"x"` | String |
+  | **fixedlength**<br> __optional__ | Specifies whether to replace string values with a single instance of the mask. If `true`, replaces the entire string with one instance of the mask. If `false`, replaces each character in the string with the mask, preserving the original length of the string. **Default:** `false` | Boolean |
+  | **exclude**<br> __optional__ | Specifies whether to invert the redaction logic. If `true`, the function redacts fields that do not match the pattern and excludes fields that do match. When you use `exclude`, the function ignores any remaining filters. Place this filter last in the list or use it as the only filter to ensure the function applies all other rules. If `false`, the function redacts fields that match the pattern. **Default:** `false` | Boolean |
+
+### Usage
+
+The function applies redaction based on the filter objects you specify.
+If you do not specify a filter object, it redacts only field values.
+The field names remain visible and the function replaces values with a default mask, `"x"`.
+See [Example 1](#redact-ex1).
+
+By default, the function masks only to alphanumeric characters while preserving whitespaces and special characters (such as `@`, `#`).
+To redact all characters in a value, including symbols and spaces, set `"strict": true` in the filter object.
+See [Example 6](#redact-ex6).
+
+To redact both field names and values, set `"name": true` in the filter object.
+See [Example 3](#redact-ex3).
+
+When you provide multiple filter objects, the function evaluates them in the order you specify.
+For each field in the input object, the function applies the first filter that matches the field’s criteria.
+Once applied, it does not consider any other filter objects for that field, even if they also match.
+See [Example 4](#redact-ex4).
+
+For nested objects, the nested fields inherit the redaction behavior of their parent by default.
+However, if you define a filter that specifically targets a nested field, that filter overrides the parent field’s filter.
+
+### Return Value
+
+A JSON object with field names/values redacted.
+
+### Examples
+
+<a name="redact-ex1"></a>**Redact field values using default behavior**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "flight": "AA123",
+    "passenger": "Alex Johnson",
+    "email": "alex.johnson@example.com",
+    "passport": "X12345678",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample) AS redacted_data;
+```
+
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "xxx xxxxx xxxxxx, xxx xxxx, xx",
+        "email": "xxxx.xxxxxxx@xxxxxxx.xxx",
+        "flight": "xxxxx",
+        "passenger": "xxxx xxxxxxx",
+        "passport": "xxxxxxxxx"
+    }]
+}]
+```
+
+<a name="redact-ex2"></a>**Redact values using custom patterns and mask**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "flight": "AA123",
+    "passenger": "Alex Johnson",
+    "email": "alex.johnson@example.com",
+    "passport": "X12345678",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample,
+    {"pattern": "ad.*", "regex": true},
+    {"pattern": "email|passport", "regex": true, "mask": "#"}
+) AS redacted_data;
+```
+
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "xxx xxxxx xxxxxx, xxx xxxx, xx",
+        "email": "####.#######@#######.###",
+        "flight": "AA123",
+        "passenger": "Alex Johnson",
+        "passport": "#########"
+    }]
+}]
+```
+
+<a name="redact-ex3"></a>**Redact both field names and values**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "flight": "AA123",
+    "passenger": "Alex Johnson",
+    "email": "alex.johnson@example.com",
+    "passport": "X12345678",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample,
+    {"pattern": "passport", "name":true},
+    {"pattern": "email", "omit": true}
+) AS redacted_data;
+```
+
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "123 Maple Street, New York, NY",
+        "f0004": "xxxxxxxxx",
+        "flight": "AA123",
+        "passenger": "Alex Johnson"
+    }]
+}]
+```
+
+<a name="redact-ex4"></a>**Redact when there are multiple filters for the same field**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "flight": "AA123",
+    "passenger": "Alex Johnson",
+    "email": "alex.johnson@example.com",
+    "passport": "X12345678",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample,
+    {"pattern": "passenger|passport", "regex": true},
+    {"pattern": "passenger", "omit": true}
+) AS redacted_data;
+```
+
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "123 Maple Street, New York, NY",
+        "email": "alex.johnson@example.com",
+        "flight": "AA123",
+        "passenger": "xxxx xxxxxxx",
+        "passport": "xxxxxxxxx"
+    }]
+}]
+```
+In this example, the second filter is not applied to `passenger` because the first filter already matched it.
+
+<a name="redact-ex5"></a>**Redact all fields except those matching a pattern**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "flight": "AA123",
+    "passenger": "Alex Johnson",
+    "email": "alex.johnson@example.com",
+    "passport": "X12345678",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample,
+    {"pattern": "passenger|passport", "regex": true, "exclude": true}
+) AS redacted_data;
+```
+
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "xxx xxxxx xxxxxx, xxx xxxx, xx",
+        "email": "xxxx.xxxxxxx@xxxxxxx.xxx",
+        "flight": "xxxxx",
+        "passenger": "Alex Johnson",
+        "passport": "X12345678"
+    }]
+}]
+```
+
+<a name="redact-ex6"></a>**Redact all values including spaces and special characters**
+
+**Query**
+
+```sqlpp
+WITH sample AS ([
+  {
+    "email": "alex.johnson@example.com",
+    "password": "P@ssw0rd!",
+    "address": "123 Maple Street, New York, NY"
+  }
+])
+SELECT REDACT(sample,
+    {"pattern": ".*", "regex": true, "strict": true}
+) AS redacted_data;
+```
+**Results**
+
+```json
+[{
+    "redacted_data": [{
+        "address": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "email": "xxxxxxxxxxxxxxxxxxxxxxxx",
+        "password": "xxxxxxxxx"
+    }]
+}]
+```
+
+## UNNEST_POS(`expr`)
+
+You can use the `UNNEST_POS()` function with the [UNNEST Clause](n1ql-language-reference/unnest.adoc) to return the position of each element in an unnested array.
+
+This function has a synonym [UNNEST_POSITION()](#unnest_positionexpr).
+
+### Description
+
+The `UNNEST_POS` function takes an unnested array and returns the position value of each element in the array.
+
+### Arguments
+
+* **expr**\
+[Required] The alias of the unnested array from an [UNNEST Clause](n1ql-language-reference/unnest.adoc).
+
+### Return Values
+
+The `UNNEST_POS` function returns the position of each element in the unnested array, `expr`, as an integer. It returns each position value as a separate row in JSON format. The first element in the array is at position `0`.
+
+In all other cases, the `UNNEST_POS` function returns `NULL` or `MISSING`.
+
+### Example
+
+In the following example, the `UNNEST_POS` function takes the result of an `UNNEST` Clause on a given array, `a1`. The `UNNEST` function returns the position of each element in the unnested `a1` array , `u`, as the `upos` value.
+
+```N1QL
+SELECT UNNEST_POS(u) AS upos, u FROM [{"a1":[10,9,4]}] AS d UNNEST d.a1 AS u;
+```
+
+**Results**
+
+```json
+[
+    {
+        "u": 10,
+        "upos": 0
+    },
+    {
+        "u": 9,
+        "upos": 1
+    },
+    {
+        "u": 4,
+        "upos": 2
+    }
+]
+```
+
+### Related Clauses
+
+* [UNNEST Clause](n1ql-language-reference/unnest.adoc)
+* [FROM Clause](n1ql-language-reference/from.adoc)
+
+## UNNEST_POSITION(`expr`)
+
+Synonym of [UNNEST_POS()](#unnest_posexpr).
+
+## UUID()
+
+### Description
+
+Generates a universally unique identifier (UUID) according to [RFC 4122](https://www.ietf.org/rfc/rfc4122.txt).
+
+### Arguments
+
+None.
+
+### Return Value
+
+A string representing a version 4 UUID.
+
+### Example
+
+This query will return a different UUID each time you run it.
+
+**Query**
+
+```sqlpp
+SELECT UUID() AS uuid;
+```
+
+**Results**
+
+```json
+[
+  {
+    "uuid": "2ca78bd8-0a28-4d68-995f-0da5e20e0964"
+  }
+]
+```
+
+For further examples using `UUID()`, refer to the [INSERT](n1ql-language-reference/insert.adoc) and [MERGE](n1ql-language-reference/merge.adoc) statements.
+
+## VERSION()
+
+### Description
+
+Returns {sqlpp} version.
+
+### Arguments
+
+None.
+
+### Return Value
+
+Returns string containing the {sqlpp} version.
+
+### Example
+
+**Query**
+
+```sqlpp
+SELECT VERSION() as language_version;
+```
+
+**Results**
+
+```json
+[
+  {
+    "language_version": "7.6.0-N1QL"
+  }
+]
+```

@@ -1,0 +1,60 @@
+# Identifiers
+
+An identifier is a symbolic reference to a value in the current context of a query.
+Identifiers can include keyspace names, fields within documents, and aliases.
+{sqlpp} identifiers are case-sensitive.
+
+An identifier can either be escaped or unescaped.
+
+```ebnf
+identifier ::= unescaped-identifier | escaped-identifier
+```
+
+![Syntax diagram](../../assets/images/n1ql-language-reference/identifier.png)
+
+For example, if the current context is the document `{"name": "n1ql"}`, then the identifier `name` would evaluate to the value `n1ql`.
+
+## Unescaped Identifiers
+
+Unescaped identifiers cannot support the full range of identifiers allowed in a JSON document, but do support the most common ones with a simpler syntax.
+
+```ebnf
+unescaped-identifier ::= [a-zA-Z_] ( [0-9a-zA-Z_$] )*
+```
+
+![Syntax diagram](../../assets/images/n1ql-language-reference/unescaped-identifier.png)
+
+## Escaped Identifiers
+
+Escaped identifiers are surrounded by backticks `{backtick}` and support all identifiers in JSON.
+You can use the backtick character within an escaped identifier by specifying two consecutive backtick characters.
+Keywords cannot be escaped; therefore, escaped identifiers can overlap with keywords.
+
+```ebnf
+escaped-identifier ::= '`' char+ '`'
+```
+
+![Syntax diagram](../../assets/images/n1ql-language-reference/escaped-identifier.png)
+
+For example, if you have a hyphen in an attribute name, it can be referred to as `{backtick}first-name{backtick}`.
+
+Identifiers can be expressed using the dot notation, where the left-most portion of a dotted identifier refers to the name of the data source.
+For example, in the query `SELECT {backtick}beer-sample{backtick}.name FROM {backtick}beer-sample{backtick}`, `{backtick}beer-sample{backtick}.name` is a more formal way of expressing the identifier name.
+
+## Aliases
+
+Aliases give a temporary name to identifiers.
+
+When an alias collides with a keyspace or field name in the same scope, the identifier always refers to the alias.
+This enables consistent behavior in scenarios where an identifier only collides in some documents.
+
+The following table describes some rules that apply when referring to the new names created by aliases:
+
+| Aliases in \... Clause | Create New Names That May be Referred to \... |
+| --- | --- |
+| WITH | Anywhere within the scope of the given query block |
+| FROM | Anywhere within the scope of the given query block |
+| LET | Anywhere within the scope of the given query block |
+| LETTING | HAVING, SELECT, and ORDER BY clauses |
+| SELECT | SELECT and ORDER BY clauses |
+| FOR | The local collection expression |
