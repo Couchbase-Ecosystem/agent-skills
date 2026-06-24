@@ -1,106 +1,181 @@
-# SQL++ patterns
+# SQL++ query patterns
 
-Reference for generating read-only SQL++. Examples use the `travel-sample` collections `airport`, `airline`, `route`, `hotel` (bucket `travel-sample`, scope `inventory`).
+Read-only SQL++ syntax and query shapes — the parts that differ from ANSI SQL / other dialects. Examples use `travel-sample` collections (`airport`, `airline`, `route`, `hotel`; bucket `travel-sample`, scope `inventory`).
 
-When you need a function or aren't sure one exists, **look it up** in the official reference rather than relying on recall — SQL++ function names and behavior differ from other dialects:
-- Functions (by category): <https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/functions.html>
-- Reserved words (must be backtick-escaped as identifiers): <https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/reservedwords.html>
+> Assume standard SQL works as you expect. This file lists only the **SQL++-specific** things. For evaluation rules (NULL/MISSING, type collation, identifiers) see [`sqlpp-semantics.md`](sqlpp-semantics.md); for exact function names/signatures see [`sqlpp-functions.md`](sqlpp-functions.md).
 
-## Keyspaces & identifiers
+## Contents
+- [Keyspaces & tool contract](#keyspaces--tool-contract)
+- [Query shapes](#query-shapes)
+- [SELECT specifics (RAW, `*`)](#select-specifics)
+- [Joins](#joins)
+- [UNNEST & NEST](#unnest--nest)
+- [LET / LETTING / WITH](#let--letting--with)
+- [Set operators](#set-operators)
+- [Collection operators (array predicates & comprehensions)](#collection-operators)
+- [Paths & navigation](#paths--navigation)
+- [Subqueries](#subqueries)
+- [String matching & search handoff](#string-matching--search-handoff)
+- [Functions that don't exist](#functions-that-dont-exist)
+- [Advanced (pointers only)](#advanced-pointers-only)
+- [Coming from MongoDB](#coming-from-mongodb)
+- [Common traps](#common-traps)
 
-- **Don't qualify the keyspace in the query.** `bucket_name` and `scope_name` are passed as **arguments** to the MCP query tools, which set the scope context automatically — so `FROM` takes a **bare collection name** (`FROM route`), never `` `bucket`.`scope`.`collection` ``. The default scope is passed as `scope_name="_default"`.
-- Backtick-quote a collection name only if it is a reserved word or contains special characters.
-- The document key is `META().id`. Fetch by key directly with `USE KEYS`.
+## Keyspaces & tool contract
 
-## Literals & operators
-
-- **Literals:** strings in double or single quotes (`"France"`, `'SFO'`); numbers (`5`, `3.14`); `TRUE`/`FALSE`; `NULL`; `MISSING` (Couchbase-specific — see below). Arrays `[1, 2, 3]` and objects `{"a": 1}` are first-class values.
-- **Comparison:** `=`, `!=` (or `<>`), `<`, `<=`, `>`, `>=`, `BETWEEN x AND y`, `IN [...]`, `IS NULL` / `IS NOT NULL`, `IS MISSING` / `IS NOT MISSING`, `LIKE 'foo%'`.
-- **Logical:** `AND`, `OR`, `NOT`.
-- **Arithmetic:** `+ - * / %`. **String concatenation:** `||` (e.g. `city || ", " || country`).
-- **Conditional:** `CASE WHEN … THEN … ELSE … END`.
+- Pass `bucket_name` and `scope_name` as **tool arguments**; they set the scope context. The query uses a **bare collection name** — `FROM route`, never `` `travel-sample`.inventory.route ``. Default scope is `scope_name="_default"`.
+- Backtick-quote a collection name only if it's a reserved word or has special characters.
+- Document key = `META().id`. Fetch by key directly: `FROM hotel USE KEYS "hotel_123"` (point lookup, no scan).
 
 ## Query shapes
 
-- **Filter** — `SELECT … FROM <collection> WHERE <predicate>`. Project only the fields asked for (avoid `SELECT *`); filter as early as possible in `WHERE`; `ORDER BY … [ASC|DESC]`, `LIMIT`, `OFFSET`.
-- **Aggregate** — `GROUP BY` with `COUNT/SUM/AVG/MIN/MAX`; filter pre-group in `WHERE`, post-group in `HAVING`.
-  ```sql
-  SELECT airline, COUNT(*) AS routes
-  FROM route
-  GROUP BY airline
-  ORDER BY routes DESC
-  LIMIT 5;
-  ```
-- **Join** — key-based `JOIN … ON KEYS` (follow a document-key reference) or ANSI `JOIN … ON <predicate>`.
-- **Unnest arrays** — `UNNEST` (see Arrays).
+| Goal | Shape |
+|---|---|
+| Filter | `SELECT <fields> FROM c WHERE <pred> [ORDER BY … [DESC]] [LIMIT n] [OFFSET m]` |
+| Aggregate | `GROUP BY …` + `COUNT/SUM/AVG/MIN/MAX`; pre-group filter in `WHERE`, post-group in `HAVING` |
+| Join | `JOIN … ON KEYS` (key-based) or ANSI `JOIN … ON <pred>` |
+| Flatten array | `UNNEST` |
+| Per-element predicate | `ANY … SATISFIES … END` |
 
-## Functions
+```sql
+SELECT airline, COUNT(*) AS routes
+FROM route GROUP BY airline ORDER BY routes DESC LIMIT 5;
+```
 
-Couchbase groups functions into categories — Aggregate, Array, String, Date, Number, Conditional, Type, Object, Pattern-Matching, and more (see the Functions link above). Common ones:
-- **Aggregate:** `COUNT`, `SUM`, `AVG`, `MIN`, `MAX`, `ARRAY_AGG`.
-- **String:** `LOWER`, `UPPER`, `SUBSTR`, `CONTAINS`, `SPLIT`, `TRIM`, `LENGTH`.
-- **Array:** `ARRAY_LENGTH`, `ARRAY_CONTAINS`, `ARRAY_APPEND`, `ARRAY_DISTINCT`.
-- **Number:** `ROUND`, `FLOOR`, `CEIL`, `ABS`, `RADIANS`, `SIN`, `COS`, `ACOS`, `SQRT`, `POWER`.
-- **Type:** `TYPE`, `TONUMBER`, `TOSTRING`, `ISARRAY`, `ISNUMBER`.
+Project only requested fields (avoid `SELECT *`); prefer keyset pagination over large `OFFSET`.
 
-**Don't assume a function exists — confirm it in the reference.** For example, "hotels within 5 miles of Heathrow" needs a geo-distance computation. The Query service has **no** built-in `GEO_DISTANCE`; either compute great-circle distance from `geo.lat`/`geo.lon` with the Number functions (`RADIANS`, `SIN`, `COS`, `ACOS`, `SQRT`) as a haversine, or use the Couchbase **Search Service** for native geospatial queries. Look up the right functions instead of inventing a name.
+## SELECT specifics
 
-## Arrays
+- **`SELECT RAW expr`** — return unwrapped values, not `{alias: value}` objects. `SELECT RAW city FROM airport` → `["Paris", …]`. Use for single-column / scalar results and `IN`-subqueries. (`VALUE`/`ELEMENT` are synonyms for `RAW`.)
+- **`SELECT *`** wraps each row under the keyspace/alias name: `SELECT * FROM hotel` → `[{"hotel": {…}}]`. To get the bare document, use **`SELECT hotel.*`** → `[{…}]`.
+- Implicit projection aliases: a bare field keeps its name; a path uses its last component; an unnamed expression becomes `$1`, `$2`, ….
 
-- **Flatten** an array to query its elements: `UNNEST`.
+## Joins
+
+Three forms — **don't mix forms in one `FROM`**:
+
+| Form | Syntax | Use when |
+|---|---|---|
+| ANSI (preferred) | `JOIN r ON l.x = r.y` | join on arbitrary fields (RHS needs a secondary index for nested-loop) |
+| Lookup | `JOIN r ON KEYS l.fkfield` | LHS field holds the RHS document key(s) |
+| Index | `JOIN r ON KEY r.fkfield FOR l` | reverse of lookup; RHS field references LHS key (needs index on `r.fkfield`) |
+
+```sql
+-- lookup: route.airlineid holds the airline document key
+SELECT r.sourceairport, a.name
+FROM route AS r JOIN airline AS a ON KEYS r.airlineid;
+```
+Note `ON KEYS` (plural, value→key) vs `ON KEY … FOR …` (singular, index join). `LEFT [OUTER]` / `RIGHT [OUTER]` supported; default `INNER`.
+
+## UNNEST & NEST
+
+- **`UNNEST`** — flatten an array into one row per element (cross-product with parent). `INNER` (default) drops docs whose array is empty/missing; `LEFT [OUTER]` keeps them.
   ```sql
   SELECT r.sourceairport, s.day, s.flight
-  FROM route AS r
-  UNNEST r.schedule AS s
+  FROM route AS r UNNEST r.schedule AS s
   WHERE r.sourceairport = "SFO";
   ```
-- **Predicate over elements without flattening:** `ANY … SATISFIES` / `EVERY … SATISFIES`.
-  ```sql
-  WHERE ANY s IN schedule SATISFIES s.utc > "20:00" END
-  ```
-- Length: `ARRAY_LENGTH(arr)`. Element by position: `arr[0]`. Non-empty check: `ARRAY_LENGTH(arr) > 0`.
+- **`NEST`** — inverse of UNNEST: collect matching RHS docs into an array field on each LHS row (`ON KEYS` / `ON KEY … FOR` / ANSI `ON`). Rarely needed for NL queries.
+
+## LET / LETTING / WITH
+
+- **`LET v = expr`** — per-document named expression (after `FROM`, before `WHERE`); later `LET` vars can reference earlier ones.
+- **`LETTING v = expr`** — like `LET` but **after `GROUP BY`**, may reference aggregates (post-group).
+- **`WITH cte AS (…)`** — CTE evaluated **once per query** (not per row); chainable. `WITH RECURSIVE` exists for hierarchies (see [Advanced](#advanced-pointers-only)).
+
+## Set operators
+
+`UNION` / `INTERSECT` / `EXCEPT` return **DISTINCT** rows. Add `ALL` (`UNION ALL`, …) to keep duplicates (cheaper).
+
+## Collection operators
+
+Operate over array elements without (or before) `UNNEST`.
+
+**Predicates** — return a boolean; note the empty-array results:
+
+| Operator | True when | Empty array |
+|---|---|---|
+| `ANY v IN arr SATISFIES <cond> END` (`SOME` = synonym) | some element matches | **FALSE** |
+| `EVERY v IN arr SATISFIES <cond> END` | all elements match | **TRUE** |
+| `ANY AND EVERY v IN arr SATISFIES <cond> END` | non-empty **and** all match | **FALSE** |
+
+```sql
+WHERE ANY s IN schedule SATISFIES s.utc > "20:00" END
+```
+Use `IN` to range the current level, `WITHIN` to recurse into nested arrays/objects. Optional position var: `ANY i:v IN arr SATISFIES … END` (`i` is the 0-based index).
+
+**Comprehensions** — transform an array:
+
+| Form | Returns |
+|---|---|
+| `ARRAY <expr> FOR v IN arr [WHEN <cond>] END` | new array (empty if none match) |
+| `FIRST <expr> FOR v IN arr [WHEN <cond>] END` | first matching value, `MISSING` if none |
+| `OBJECT <k>:<v> FOR x IN arr [WHEN <cond>] END` | object (`k` must be a unique string) |
+
+```sql
+SELECT ARRAY s.flight FOR s IN schedule WHEN s.day = 5 END AS friday_flights
+FROM route WHERE airline = "KL";
+```
+
+**Membership / existence:** `x IN arr` (top level), `x WITHIN arr` (any depth), `EXISTS arr` (≥1 element; also used with subqueries).
+
+## Paths & navigation
+
+- Field: `obj.field` (case-sensitive). Backtick odd names: ``obj.`first-name` ``. Case-insensitive lookup: `obj.["Field"]i`.
+- Array element: `arr[0]`; `arr[-1]` = last. Slice: `arr[1:3]` (indices 1–2), `arr[2:]`, `arr[:2]`.
+- Length: `ARRAY_LENGTH(arr)`; non-empty: `ARRAY_LENGTH(arr) > 0` or `EXISTS arr`.
 
 ## Subqueries
 
-- A subquery is a parenthesized `SELECT` usable in the `FROM`, `WHERE`, or projection. Use the `IN` form for membership and `EXISTS` for existence:
-  ```sql
-  SELECT a.name
-  FROM airline AS a
-  WHERE a.iata IN (SELECT DISTINCT RAW r.airline FROM route AS r WHERE r.sourceairport = "SFO");
-  ```
-- For per-document array computation, prefer array comprehensions (`ARRAY x FOR x IN … END`) or `FIRST x FOR x IN … END` over a correlated subquery when it reads more simply.
+A parenthesized `SELECT` usable in `FROM`/`WHERE`/projection; **always returns an array**. Use `SELECT RAW` so membership tests work cleanly:
 
-## NULL vs MISSING (important)
+```sql
+SELECT a.name FROM airline AS a
+WHERE a.iata IN (SELECT RAW r.airline FROM route AS r WHERE r.sourceairport = "SFO");
+```
+Correlated subquery: reference the outer alias via the `FROM` (e.g. `FROM outer.nested_array`), or `USE KEYS <outer_expr>` when joining another keyspace by key.
 
-Couchbase distinguishes a field that is `NULL` from one that is absent (`MISSING`).
-- Field-exists check: `field IS NOT MISSING`; absent: `field IS MISSING`.
-- `field IS NULL` only matches an explicit null value.
-- A wrong/nonexistent field name yields `MISSING` (no error, empty results) — validate names against `INFER` first. `INFER` samples documents, so a field can be real yet absent from the inferred shape; if a field you expect is missing, sample more docs before assuming it doesn't exist.
+## String matching & search handoff
 
-## Projection & efficiency
+- `LIKE 'foo%'` (`%` = any run, `_` = one char); `||` concatenates (`city || ", " || country`). Case-insensitive: wrap both sides in `LOWER()`/`UPPER()`.
+- **Do not** use `LIKE '%term%'` or `REGEXP_*` for a *search* request (relevance, fuzzy, "similar to", semantic) — that's the Couchbase **Search Service** (FTS), out of scope for this skill.
 
-- Select only requested fields; avoid `SELECT *` unless the user wants the whole document. `SELECT RAW expr` returns unwrapped values (handy for single-field or scalar results).
-- Filter as early as possible in `WHERE`.
-- Use `LIMIT` for open-ended/exploratory questions.
+## Functions that don't exist
 
-## String matching (and what NOT to do here)
+Don't invent names from other SQL dialects. Notably:
+- No `NOW()`, `GETDATE()` → use `NOW_STR()` / `NOW_MILLIS()`. No `DATEDIFF()`/`DATEADD()`/`EXTRACT()` → `DATE_DIFF_STR`, `DATE_ADD_STR`, `DATE_PART_STR` (see [`sqlpp-functions.md`](sqlpp-functions.md#datetime)).
+- **No `GEO_DISTANCE`** or built-in geo. For "within N miles of X", compute great-circle distance from `geo.lat`/`geo.lon` with a haversine using number functions (`RADIANS`, `SIN`, `COS`, `ACOS`, `SQRT`), or use the Search Service for native geospatial.
+- When unsure a function exists, check [`sqlpp-functions.md`](sqlpp-functions.md) or the [official function reference](https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/functions.html) — don't guess.
 
-- `LIKE 'foo%'` for prefix matches; `LOWER()`/`UPPER()` for case-insensitive comparisons.
-- Do **not** reach for `LIKE '%term%'` or `REGEXP_*` to satisfy a *search* request (relevance, fuzzy, semantic, "similar to") — that's a full-text/vector job for the Couchbase **Search Service** (FTS).
+## Advanced (pointers only)
 
-## Coming from MongoDB?
+Rare in NL querying — confirm syntax in the [official language reference](https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/index.html) before using:
+- **Window functions** — `ROW_NUMBER()/RANK()/DENSE_RANK()/LAG()/LEAD()/FIRST_VALUE()…` require an `OVER (PARTITION BY … ORDER BY …)` clause. (See [`sqlpp-functions.md`](sqlpp-functions.md#window).)
+- **`WITH RECURSIVE` cte AS (anchor `UNION [ALL]` recursive-arm)** — for hierarchy/graph traversal; has built-in depth/row limits.
+- **Time series** — `_TIMESERIES(doc, opts)`, usually the RHS of `UNNEST`; reads the doc's `ts_data`/`ts_interval`/`ts_start`/`ts_end` fields and emits points with `_t` (epoch ms) plus `_v0`, `_v1`, ….
 
-A quick map for users who think in MQL (otherwise prefer the SQL++-native sections above):
+## Coming from MongoDB
+
+Only the non-obvious mappings:
 
 | MQL | SQL++ |
-|-----|-------|
-| `db.c.find({country: "France"})` | `SELECT * FROM c WHERE country = "France"` |
-| projection `{name: 1, _id: 0}` | list the fields in the `SELECT` (no `SELECT *`) |
-| `{a: {$gte: 1, $lte: 5}}` | `WHERE a BETWEEN 1 AND 5` |
-| `{a: {$in: [...]}}` | `WHERE a IN [...]` |
-| `.sort({a:-1}).limit(10)` | `ORDER BY a DESC LIMIT 10` |
-| `.skip(n)` | `OFFSET n` (prefer keyset pagination for large offsets) |
-| `$group` / `$sum`,`$avg`,… | `GROUP BY` / `SUM()`,`AVG()`,… |
-| `$lookup` | `JOIN … ON KEYS` or ANSI `JOIN … ON <predicate>` |
+|---|---|
+| `$lookup` | `JOIN … ON KEYS` (key-based) or ANSI `JOIN … ON <pred>` |
 | `$unwind` | `UNNEST` |
-| `_id` / `$exists` | `META().id` / `IS [NOT] MISSING` |
+| `$elemMatch` | `ANY v IN arr SATISFIES <cond> END` |
+| `_id` | `META().id` |
+| `{f: {$exists: true}}` | `f IS NOT MISSING` (see [semantics](sqlpp-semantics.md)) |
+| projection `{name:1,_id:0}` | list fields in `SELECT` (no `SELECT *`) |
+
+## Common traps
+
+| Intent | Wrong | Right |
+|---|---|---|
+| Field is present | `f IS NOT NULL` (keeps MISSING out? no) | `f IS VALUED` / `f IS NOT MISSING` — see [semantics](sqlpp-semantics.md#null-vs-missing) |
+| Any array element matches | `value IN arr_of_objects` | `ANY v IN arr SATISFIES v.k = value END` |
+| Search nested array | `x IN obj` | `x WITHIN obj` |
+| First match | `(ARRAY … END)[0]` | `FIRST … END` |
+| Substring search | `s LIKE "sub"` | `s LIKE "%sub%"` |
+| Unwrapped scalar list | `SELECT city …` | `SELECT RAW city …` |
+| Bare doc, not wrapped | `SELECT * FROM hotel` | `SELECT hotel.* FROM hotel` |
+| Wrong field name | silently returns `MISSING`, empty results (no error) — validate names via `INFER` first |

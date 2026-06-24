@@ -65,7 +65,7 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 - **Pick the shape:** `SELECT … WHERE` for filters; `GROUP BY` + `COUNT/SUM/AVG` for aggregation; `JOIN` (`ON KEYS` / `ON`) for references; `UNNEST` for arrays.
 - **Reference bare collection names** (e.g. `FROM route`), not `` `bucket`.`scope`.`collection` `` — `bucket_name`/`scope_name` are passed as tool arguments (the default scope is `scope_name="_default"`). Backtick-quote a collection name only if it's a reserved word or has special characters.
 - Project only what's asked (avoid `SELECT *`); filter early in `WHERE`; prefer keyset pagination over large `OFFSET`.
-- See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for SQL++ literals, operators, functions, query shapes, subqueries, arrays, and `NULL` vs `MISSING` — and look up functions in the linked official reference rather than guessing.
+- See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for SQL++ query shapes and syntax (joins, `UNNEST`, collection operators, subqueries). For evaluation rules (`NULL` vs `MISSING`, type collation, identifiers) see [`references/sqlpp-semantics.md`](references/sqlpp-semantics.md); for exact function names/signatures (especially date/time) see [`references/sqlpp-functions.md`](references/sqlpp-functions.md). Check these before guessing a function name.
 
 ## Step 4 — Run it read-only and return the results
 
@@ -85,15 +85,8 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 
 ## References
 
-- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — SQL++ literals, operators, functions, query shapes, subqueries, arrays, `NULL` vs `MISSING`, projection, pagination (with links to the official function and reserved-word references). **Start here** for query generation.
+Three distilled SQL++ references — they keep only what differs from standard SQL, so the rest can be recalled directly. Load progressively: start with patterns, pull in the others as a query needs them.
 
-### Full SQL++ language docs (offline mirror)
-
-[`references/n1ql-docs-pages/`](references/n1ql-docs-pages/) mirrors the complete official Couchbase Query (SQL++) documentation as markdown — the authoritative source when `sqlpp-patterns.md` doesn't cover something (exact function signatures, a clause's full syntax, edge cases). The directory and file names use the legacy name "n1ql" — same language as SQL++ (see the terminology note above).
-
-- `query.md` — top-level overview of the Query service.
-- `n1ql-intro/` — querying basics: `index.md`, `queriesandresults.md`, the `cbq` shell (`cbq.md`), catalog/system info (`sysinfo.md`).
-- `n1ql-language-reference/` — the complete language reference: statements (`SELECT`/`INSERT`/`UPDATE`/`MERGE`, DDL like `createindex`), clauses (`from`, `where`, `groupby`, `join`, `unnest`, `with`, `window`), operators, `datatypes`, every function category (`aggregatefun`, `arrayfun`, `stringfun`, `datefun`, `vectorfun`, …), subqueries, transactions, `reservedwords`, and `n1ql-error-codes`. Look up functions and exact syntax here before guessing.
-- `n1ql-manage/` — operating/monitoring queries: `monitoring-n1ql-query.md`, `query-settings.md`, `query-awr.md`.
-
-> This skill is **read-only**: the language reference documents write/DDL statements, but never generate or run them here.
+- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — **start here.** Query shapes and SQL++-specific syntax: keyspace/tool contract, `SELECT RAW`/`*`, joins, `UNNEST`/`NEST`, collection operators (`ANY`/`EVERY`/comprehensions, `IN` vs `WITHIN`), subqueries, string matching, functions that don't exist, common traps.
+- [`references/sqlpp-semantics.md`](references/sqlpp-semantics.md) — evaluation rules when a query returns surprising results: `NULL` vs `MISSING` (and `IS VALUED`), four-valued logic, type collation/sort order, identifiers & reserved words, literals.
+- [`references/sqlpp-functions.md`](references/sqlpp-functions.md) — function catalog (SQL++-specific names/signatures only): date/time (formats, parts, `STR`/`MILLIS` families), array, object, conditional, type, string, regex, window. Check here before guessing a function name; the official reference is linked as the fallback.
