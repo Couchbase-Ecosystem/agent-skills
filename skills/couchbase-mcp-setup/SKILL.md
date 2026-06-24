@@ -120,6 +120,24 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 
 ## References
 
+Skill-specific guides (start here):
+
 - [`references/capella-setup.md`](references/capella-setup.md) — Capella: connection string, Cluster Access credentials, Allowed IP, sample bucket.
 - [`references/local-setup.md`](references/local-setup.md) — local Couchbase Server: Docker, default credentials, `couchbase://localhost`.
 - [`references/client-configs.md`](references/client-configs.md) — per-harness config blocks + Docker/source/Streamable-HTTP launch alternatives + cluster switching.
+
+### Upstream MCP server docs (canonical, version-scoped)
+
+For deeper detail than the guides above, the full official Couchbase MCP server documentation is mirrored under [`references/versioned_docs/`](references/versioned_docs/), one directory per server version (e.g. `version-0.8/`). **Read from the directory matching the user's installed server version** — this skill pins `>=0.8.0,<0.9.0`, so default to `version-0.8/` unless the user is on a different release. Pull a file from here only when the guides above don't cover the question.
+
+What's in each version directory:
+
+- `01-overview.md` — what the server is and what it connects.
+- `02-get-started/` — `01-prerequisites`, `02-quickstart`, `03-registries` (where the server is published).
+- `03-troubleshooting.md` — fuller troubleshooting than the table above (uv/uvx, connection, tools).
+- `04-tools.md` — the full catalog of MCP tools and what each does.
+- `05-configuration/` — `01-environment-variables` (complete `CB_*` reference + CLI args), `02-read-only-mode`, `03-streamable-http`, `04-disabling-tools`, `05-elicitation-for-tools` (confirmation prompts).
+- `06-security.md` — security model and best practices.
+- `07-build-from-source.md` — building/running the server from the repo.
+- `08-product-notes/01-release-notes.md` — version history.
+- `09-contributing/` — contributing to the server (`01-server`) and docs (`02-docs`).
