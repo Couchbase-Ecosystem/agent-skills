@@ -101,7 +101,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 
 ## Step 6 — Restart and verify
 
-1. Apply the config: after `claude mcp add`, restart Claude Code (or start a new session). If you used the bundled template instead, run `/reload-plugins` or reload your project env (`direnv allow` / `source ~/.zshrc`) and reopen.
+1. Apply the config: run `/reload-plugins` to pick up the server without losing your session. If the tools don't appear, restart Claude Code — a full restart is the guaranteed fallback for any registration route. (Bundled-template route only: the server reads `${CB_*}` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 
@@ -115,7 +115,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 | `couchbase://` **rejected** | Capella requires TLS — use `couchbases://`. |
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
-| Server starts but **no tools appear** | Ensure transport is `stdio`; fully restart / `/reload-plugins`. |
+| Server starts but **no tools appear** | Ensure transport is `stdio`; run `/reload-plugins`, then fully restart if they still don't appear. |
 | **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
 ## References
