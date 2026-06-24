@@ -15,7 +15,7 @@ description: >-
   for verification.
 license: Apache-2.0
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 allowed-tools: mcp__couchbase__*
 ---
 
@@ -35,10 +35,10 @@ This skill can advise without a live cluster, but before your **first cluster to
 4. Continue only once the connection is confirmed.
 
 ## Step 1 — Assess the situation
-New design? Migration (from a relational/normalized schema)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest.
+New design? Migration (from a relational/normalized schema)? A performance problem caused by schema? Relationship modeling? Document-key design? This routes the rest. Coming from a relational DB → [`references/migration-from-relational.md`](references/migration-from-relational.md) (concept/feature mapping, strategy ladder, re-model-don't-translate).
 
 ## Step 2 — Apply the fundamentals
-"Accessed together → stored together"; **embed vs reference** by cardinality + access pattern (references = KV `GET` by key); the **20 MB** hard document limit (aim well under ~1 MB); and the **schema-validation reality** — Couchbase has no server-side `$jsonSchema`, so validation is app-level or via the Eventing service. → [`references/fundamentals.md`](references/fundamentals.md).
+"Accessed together → stored together"; **embed vs reference** by cardinality + access pattern (references = KV `GET` by key); the **20 MB** hard document limit (aim well under ~1 MB); and the **schema-validation reality** — Couchbase has no server-side `$jsonSchema`, so validation is app-level or via the Eventing service. → [`references/fundamentals.md`](references/fundamentals.md). For field-level shape — naming gotchas (N1QL reserved words, hyphens), `MISSING`/`NULL`/`VALUED` semantics, metadata fields + the Sync Gateway `_`-prefix caveat, and byte-trimming at scale → [`references/fields-and-conventions.md`](references/fields-and-conventions.md).
 
 ## Step 3 — Spot antipatterns
 Unnecessary buckets/scopes/collections; excessive SQL++ JOINs (denormalize); oversized documents / unbounded arrays; redundant GSIs. → [`references/antipatterns.md`](references/antipatterns.md).
@@ -62,7 +62,9 @@ Present migrations/restructurings as recommendations. Before any write, **summar
 
 ## References
 
-- [`references/fundamentals.md`](references/fundamentals.md) — document model + KV-first, 20 MB sizing, embed vs reference, schema-validation reality.
-- [`references/antipatterns.md`](references/antipatterns.md) — unnecessary buckets/scopes/collections, excessive JOINs, redundant GSIs.
-- [`references/document-keys.md`](references/document-keys.md) — key naming, composite/counter keys, KV-first access, keyspace placement.
+- [`references/fundamentals.md`](references/fundamentals.md) — document model + KV-first, embed-vs-reference (cardinality + decision rules), 20 MB sizing, schema-validation reality.
+- [`references/document-keys.md`](references/document-keys.md) — key strategies, naming, hash distribution (no range hot-shards), counter keys, keyspace placement & multi-tenancy ladder.
+- [`references/fields-and-conventions.md`](references/fields-and-conventions.md) — JSON state semantics (`MISSING`/`NULL`/`VALUED`), field-naming gotchas, metadata fields + Sync Gateway caveat, type discrimination, byte-trimming tricks.
 - [`references/patterns.md`](references/patterns.md) — the design-pattern library.
+- [`references/antipatterns.md`](references/antipatterns.md) — modeling-smell catalog + "is this model OK?" review checklist.
+- [`references/migration-from-relational.md`](references/migration-from-relational.md) — RDBMS→Couchbase concept/feature mapping, strategy ladder, slice-by-slice migration.
