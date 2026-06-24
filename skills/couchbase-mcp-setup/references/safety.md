@@ -20,6 +20,8 @@ To allow writes, set `CB_MCP_READ_ONLY_MODE=false`.
 | `false` | `true` | KV writes allowed; query writes disabled |
 | `false` | `false` | All writes allowed |
 
+> **This plugin makes `CB_MCP_READ_ONLY_MODE` the single switch.** The bundled template pins `CB_MCP_READ_ONLY_QUERY_MODE=false`, so only rows 1 and 3 apply (fully read-only, or all writes). On the `claude mcp add` / direct-config routes the whole server entry is yours, so pass `CB_MCP_READ_ONLY_QUERY_MODE=false` too when enabling writes. The flag is deprecated and later server versions drop it entirely (`CB_MCP_READ_ONLY_MODE` alone governs).
+
 ## Disabling tools
 
 `CB_MCP_DISABLED_TOOLS` — drop specific tools so they don't load or appear in discovery. CLI: `--disabled-tools`.

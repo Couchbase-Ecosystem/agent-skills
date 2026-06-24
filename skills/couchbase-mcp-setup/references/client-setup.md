@@ -16,7 +16,7 @@ claude mcp add couchbase --scope local \
   -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
 ```
 
-Add the optional safety vars the same way, e.g. `-e CB_MCP_READ_ONLY_MODE="false"`. Check it with `claude mcp list` / `claude mcp get couchbase`.
+Add the optional safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_MODE="false" -e CB_MCP_READ_ONLY_QUERY_MODE="false"` (the second clears the deprecated query-write block, keeping `CB_MCP_READ_ONLY_MODE` the only decider). Check it with `claude mcp list` / `claude mcp get couchbase`.
 
 **Scopes** (highest precedence first; a same-named server in a higher scope wins outright — entries are *not* merged): `local` (default, this project only — **recommended for credentials**) › `project` (writes a committed `.mcp.json` — **don't put secrets here**) › `user` (all your projects) › plugin-provided. Because `local` outranks the plugin, this registration overrides the plugin's bundled `couchbase` server, so it works the same whether or not the plugin is installed — and needs no `${CB_*}` shell exports.
 
@@ -30,7 +30,7 @@ export CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com"
 export CB_USERNAME="app_user"
 export CB_PASSWORD="…"
 # optional — the bundled mcp.json passes these through if set:
-# export CB_MCP_READ_ONLY_MODE="false"               # allow writes (default: true)
+# export CB_MCP_READ_ONLY_MODE="false"               # allow writes — the only switch you need here (default: true)
 # export CB_MCP_DISABLED_TOOLS="tool_a,tool_b"        # drop specific tools
 # export CB_MCP_CONFIRMATION_REQUIRED_TOOLS="tool_c"  # require confirmation before running
 ```
