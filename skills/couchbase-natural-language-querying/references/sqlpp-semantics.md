@@ -9,6 +9,7 @@ How SQL++ evaluates values — the rules behind "why did my query return nothing
 - [ORDER BY: NULL/MISSING placement](#order-by-placement)
 - [Identifiers & reserved words](#identifiers--reserved-words)
 - [Literals](#literals)
+- [Quick decision tree](#quick-decision-tree)
 
 ## NULL vs MISSING
 
@@ -78,3 +79,13 @@ By the collation above, `MISSING`/`NULL` sort **first** on `ASC` and **last** on
 - Numbers: signed decimal with optional fraction/E-notation; no leading zeros on multi-digit integers.
 - `TRUE` / `FALSE` / `NULL` / `MISSING` — case-insensitive keywords (`MISSING` is SQL++-specific).
 - Arrays `[1, 2, 3]` and objects `{"a": 1}` are first-class literal values.
+
+## Quick decision tree
+
+- **Query unexpectedly returns nothing?** → a wrong field name yields `MISSING` (validate via `INFER`); a `WHERE` comparing a `MISSING`/`NULL` field excludes the row
+- **"Field present" test keeps the wrong rows?** → `IS NOT NULL` still allows `MISSING`; use `IS VALUED`
+- **A row you expected got dropped by `WHERE`?** → four-valued logic: only `TRUE` keeps a row; `MISSING`/`NULL` propagate and exclude
+- **Sort order looks wrong?** → cross-type collation (`MISSING < NULL < bool < number < string …`); strings are byte-wise, `"Z" < "a"`, `"10" < "9"`
+- **`NULL`/`MISSING` at the wrong end of `ORDER BY`?** → they sort first on `ASC`, last on `DESC`; override with `NULLS FIRST`/`NULLS LAST`
+- **`COUNT` looks off?** → `COUNT(*)` counts every row; `COUNT(expr)` skips `NULL`/`MISSING`
+- **A field/collection name collides with a keyword?** → backtick it

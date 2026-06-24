@@ -5,6 +5,7 @@ Match the schema shape to a pattern. Each: *problem → Couchbase approach → u
 - [Approximation](#approximation) · [Computed](#computed) · [Extended reference](#extended-reference) · [Outlier](#outlier)
 - [Polymorphic](#polymorphic) · [Schema versioning](#schema-versioning) · [Document versioning](#document-versioning)
 - [Attribute](#attribute) · [Archive](#archive) · [Bucketing / grouping](#bucketing--grouping) · [Time-series](#time-series)
+- [Quick decision tree](#quick-decision-tree)
 
 ## Approximation
 High-frequency counters (views, likes) where exact real-time precision isn't needed. Increment in memory and flush periodically (or sample an atomic KV counter), cutting writes ~100×. Use for tolerant metrics; avoid for financial/regulated counts.
@@ -46,3 +47,16 @@ Move cold/old data off the hot working set: a separate collection/bucket, a lowe
 
 ## Time-series
 Append-only measurements (IoT, metrics). Use Couchbase **time-series support (7.2+)** and/or bucketed time-series documents (one doc per series per window) with rollups for older data. Choose a key encoding the series + time window; bound each window so the doc stays < ~1 MB. Use for high-volume time-stamped data; avoid for low volumes or frequent historical updates.
+
+## Quick decision tree
+
+- **Expensive aggregate read over and over?** → Computed (pre-store the result)
+- **High-frequency counter, exactness optional?** → Approximation
+- **JOIN/lookup just to show a few fields of a referenced doc?** → Extended reference
+- **A few docs have huge arrays, most are small?** → Outlier (cap + overflow docs)
+- **Related-but-different shapes queried together?** → Polymorphic (one collection + `type`)
+- **Schema evolving with no downtime window?** → Schema versioning (+ `schemaVersion`)
+- **Need an audit trail or rollback?** → Document versioning (`revisions` collection)
+- **Many sparse, variable optional fields?** → Attribute (array of `{name, value}` + array index)
+- **High-volume timestamped data?** → Time-series / Bucketing (bounded windows)
+- **Cold/old data bloating the working set?** → Archive (separate collection/tier/TTL)

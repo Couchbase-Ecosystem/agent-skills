@@ -12,6 +12,7 @@ How to choose keys for a GSI. For exact DDL see [`index-ddl.md`](index-ddl.md); 
 - [Array & functional indexes](#array--functional-indexes)
 - [Selectivity & statistics](#selectivity--statistics)
 - [`INCLUDE MISSING`](#include-missing)
+- [Quick decision tree](#quick-decision-tree)
 
 ## Primary vs. secondary indexes
 
@@ -69,3 +70,14 @@ expression so a function-wrapped predicate stays sargable — `CREATE INDEX … 
 ## `INCLUDE MISSING`
 
 By default a GSI omits documents missing the leading key. Use `INCLUDE MISSING` (Server 7.6+) on the leading key when you need those documents indexed (e.g., `ORDER BY` that must include rows where the field is absent).
+
+## Quick decision tree
+
+- **Equality predicate(s)?** → put them first in the key, most selective leading
+- **`ORDER BY`?** → add those keys after the equality keys, matching direction (`DESC` in the key)
+- **Query always filters a fixed subset (`type = "hotel"`)?** → partial index (`WHERE` on the index)
+- **Hot path projects/sorts fields not in the key?** → add them to cover it (drop the `Fetch`)
+- **Predicate over array elements (`ANY`/`UNNEST`)?** → `DISTINCT ARRAY` index; binding expr must match exactly
+- **Function-wrapped predicate (`LOWER(x) = …`)?** → functional index on the same expression
+- **Leading key sometimes absent but needed in results?** → `INCLUDE MISSING` on the leading key (7.6+)
+- **Right index still not chosen?** → check stats; run `UPDATE STATISTICS` (see [`cost-based-optimizer.md`](cost-based-optimizer.md))

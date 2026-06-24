@@ -105,6 +105,16 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 
+### Setup verification checklist
+
+- [ ] `CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD` are all set (masked check from Step 1)
+- [ ] Scheme matches the deployment — `couchbases://` for Capella, `couchbase://` for local
+- [ ] Username is a **database / Cluster Access** credential, not the Capella **UI login**
+- [ ] (Capella) your IP is in the **Allowed IP** list
+- [ ] Access level is intentional — read-only (`CB_MCP_READ_ONLY_MODE=true`) unless write was explicitly chosen
+- [ ] Client reloaded/restarted so the server picked up the config
+- [ ] A real tool call succeeds — `test_cluster_connection` / `get_buckets_in_cluster`
+
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |

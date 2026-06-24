@@ -39,3 +39,9 @@ approves a write/DDL.>
 ## References
 
 - `references/<topic>.md` — <what it covers>
+
+> **House style — structure each reference by its access pattern (decided per doc):**
+> a *choice-shaped* doc (the reader has a situation and must pick one path) ends with a terse
+> `## Quick decision tree` of `- **condition?** → action` lines; keep *symptom→fix* and *catalog*
+> content as **lookup tables**; use a `- [ ]` **checklist** for *verification*. Don't add a tree
+> that merely restates a table or a multi-factor rule already on the page.

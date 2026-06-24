@@ -41,6 +41,13 @@ the index entirely. Fastest path; prefer it over a `meta().id` index scan (or fe
 - Use **keyset pagination** (`WHERE sort_key > :last ORDER BY sort_key LIMIT n`) instead of large `OFFSET`, backed by an index on the sort key.
 - `LIMIT`/`OFFSET` are pushed **into** `IndexScan3` (much cheaper) only when **all** hold: whole predicate fits one index · no `IntersectScan` · any `ORDER BY` matches the index key order · no `JOIN`. Otherwise they apply after the scan — verify in the plan (see [`diagnosis.md`](diagnosis.md)).
 
+| Scenario | `LIMIT`/`OFFSET` | Keyset |
+|---|---|---|
+| First few pages | fine | fine (a bit more code) |
+| Deep into a large list | scans + discards every skipped row | constant cost |
+| Infinite scroll / "load more" | slows as the user scrolls | constant cost |
+| Jump to "page 47 of 100" | works | can't random-jump |
+
 ## LIMIT / ORDER BY
 - Include a `LIMIT` so the planner can stop early.
 - Back `ORDER BY` with an index whose keys match (and direction matches) to avoid an in-memory sort.

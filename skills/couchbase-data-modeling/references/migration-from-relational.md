@@ -7,6 +7,7 @@ The shift: relational defaults to 3NF and denormalizes when forced; document def
 - [Migration strategy ladder](#migration-strategy-ladder)
 - [How to actually do it](#how-to-actually-do-it)
 - [Easier in Couchbase](#easier-in-couchbase)
+- [Quick decision tree](#quick-decision-tree)
 
 ## Concept mapping
 
@@ -63,3 +64,13 @@ Rehost is fastest but you keep a relational design in a document DB (JOIN-equiva
 - **Nest instead of join:** `user → addresses → city → country` is one nested document, one `GET`.
 - **Optional/varying fields:** just omit them; check with `IS MISSING` (no NULL columns). See [`fields-and-conventions.md`](fields-and-conventions.md).
 - **Polymorphic data:** prefer a **collection per type** over one sparse "polymorphic table" — keeps indexes and queries clean.
+
+## Quick decision tree
+
+- **Lookup by primary key?** → it *is* the document key; KV `GET` (no join, no index)
+- **1:1 or bounded 1:few?** → embed in the parent document
+- **Unbounded 1:many or many:many?** → separate documents linked by key/field
+- **Polymorphic / single-table-inheritance table?** → a collection per type
+- **Need a transaction across documents?** → multi-document ACID transaction (use sparingly vs KV)
+- **`ALTER TABLE add column`?** → just start writing the field; old docs read it `MISSING`
+- **Migrating a hot read path?** → re-model around the access pattern; translate cold paths as-is

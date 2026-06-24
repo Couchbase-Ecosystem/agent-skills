@@ -80,3 +80,18 @@ Symptom → fix quick reference. Diagnose the plan with [`diagnosis.md`](diagnos
 ## 15. `EVERY` without `ANY AND EVERY`
 **Problem:** `EVERY v IN arr SATISFIES …` is **true for empty/missing arrays**, returning unwanted documents.
 **Fix:** use `ANY AND EVERY v IN arr SATISFIES … END` when at least one element must exist.
+
+## Before finalizing — query/index checklist
+
+- [ ] No hot query relies on the primary index (`PrimaryScan3`)
+- [ ] Every composite index leads with an equality key that appears in the query's `WHERE`
+- [ ] Low-cardinality fields (e.g. `docType`) are partial-index **filters**, not leading keys
+- [ ] Indexed fields aren't function-wrapped in `WHERE` (or a functional index exists)
+- [ ] Hot read paths are covered (no `Fetch`), weighed against the extra write cost
+- [ ] No deep `LIMIT`/`OFFSET` on large result sets (use keyset pagination)
+- [ ] `OR` across different fields uses an array index, not a left-as-is `UnionScan`
+- [ ] Array predicates (`ANY`/`UNNEST`) match an array index's binding expression
+- [ ] Statistics refreshed after bulk loads (`UPDATE STATISTICS`)
+- [ ] No redundant/unused indexes (audit `system:indexes`)
+
+Any failed check → name it and apply the matching fix above.

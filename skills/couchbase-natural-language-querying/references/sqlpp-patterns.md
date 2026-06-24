@@ -20,6 +20,7 @@ Read-only SQL++ syntax and query shapes — the parts that differ from ANSI SQL 
 - [Advanced (pointers only)](#advanced-pointers-only)
 - [Coming from MongoDB](#coming-from-mongodb)
 - [Common traps](#common-traps)
+- [Quick decision tree](#quick-decision-tree)
 
 ## Keyspaces & tool contract
 
@@ -179,3 +180,15 @@ Only the non-obvious mappings:
 | Unwrapped scalar list | `SELECT city …` | `SELECT RAW city …` |
 | Bare doc, not wrapped | `SELECT * FROM hotel` | `SELECT hotel.* FROM hotel` |
 | Wrong field name | silently returns `MISSING`, empty results (no error) — validate names via `INFER` first |
+
+## Quick decision tree
+
+- **"Show / list / find where …" (filter)?** → `SELECT … WHERE [ORDER BY] [LIMIT]`
+- **"How many / total / average … per …"?** → `GROUP BY` + `COUNT`/`SUM`/`AVG` (`WHERE` pre-group, `HAVING` post-group)
+- **Need fields from another collection?** → `JOIN`: `ON KEYS` if a field holds the other doc's key, else ANSI `ON <pred>`
+- **Need each array element as its own row?** → `UNNEST`
+- **"Has an element where …" but keep the doc whole?** → `ANY v IN arr SATISFIES … END`
+- **Transform or collect array values?** → `ARRAY` / `FIRST` / `OBJECT` comprehension
+- **Membership against a list?** → `x IN arr` (top level) · `x WITHIN arr` (any depth)
+- **Search / relevance / fuzzy / "similar to"?** → not SQL++ — hand off to the Couchbase **Search Service** (FTS)
+- **Result is slow or hits a scan?** → return it, then hand off to **`couchbase-query-optimizer`**

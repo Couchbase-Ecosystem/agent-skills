@@ -7,6 +7,7 @@ Unlike systems that auto-generate an `_id`, **you design Couchbase document keys
 - [Hash distribution (no range hot-shards)](#hash-distribution-no-range-hot-shards)
 - [Counter keys](#counter-keys)
 - [Keyspace placement & multi-tenancy](#keyspace-placement--multi-tenancy)
+- [Quick decision tree](#quick-decision-tree)
 
 ## Key strategies
 
@@ -63,3 +64,13 @@ The KV-native alternative to SQL `AUTO_INCREMENT`. The counter doc is a potentia
 | **Key-prefix / field** in shared collection | unlimited | None (logical only) | Lowest | B2C scale, many small tenants |
 
 See [`antipatterns.md`](antipatterns.md) for when *not* to split (e.g. scope-per-user in B2C), and [`patterns.md`](patterns.md) for bucketing/grouping & time-series key strategies.
+
+## Quick decision tree
+
+- **Stable, app-known id that never changes?** → natural key, `type::id`
+- **Want a direct `GET` plus prefix enumeration across dimensions?** → composite key, `type::dimA::dimB`
+- **No stable id; multiple writers, no coordination?** → generated UUID with a type prefix
+- **Want a generated id that also sorts by creation time?** → ULID with a type prefix (prefer over UUIDv4)
+- **Users must read or type the id (invoices, order numbers)?** → atomic-counter sequence, `type::1001`
+- **Tempted to key on a mutable value (email, status)?** → don't — stable key + that value as an indexed field
+- **Very high insert rate concentrated on one counter?** → shard the counter, or use a ULID to avoid the hot key
