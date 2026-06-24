@@ -24,6 +24,8 @@ Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using
 
 > **Recommend, don't apply.** This skill **diagnoses (read-only)** and **outputs `CREATE INDEX` DDL** — it does not create indexes. The MCP server is read-only by default, so DDL won't run unless the user explicitly enables writes. Have the user run the DDL in the Query Workbench / `cbq`, or grant explicit approval.
 
+> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and file names still use "N1QL" (e.g. `n1ql-query-performance-guide`) — treat every such mention as SQL++.
+
 ## Step 0 — Confirm the connection (pre-flight)
 
 Before your **first cluster tool call**, verify connectivity once — so a missing connection fails fast and clearly instead of surfacing as a slow timeout deep in a data call:
@@ -88,3 +90,16 @@ Assess selectivity (how many items the index scan returns vs. the final result).
 - [`references/index-antipatterns.md`](references/index-antipatterns.md) — common indexing mistakes + fixes.
 - [`references/index-ddl.md`](references/index-ddl.md) — `CREATE`/`ALTER`/`DROP`/`BUILD INDEX`, replicas/partitioning, monitoring, hints, statistics.
 - [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (pushdown, JOIN order, `UNNEST`, pagination, `UPDATE`/`MERGE`).
+
+### Query performance guide (deep-dive tutorials)
+
+[`references/n1ql-query-performance-guide/`](references/n1ql-query-performance-guide/) is the official Couchbase query-performance tutorial series — read a part when the concise references above don't go deep enough on a concept. File names use the legacy "n1ql" name; same language as SQL++ (see the terminology note above).
+
+- `01-understanding-query-workflow-and-optimization.md` — how queries are optimized and executed; access-path and index selection.
+- `02-understand-index-scans.md` — index scans and the span ranges different predicates produce.
+- `03-identifying-top-slow-queries.md` — finding the slowest queries on a cluster (pairs with the cluster-wide tools in Step 2).
+- `04-understanding-explain-plan.md` — reading the `EXPLAIN` plan and its attributes (Step 3).
+- `05-understanding-cardinality-and-selectivity.md` — cardinality/selectivity and how they drive index tuning.
+- `06-understanding-covering-indexes-and-ttls.md` — covering indexes, TTL, and `meta().expiration()`.
+- `07-tuning-tips-and-advice.md` — `USE KEYS`, partial/covering indexes, prepared statements, and more.
+- `08-operators-guide.md` — reference to the query-plan operators (pairs with the operator list in Step 3).
