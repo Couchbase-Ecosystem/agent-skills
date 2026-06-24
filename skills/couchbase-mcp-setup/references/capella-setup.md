@@ -23,7 +23,7 @@ UI → cluster → **Settings → Access Control** → **Create Access**. (The *
   - **Auto-generated** (you click **Auto-generate password**): **copy it — or click Download to save the credentials file — immediately**; it's shown only once and can't be retrieved afterward. (Tell the user about both options: copy the password, or download the credentials.)
   - **You type your own**: you already know it, so there's nothing extra to save.
   - Passwords are **case-sensitive** either way.
-- **Access level — Basic (all tiers, the default for MCP):** choose **Read**, **Write**, or **Read & Write**, scoped to a **bucket** → **scope** (or **All Scopes**) → **collection** (or **All Collections**); use **Add Another Selection** to grant more. For a read-only MCP setup give **Read**; add **Write** only if the agent should modify data.
+- **Access level — Basic (all tiers, the default for MCP):** choose **Read**, **Write**, or **Read & Write**, scoped to a **bucket** → **scope** (or **All Scopes**) → **collection** (or **All Collections**); use **Add Another Selection** to grant more. For a read-only MCP setup, give **Read**; add **Write** only if the agent should modify data.
 - **Advanced — fine-grained permissions (paid plans only):** Advanced Access Credentials let you assign role-based, fine-grained permissions (`data_reader`, `query_select`, `data_writer`, `query_insert/update/delete`, …). These are **not available on the free tier** — the Basic access above is sufficient for MCP. Only reach for this once you've confirmed the user is on a paid plan.
 - Cluster Access credentials are **cluster-scoped** (one credential set per cluster, applied to the buckets/scopes/collections you grant).
 
