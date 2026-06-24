@@ -1,0 +1,319 @@
+# Conditional Functions for Numbers
+
+Conditional functions evaluate expressions to determine if the values and formulas meet the specified condition.
+
+## IFINF(`expr1`, `expr2`, ...)
+
+This function has a synonym `IF_INF()`.
+
+### Description
+
+Evaluates a list of expressions and returns the first finite number.
+
+The function ignores `MISSING` and infinite values.
+If it encounters `NULL` or any non-numeric value before finding a finite number, the function returns `NULL`.
+
+### Arguments
+
+* **expr1, expr2, ...**\
+[Required] A list of valid expressions to evaluate.
+You must specify at least 2 expressions.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* The first finite number.
+* `NULL` if it encounters `NULL` or a non-number before finding a finite number.
+
+### Example
+
+**Find the first non-infinite number from a list of values**
+
+**Query**
+
+```sqlpp
+SELECT IFINF(5, 10, 20),
+       IFINF(INF(), -INF(), 5, 10),
+       IFINF(POWER(10, 400), 5, 10),
+       IFINF(2.001e340, 5),
+       IFINF(NULL, 5, 10),
+       IFINF(MISSING, 5, NULL),
+       IFINF(MISSING, NULL, 5, 10);
+```
+
+**Result**
+
+```json
+[
+  {
+    "$1": 5,
+    "$2": 5,
+    "$3": 5,
+    "$4": 5,
+    "$5": null,
+    "$6": 5,
+    "$7": null
+  }
+]
+```
+In this example:
+
+* The functions `INF()` and `-INF()` return positive and negative infinity, respectively.
+* The function `POWER(10, 400)` and the expression `2.001e340` return positive infinity because they exceed the maximum representable finite number.
+
+## IFNAN(`expr1`, `expr2`, ...)
+
+This function has a synonym `IF_NAN()`.
+
+### Description
+
+Evaluates a list of expressions and returns the first valid number that’s not NaN (Not a Number).
+
+The function ignores `MISSING` and NaN values.
+If it encounters `NULL` or any other non-number before finding a valid number, the function returns `NULL`.
+
+### Arguments
+
+* **expr1, expr2, ...**\
+[Required] A list of valid expressions to evaluate.
+You must specify at least 2 expressions.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* The first valid number.
+* `NULL` if it encounters `NULL` or a non-number before finding a number.
+
+### Example
+**Find a non-NaN number from a list of values**
+
+**Query**
+
+```sqlpp
+SELECT IFNAN(5, 10, 20, NAN()),
+       IFNAN(SQRT(-1), 5, 10),
+       IFNAN("abc", 5, NULL, 10),
+       IFNAN(NULL, 5, 10),
+       IFNAN(MISSING, 5, NULL),
+       IFNAN(MISSING, NULL, 5, 10),
+       IFNAN(NAN(), 5, 10);
+```
+**Result**
+
+```json
+[
+  {
+    "$1": 5,
+    "$2": 5,
+    "$3": null,
+    "$4": null,
+    "$5": 5,
+    "$6": null,
+    "$7": 5
+  }
+]
+```
+In this example:
+
+* The function `NAN()` returns a NaN value.
+* The function `SQRT(-1)` also returns NaN because the square root of a negative number is not a real number.
+
+## IFNANORINF(`expr1`, `expr2`, ...)
+
+This function has a synonym `IF_NAN_OR_INF()`.
+
+### Description
+
+Evaluates a list of expressions and returns the first number that’s neither NaN (Not a Number) nor infinite.
+
+The function skips `MISSING`, NaN, and infinite values.
+If it encounters `NULL` or any other non-number before finding a valid number, the function returns `NULL`.
+
+### Arguments
+
+* **expr1, expr2, ...**\
+[Required] A list of valid expressions to evaluate.
+You must specify at least 2 expressions.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* The first number that’s neither NaN nor infinite.
+* `NULL` if it encounters `NULL` or a non-number before finding such a number.
+
+### Example
+
+**Find a number that’s neither NaN nor infinite from a list of values**
+
+**Query**
+
+```sqlpp
+SELECT IFNANORINF(5, 10, NAN(), INF()),
+       IFNANORINF(SQRT(-1), -INF(), 5, 10),
+       IFNANORINF(2.001e340, 5, 10),
+       IFNANORINF("abc", 5, NULL, 10),
+       IFNANORINF(NULL, 5, 10),
+       IFNANORINF(MISSING, 5, NULL);
+```
+**Result**
+
+```json
+[
+  {
+    "$1": 5,
+    "$2": 5,
+    "$3": 5,
+    "$4": null,
+    "$5": null,
+    "$6": 5
+  }
+]
+```
+In this example:
+
+* The function `NAN()` returns a NaN value.
+* The functions `INF()` and `-INF()` return positive and negative infinity, respectively.
+* The function `SQRT(-1)` returns NaN because the square root of a negative number is not a real number.
+* The expression `2.001e340` returns positive infinity because it exceeds the maximum representable finite number.
+
+## NANIF(`expr1`, `expr2`)
+
+This function has a synonym `NAN_IF()`.
+
+### Description
+
+Compares 2 expressions and returns `NaN` (Not a Number) if they’re equal; otherwise, it returns the value of the first expression.
+
+### Arguments
+
+* **expr1**\
+[Required] A valid expression.
+* **expr2**\
+[Required] A valid expression to compare with `expr1`.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* `"NaN"` if `expr1` is equal to `expr2`.
+* `expr1` if the expressions are not equal.
+* `NULL` if either expression is `MISSING` or `NULL`.
+
+### Example
+**Compare 2 values and return NaN if they’re equal**
+
+**Query**
+
+```sqlpp
+SELECT NANIF(10, 10) AS nan_equal,
+       NANIF(10, 5) AS nan_not_equal,
+       NANIF(NULL, 5) AS nan_null;
+```
+**Result**
+
+```json
+[
+  {
+    "nan_equal": "NaN",
+    "nan_not_equal": 10,
+    "nan_null": null
+  }
+]
+```
+
+## NEGINFIF(`expr1`, `expr2`)
+
+This function has a synonym `NEGINF_IF()`.
+
+### Description
+
+Compares 2 expressions and returns negative infinity if they’re equal; otherwise, it returns the value of the first expression.
+
+### Arguments
+
+* **expr1**\
+[Required] A valid expression.
+* **expr2**\
+[Required] A valid expression to compare with `expr1`.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* `"-Infinity"` if `expr1` is equal to `expr2`.
+* `expr1` if the expressions are not equal.
+* `NULL` if either expression is `MISSING` or `NULL`.
+
+### Example
+
+**Compare 2 values and return negative infinity if they’re equal**
+
+**Query**
+
+```sqlpp
+SELECT NEGINFIF(10, 10) AS neg_inf_equal,
+       NEGINFIF(10, 5) AS neg_inf_not_equal,
+       NEGINFIF(NULL, 5) AS neg_inf_null;
+```
+
+**Result**
+
+```json
+[
+  {
+    "neg_inf_equal": "-Infinity",
+    "neg_inf_not_equal": 10,
+    "neg_inf_null": null
+  }
+]
+```
+
+## POSINFIF(`expr1`, `expr2`)
+
+This function has a synonym `POSINF_IF()`.
+
+### Description
+
+Compares 2 expressions and returns positive infinity if they’re equal; otherwise, it returns the value of the first expression.
+
+### Arguments
+
+* **expr1**\
+[Required] A valid expression.
+* **expr2**\
+[Required] A valid expression to compare with `expr1`.
+
+### Return Value
+
+The function returns 1 of the following:
+
+* `"+Infinity"` if `expr1` is equal to `expr2`.
+* `expr1` if the expressions are not equal.
+* `NULL` if either expression is `MISSING` or `NULL`.
+
+### Example
+
+**Compare 2 values and return positive infinity if they’re equal**
+
+**Query**
+
+```sqlpp
+SELECT POSINFIF(10, 10) AS pos_inf_equal,
+       POSINFIF(10, 5) AS pos_inf_not_equal,
+       POSINFIF(NULL, 5) AS pos_inf_null;
+```
+
+**Result**
+
+```json
+[
+  {
+    "pos_inf_equal": "+Infinity",
+    "pos_inf_not_equal": 10,
+    "pos_inf_null": null
+  }
+]
+```

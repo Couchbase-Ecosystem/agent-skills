@@ -1,0 +1,208 @@
+# Query Concepts
+
+An overview of common concepts that you will need to understand in order to use the Query service.
+
+## {sqlpp} Queries
+
+A {sqlpp} query is a string parsed by the Query service.
+The {sqlpp} query language is based on SQL, but designed for structured and flexible JSON documents.
+
+* As with SQL, a {sqlpp} query can have nested sub-queries.
+* {sqlpp} queries run on JSON documents, and you can query over multiple documents by using the `JOIN` clause.
+* Data in JSON documents can be nested.
+There are operators and functions that let you navigate through nested arrays.
+* Data in JSON documents can be irregular.
+You can specify conditions in the `WHERE` clause to retrieve data.
+* You can transform the results using standard `GROUP BY`, `ORDER BY`, `LIMIT`, and `OFFSET` clauses as well as a rich set of functions.
+
+## Results
+
+The result for each query is a set of JSON documents.
+The returned document set may be uniform or non-uniform.
+
+* A `SELECT` statement that specifies a fixed set of attribute (column) names results in a uniform set of documents.
+* A `SELECT` statement that specifies the wild card (*) results in a non-uniform result set.
+
+Every returned document meets the query criteria.
+
+Here’s a sample query and the result returned:
+
+**Query**
+
+```sqlpp
+SELECT name, brewery_id from `beer-sample` WHERE brewery_id IS NOT MISSING LIMIT 2;
+```
+
+**Result**
+
+```json
+{
+    "requestID": "fbea9e79-a2e2-4ab8-9fdc-14e098838cc1",
+    "signature": {
+        "brewery_id": "json",
+        "name": "json"
+    },
+    "results": [
+        {
+            "brewery_id": "big_horn_brewing_the_ram_2",
+            "name": "Schaumbergfest"
+        },
+        {
+            "brewery_id": "ballast_point_brewing",
+            "name": "Wahoo Wheat Beer"
+        }
+    ],
+    "status": "success",
+    "metrics": {
+        "elapsedTime": "131.492184ms",
+        "executionTime": "131.261322ms",
+        "resultCount": 2,
+        "resultSize": 205
+    }
+}
+```
+
+## Logical Hierarchy
+
+Couchbase stores data within a [logical hierarchy](learn:data/scopes-and-collections.adoc) of buckets, scopes, and collections.
+This enables separation between documents of different types.
+
+* **Datastores**
+
+Datastores are similar to sites.
+A datastore is a database deployment, for example, a server cluster, cloud service, or mobile installation.
+It is analogous to a relation database instance.
+
+* **Namespaces**
+
+Namespaces are similar to pools.
+A namespace is a unit of authorization, resource allocation, and tenancy.
+It is analogous to a relational database or schema.
+Currently, only the `default` and `system` namespaces are available.
+
+* **Buckets**
+
+A bucket is the fundamental space for storing data in Couchbase Server.
+Each bucket contains at least one scope by default, and you can create more scopes as required.
+It is analogous to a relational database table space or file group.
+
+* **Scopes**
+
+A scope is a set of one or more collections.
+Each scope contains at least one collection by default, and you can create more collections as required.
+It is analogous to a group of relational database tables.
+
+* **Collections**
+
+A collection is a set of documents that may vary in structure.
+It is a unit of authorization and resource allocation.
+It is analogous to a relational database table.
+
+* **Keyspaces**
+
+Keyspaces map to collections in Couchbase Server.
+You must refer to a keyspace using a [keyspace reference](#keyspace-references).
++
+The term keyspace is also used to refer to any of the catalogs in the [system](n1ql:n1ql-intro/sysinfo.adoc) namespace.
+
+## Keyspace References
+
+For most queries, you must provide one or more keyspace references to specify the data sources for the query.
+
+A keyspace reference may be:
+
+* A full keyspace reference: a path comprising the optional namespace, the bucket, the scope, and the collection which contains the documents you want.
+For example, `default:{backtick}travel-sample{backtick}.inventory.airline`.
+* A partial keyspace reference, comprising the collection name only.
+For example, `airline`.
+
+When a query contains partial keyspace references, you must set the [query context](#query-context) to specify a bucket and scope before running a query.
+Partial keyspace references are resolved using the bucket and scope supplied by the query context.
+
+For compatibility with legacy versions of Couchbase Server, a keyspace reference may comprise the bucket name only, when referring to the default collection in the default scope within a bucket.
+In this case, the [query context](#query-context) must not be set.
+
+## Query Context
+
+The query context specifies the the namespace, bucket, and scope used to resolve partial keyspace references.
+
+When the query context is set, you can refer to a collection using just the collection name, without having to enter the keyspace path.
+When the query context is not set, it defaults to the `default` namespace, with no bucket, scope, or collection.
+
+* To set the query context in the Query Workbench, use the the [query context](tools:query-workbench.adoc#query-context) drop-down menu in the Query Editor.
+* To set the query context from the cbq shell or the REST API, use the [query_context](n1ql:n1ql-manage/query-settings.adoc#query_context) request-level parameter.
+
+**Tenant separation**
+
+By using queries with partial keyspace references, which are resolved using the query context, a database application can be switched from one scope to another simply by changing the query context.
+This can be used to support the separation of tenant data in a multi-tenancy environment.
+
+## Sub-Document Paths
+
+One of the main differences between JSON and flat rows is that JSON supports a nested structure, allowing documents to contain other documents, also known as sub-documents.
+{sqlpp} provides sub-document paths to support nested data.
+Paths use dot notation syntax to identify the logical location of an attribute within a document.
+For example, to get the street from a customer order, use the path `orders.billTo.street`.
+This path refers to the value for `street` in the `billTo` object.
+A path is used with arrays or nested objects to get to attributes within the data structure.
+
+Array syntax in the path can also be used to get to information.
+For example, the path `orders.items[0].productId` evaluates to the `productId` value for the first array element under the order item, `items`.
+
+Paths provide a method for finding data in document structures without having to retrieve the entire document or handle it within an application.
+Any document data can be requested and returned to an application.
+When only relevant information is returned to an application, querying bandwidth is reduced.
+
+See [Nested Path Expressions](n1ql-language-reference/index.adoc#nested-path-expressions) for more details.
+
+## Parameterized Queries
+
+Use placeholders to declare dynamic query parameters in {sqlpp}.
+When you run the query, you can pass arguments to it, with each argument being used as the placeholder value in the query.
+
+Placeholders in the query may be numbered positional placeholders, unnumbered positional placeholders, or named placeholders.
+
+* A numbered positional placeholder takes the form `$1` or `@1`.
+Thus, in the query, `$1` or `@1` refers to the first argument,`$2` or `@2` to the second, and so on.
+* An unnumbered positional parameter takes the form of a question mark `?`.
+The first occurrence of `?` refers to the first argument, the second occurrence of `?` to the second, and so on.
+* Named placeholders take the form of `$name` or `@name`.
+This is particularly useful when there are many query parameters, and ensuring that they are all in the correct order may be cumbersome.
+
+To set query parameter values when you run the query, use the cbq query shell, the Query tab, or the {sqlpp} REST API.
+
+For more information and examples, refer to [Named Parameters and Positional Parameters](n1ql:n1ql-manage/query-settings.adoc#section_srh_tlm_n1b).
+
+## Prepared Statements
+
+When a {sqlpp} query is sent to the server, the server inspects the query and parses it, planning which indexes to use, if any.
+Once this is done, it generates a query plan.
+The computation for the plan adds some additional processing time and overhead for the query.
+
+You can prepare a frequently-used query so that its plan is generated only once.
+Subsequent queries using the same query string will use the pre-generated plan instead, saving on the overhead and processing of the plan each time.
+
+**📌 NOTE**\
+Parameterized queries are considered the same query for caching and planning purposes, even if the supplied parameters are different.
+
+For more information on how to optimize queries using prepared statements, refer to the [PREPARE](n1ql:n1ql-language-reference/prepare.adoc) statement.
+
+## Indexes
+
+Indexes help to improve the performance of a query.
+An index replicates a subset of the fields and documents stored in the Data service.
+This allows specific data (for example, specific fields) to be retrieved quickly.
+
+The Index service enables you to create two types of index: primary indexes and global secondary indexes.
+
+* You can define a primary index on a keyspace.
+Primary indexes are based on the unique key of every item in a specified collection. A primary index is intended to be used for simple queries, which have no filters or predicates.
+* You can also create a secondary index on specific fields in a keyspace.
+Secondary indexes, often referred to as Global Secondary Indexes or GSIs, constitute the principal means of indexing documents to be accessed by the Query service.
+
+  For example, creating a secondary index on the `name` and `email` fields in the `users` keyspace would allow you to query the keyspace regarding a document’s `name` or `email` properties.
+
+Note that you do not need to create an index on a keyspace to be able to query that keyspace.
+If no indexes exist on a keyspace, Couchbase Server uses a sequential scan to query that index.
+
+For more information, refer to [indexes:indexing-overview.adoc](indexes:indexing-overview.adoc).

@@ -1,0 +1,330 @@
+# Conditional Functions for Unknowns
+
+Conditional functions evaluate expressions to determine if the values and formulas meet the specified condition.
+
+## COALESCE(`expression1`, `expression2`, \...)
+
+Alias for [IFMISSINGORNULL()](#ifmissingornullexpression1-expression2-).
+
+## DECODE(`expression`, `search1`, `result1` [, `search2`, `result2`, \...] [, `default`])
+
+### Arguments
+
+* **expression**\
+[Required] Any valid expression.
+* **search1, search2, \...**\
+[At least 1 is required] Any values.
+* **result1, result2, \...**\
+[At least 1 is required] Any values.
+* **default**\
+[Optional] Any value.
+
+The function requires a minimum of three arguments.
+The first argument is the _expression_.
+This is followed by one or more pairs of _search_ and _result_ arguments.
+If there is an even number of arguments, the last argument is the _default_ argument.
+If there is an odd number of arguments, the _default_ is not specified.
+
+### Return Value
+Returns the _result_ corresponding to the first _search_ that matches the _expression_.
+If none of the _search_ values match the _expression_, the function returns the value of _default_, or returns NULL if _default_ is not specified.
+
+### Example
+
+To try the examples in this section, set the query context to the `inventory` scope in the travel sample dataset.
+For more information, see [Query Context](n1ql:n1ql-intro/queriesandresults.adoc#query-context).
+
+Find the UTC offset of all airports in the United States whose altitude is greater than 1000:
+
+```sqlpp
+SELECT a.airportname AS Airport,
+DECODE(a.tz, "Pacific/Honolulu", "-10:00",
+             "America/Anchorage", "-09:00",
+             "America/Los_Angeles", "-08:00",
+             "America/Denver", "-07:00",
+             "America/Chicago", "-06:00",
+             "America/New_York", "-05:00", a.tz) AS UTCOffset
+FROM airport a
+WHERE a.country = "United States" AND a.geo.alt > 1000
+LIMIT 5;
+```
+
+**Results**
+
+```json
+[
+  {
+    "Airport": "Indian Mountain Lrrs",
+    "UTCOffset": "-09:00"
+  },
+  {
+    "Airport": "Sparrevohn Lrrs",
+    "UTCOffset": "-09:00"
+  },
+  {
+    "Airport": "Bicycle Lake Aaf",
+    "UTCOffset": "-08:00"
+  },
+  {
+    "Airport": "Twentynine Palms Eaf",
+    "UTCOffset": "-0:800"
+  },
+  {
+    "Airport": "Grants Milan Muni",
+    "UTCOffset": "-07:00"
+  }
+]
+```
+
+## IFMISSING(`expression1`, `expression2`, \...)
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[At least 2 are required] Any valid expressions.
+
+### Return Value
+Returns the first non-MISSING value.
+Returns NULL if all values are MISSING.
+
+### Example
+```sqlpp
+SELECT IFMISSING(null, missing, "abc", 123) AS Mix, -- ①
+       IFMISSING(null, null, null) AS AllNull, -- ②
+       IFMISSING(missing, missing, missing) AS AllMissing;
+```
+
+**Results**
+
+```json
+[
+  {
+    "AllMissing": null,
+    "AllNull": null, // ②
+    "Mix": null // ①
+  }
+]
+```
+
+1. The first non-MISSING value is NULL, so this function returns NULL.
+2. The first non-MISSING value is NULL, so this function returns NULL.
+
+## IFMISSINGORNULL(`expression1`, `expression2`, \...)
+
+This function has an alias [COALESCE()](#coalesceexpression1-expression2-).
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[At least 2 are required] Any valid expressions.
+
+### Return Value
+Returns first non-NULL, non-MISSING value.
+Returns NULL if all values are MISSING or NULL.
+
+### Example
+```sqlpp
+SELECT IFMISSINGORNULL(null, missing, "abc", 123) AS Mix,
+       IFMISSINGORNULL(null, null, null) AS AllNull,
+       IFMISSINGORNULL(missing, missing, missing) AS AllMissing;
+```
+
+**Results**
+
+```json
+[
+  {
+    "AllMissing": null,
+    "AllNull": null,
+    "Mix": "abc"
+  }
+]
+```
+
+## IFNULL(`expression1`, `expression2`, \...)
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[At least 2 are required] Any valid expressions.
+
+### Return Value
+Returns first non-NULL value.
+Returns NULL if all values are NULL.
+
+### Example
+```sqlpp
+SELECT IFNULL(null, missing, "abc", 123) AS Mix, -- ①
+       IFNULL(null, null, null) AS AllNull,
+       IFNULL(missing, missing, missing) AS AllMissing; -- ②
+```
+
+**Results**
+
+```json
+[
+  {
+    "AllNull": null
+  }
+]
+```
+
+1. The first non-NULL value is MISSING, so this function returns MISSING.
+2. The first non-NULL value is MISSING, so this function returns MISSING.
+
+## MISSINGIF(`expression1`, `expression2`)
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[Exactly 2 are required] Any valid expressions.
+
+### Return Value
+Returns MISSING if `expression1` = `expression2`, otherwise returns `expression1`.
+Returns MISSING if either input is MISSING or if both inputs are MISSING.
+Returns NULL if either input is NULL or if both inputs are NULL.
+
+### Example
+```sqlpp
+SELECT MISSINGIF("abc", 123) AS Different,
+       MISSINGIF("abc", "abc") AS Same;
+```
+
+**Results**
+
+```json
+[
+  {
+    "Different": "abc"
+  }
+]
+```
+
+## NULLIF(`expression1`, `expression2`)
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[Exactly 2 are required] Any valid expressions.
+
+### Return Value
+Returns NULL if `expression1` = `expression2`, otherwise returns `expression1`.
+Returns MISSING if either input is MISSING or if both inputs are MISSING.
+Returns NULL if either input is NULL or if both inputs are NULL.
+
+### Example
+```sqlpp
+SELECT NULLIF("abc", 123) AS Different,
+       NULLIF("abc", "abc") AS Same;
+```
+
+**Results**
+
+```json
+[
+  {
+    "Different": "abc",
+    "Same": null
+  }
+]
+```
+
+## NVL(`expression1`, `expression2`)
+
+### Arguments
+
+* **expression1, expression2, \...**\
+[Exactly 2 are required] Any valid expressions.
+
+### Return Value
+Returns `expression1` if `expression1` is not MISSING or NULL.
+Returns `expression2` if `expression1` is MISSING or NULL.
+
+### Example
+
+To try the examples in this section, set the query context to the `inventory` scope in the travel sample dataset.
+For more information, see [Query Context](n1ql:n1ql-intro/queriesandresults.adoc#query-context).
+
+```sqlpp
+SELECT name as Name, NVL(iata, "n/a") as IATA
+FROM airline
+LIMIT 5;
+```
+
+**Results**
+
+```json
+[
+  {
+    "IATA": "Q5",
+    "Name": "40-Mile Air"
+  },
+  {
+    "IATA": "TQ",
+    "Name": "Texas Wings"
+  },
+  {
+    "IATA": "A1",
+    "Name": "Atifly"
+  },
+  {
+    "IATA": "n/a",
+    "Name": "Jc royal.britannica"
+  },
+  {
+    "IATA": "ZQ",
+    "Name": "Locair"
+  }
+]
+```
+
+## NVL2(`expression`, `value1`, `value2`)
+
+### Arguments
+
+* **expression**\
+[Required] Any valid expression.
+* **value1, value2, \...**\
+[Exactly 2 are required] Any values.
+
+### Return Value
+Returns `value1` if `expression` is not MISSING or NULL.
+Returns `value2` if `expression` is MISSING or NULL.
+
+### Example
+
+To try the examples in this section, set the query context to the `inventory` scope in the travel sample dataset.
+For more information, see [Query Context](n1ql:n1ql-intro/queriesandresults.adoc#query-context).
+
+```sqlpp
+SELECT name as Name, NVL2(directions, "Yes", "No") as DirectionsAvailable
+FROM hotel
+LIMIT 5;
+```
+
+**Results**
+
+```json
+[
+  {
+    "DirectionsAvailable": "No",
+    "Name": "Medway Youth Hostel"
+  },
+  {
+    "DirectionsAvailable": "No",
+    "Name": "The Balmoral Guesthouse"
+  },
+  {
+    "DirectionsAvailable": "Yes",
+    "Name": "The Robins"
+  },
+  {
+    "DirectionsAvailable": "Yes",
+    "Name": "Le Clos Fleuri"
+  },
+  {
+    "DirectionsAvailable": "Yes",
+    "Name": "Glasgow Grand Central"
+  }
+]
+```

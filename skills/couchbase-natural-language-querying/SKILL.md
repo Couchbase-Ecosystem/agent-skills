@@ -26,6 +26,8 @@ Convert a natural-language question into **read-only SQL++**, grounded in the li
 
 > **Read-only.** Never generate or run writes or DDL (`INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP`). The MCP server defaults to read-only mode — keep it that way for this skill.
 
+> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and file names still use "N1QL" (e.g. `n1ql-language-reference`) — treat every such mention as SQL++.
+
 > **Tool-call contract.** The query tools — `run_sql_plus_plus_query`, `explain_sql_plus_plus_query`, and `get_schema_for_collection` — take `bucket_name` and `scope_name` as **separate arguments** and set the scope context automatically. Write the query against **bare collection names**; never prefix or fully-qualify with bucket/scope. For example:
 >
 > ```
@@ -83,4 +85,15 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 
 ## References
 
-- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — SQL++ literals, operators, functions, query shapes, subqueries, arrays, `NULL` vs `MISSING`, projection, pagination (with links to the official function and reserved-word references).
+- [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — SQL++ literals, operators, functions, query shapes, subqueries, arrays, `NULL` vs `MISSING`, projection, pagination (with links to the official function and reserved-word references). **Start here** for query generation.
+
+### Full SQL++ language docs (offline mirror)
+
+[`references/n1ql-docs-pages/`](references/n1ql-docs-pages/) mirrors the complete official Couchbase Query (SQL++) documentation as markdown — the authoritative source when `sqlpp-patterns.md` doesn't cover something (exact function signatures, a clause's full syntax, edge cases). The directory and file names use the legacy name "n1ql" — same language as SQL++ (see the terminology note above).
+
+- `query.md` — top-level overview of the Query service.
+- `n1ql-intro/` — querying basics: `index.md`, `queriesandresults.md`, the `cbq` shell (`cbq.md`), catalog/system info (`sysinfo.md`).
+- `n1ql-language-reference/` — the complete language reference: statements (`SELECT`/`INSERT`/`UPDATE`/`MERGE`, DDL like `createindex`), clauses (`from`, `where`, `groupby`, `join`, `unnest`, `with`, `window`), operators, `datatypes`, every function category (`aggregatefun`, `arrayfun`, `stringfun`, `datefun`, `vectorfun`, …), subqueries, transactions, `reservedwords`, and `n1ql-error-codes`. Look up functions and exact syntax here before guessing.
+- `n1ql-manage/` — operating/monitoring queries: `monitoring-n1ql-query.md`, `query-settings.md`, `query-awr.md`.
+
+> This skill is **read-only**: the language reference documents write/DDL statements, but never generate or run them here.
