@@ -4,9 +4,6 @@
       "command": "uvx",
       "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
       "env": {
-        "CB_CONNECTION_STRING": "${CB_CONNECTION_STRING}",
-        "CB_USERNAME": "${CB_USERNAME}",
-        "CB_PASSWORD": "${CB_PASSWORD}",
         "CB_MCP_READ_ONLY_MODE": "${CB_MCP_READ_ONLY_MODE:-true}",
         "CB_MCP_DISABLED_TOOLS": "${CB_MCP_DISABLED_TOOLS:-}",
         "CB_MCP_CONFIRMATION_REQUIRED_TOOLS": "${CB_MCP_CONFIRMATION_REQUIRED_TOOLS:-}"

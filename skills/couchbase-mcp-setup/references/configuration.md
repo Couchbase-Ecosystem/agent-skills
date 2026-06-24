@@ -20,7 +20,6 @@ Every var has a CLI-arg equivalent; **CLI args override env vars**. Read-only/di
 | `CB_CLIENT_KEY_PATH` | `--client-key-path` | required for mTLS | client key |
 | `CB_CA_CERT_PATH` | `--ca-cert-path` | — | server root CA for self-signed / untrusted TLS. **Not needed for Capella** |
 | `CB_MCP_READ_ONLY_MODE` | `--read-only-mode` | `true` | block all writes (KV + query) |
-| `CB_MCP_READ_ONLY_QUERY_MODE` | `--read-only-query-mode` | `true` | **[DEPRECATED]** block query writes only — use `CB_MCP_READ_ONLY_MODE` |
 | `CB_MCP_TRANSPORT` | `--transport` | `stdio` | `stdio` · `http` · `sse` (deprecated) |
 | `CB_MCP_HOST` | `--host` | `127.0.0.1` | bind host (http/sse only) |
 | `CB_MCP_PORT` | `--port` | `8000` | bind port (http/sse only) |

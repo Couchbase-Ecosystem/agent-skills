@@ -12,7 +12,7 @@ How to constrain what the agent can do. **RBAC is the only authoritative control
 - The 4 KV write tools (`upsert`/`insert`/`replace`/`delete_document_by_id`) are **not loaded** — absent from tool discovery.
 - `run_sql_plus_plus_query` stays loaded but **rejects** write DML (INSERT/UPDATE/DELETE/MERGE) and DDL.
 
-To allow writes, set `CB_MCP_READ_ONLY_MODE=false`. `CB_MCP_READ_ONLY_QUERY_MODE` is deprecated; only relevant in the precedence table:
+To allow writes, set `CB_MCP_READ_ONLY_MODE=false`.
 
 | `READ_ONLY_MODE` | `READ_ONLY_QUERY_MODE` | Result |
 |---|---|---|

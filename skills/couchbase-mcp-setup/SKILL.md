@@ -36,13 +36,13 @@ Work through the steps in order. Be imperative and never print secret values bac
 Determine two things before configuring anything:
 
 1. **Which harness** is the user in — Claude Code (most common), Codex, Cursor, Windsurf, or Claude Desktop? Hints: `env | grep '^CODEX_'` (non-empty → Codex); in Claude Code, `claude mcp list` works.
-2. **How they installed** — via the Couchbase **plugin** (a bundled `mcp.json` already defines the `couchbase` server with `${CB_*}` placeholders) or **manually** (no server registered yet). Context only: Step 5's recommended `local`-scoped `claude mcp add` works either way (it overrides the plugin's definition if one is present).
+2. **How they installed** — via the Couchbase **plugin** (a bundled `mcp.json` already defines the `couchbase` server and pins the safety defaults; credentials are supplied separately in Step 5) or **manually** (no server registered yet). Context only: Step 5's recommended `local`-scoped `claude mcp add` works either way (it overrides the plugin's definition if one is present).
 
 ## Step 1 — Check existing configuration (never reveal secrets)
 
 Find which `CB_*` values are already set — they live either in your shell environment or in the client's MCP config file, depending on how the server was registered:
 
-- **Shell environment** (plugin / `${CB_*}` setups): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
+- **Shell environment** (bundled-template route, where the server inherits exported `CB_*`): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
 - **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop).
 
 If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
@@ -89,19 +89,19 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
     -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
   ```
   A `local`-scoped server outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so **this works whether or not the plugin is installed** and needs no `${CB_*}` shell exports. Pass safety vars the same way (e.g. `-e CB_MCP_READ_ONLY_MODE="false"`). Use `--scope user` only to share this cluster across *all* your Claude Code projects, and avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
-- **Claude Code, via the plugin's bundled template (alternative):** the bundled `mcp.json` reads `${CB_*}` from the environment Claude Code is launched in. If you use this route, **scope those vars to the project** — e.g. a git-ignored `.envrc` loaded by `direnv` — rather than a global `~/.zshrc` export, which is visible to every shell, subprocess, and project and persists indefinitely.
+- **Claude Code, via the plugin's bundled template (alternative):** the bundled `mcp.json` pins only the safety defaults; the `couchbase` server inherits `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD` from the environment Claude Code is launched in. If you use this route, **scope those vars to the project** — e.g. a git-ignored `.envrc` loaded by `direnv` — rather than a global `~/.zshrc` export, which is visible to every shell, subprocess, and project and persists indefinitely.
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
 
-**Safety vars:** pass `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` like the connection values — `-e` on `claude mcp add` (recommended), or as scoped exports if you use the bundled template (which passes them through). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
+**Safety vars:** pass `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` like the connection values — `-e` on `claude mcp add` (recommended), or as scoped exports if you use the bundled template (which already defaults `CB_MCP_READ_ONLY_MODE` to `true` and passes any you set through). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
 
 **Switching clusters:** a server connects to one cluster, fixed at startup — there is no runtime switch. To point it at a different cluster, update `CB_CONNECTION_STRING` and credentials and restart the client.
 
-**Secret hygiene:** never commit credentials; don't hardcode secrets into version-controlled files (including a `project`-scoped `.mcp.json`). The recommended `--scope local` route keeps them in `~/.claude.json`, outside your repo. If you instead use the bundled template's `${CB_*}` vars, `chmod 600` and **git-ignore** the file holding them (e.g. `.envrc`) and avoid global `~/.zshrc` exports, which leak into other shells and projects.
+**Secret hygiene:** never commit credentials; don't hardcode secrets into version-controlled files (including a `project`-scoped `.mcp.json`). The recommended `--scope local` route keeps them in `~/.claude.json`, outside your repo. If you instead use the bundled-template route (exporting `CB_*` for the server to inherit), `chmod 600` and **git-ignore** the file holding them (e.g. `.envrc`) and avoid global `~/.zshrc` exports, which leak into other shells and projects.
 
 ## Step 6 — Restart and verify
 
-1. Apply the config: run `/reload-plugins` to pick up the server without losing your session. If the tools don't appear, restart Claude Code — a full restart is the guaranteed fallback for any registration route. (Bundled-template route only: the server reads `${CB_*}` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
+1. Apply the config: run `/reload-plugins` to pick up the server without losing your session. If the tools don't appear, restart Claude Code — a full restart is the guaranteed fallback for any registration route. (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 

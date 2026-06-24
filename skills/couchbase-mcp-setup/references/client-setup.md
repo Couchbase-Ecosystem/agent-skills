@@ -22,7 +22,7 @@ Add the optional safety vars the same way, e.g. `-e CB_MCP_READ_ONLY_MODE="false
 
 ### Alternative — the plugin's bundled template
 
-If you installed the Couchbase plugin, its bundled `mcp.json` defines `couchbase` and reads `${CB_*}` from the environment Claude Code is launched in. This route means the values live as environment variables, so **scope them to the project** — use a git-ignored `.envrc` loaded by `direnv` rather than a global `~/.zshrc` export:
+If you installed the Couchbase plugin, its bundled `mcp.json` defines `couchbase` and pins the safety defaults; the server inherits `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD` from the environment Claude Code is launched in. This route means the credentials live as environment variables, so **scope them to the project** — use a git-ignored `.envrc` loaded by `direnv` rather than a global `~/.zshrc` export:
 
 ```bash
 # .envrc (git-ignored) — run `direnv allow` once, then restart Claude Code
