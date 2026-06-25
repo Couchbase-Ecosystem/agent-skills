@@ -15,6 +15,8 @@ allowed-tools: Bash, Read, Edit, Write
 
 This skill connects the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) to a live cluster so the other Couchbase skills and tools can actually query and inspect data. It runs *before* the connection works, so it's driven by editing the client's MCP config file (or running its CLI where one exists), ending with a verification that calls a Couchbase MCP tool.
 
+> **It works with any MCP-compatible client.** The Couchbase MCP server is a standard MCP server, so it runs in any client that speaks MCP — Claude Code, Codex, Cursor, Windsurf, Claude Desktop, VS Code, JetBrains, Factory, and others. The per-client examples below are worked patterns, **not** a list of the only clients that work; every client registers the server the same way (a `command`/`args`/`env` entry), differing only in *where* that entry lives and minor syntax. Help with whichever client the user names, even if it isn't the one this skill is running in.
+
 **The server needs three required values:**
 
 | Value | Env var | Example |
@@ -33,7 +35,7 @@ Work through the steps in order. Be imperative and never print secret values bac
 
 Determine two things before configuring anything:
 
-1. **Which harness** is the user in — Claude Code (most common), Codex, Cursor, Windsurf, or Claude Desktop? Hints: `env | grep '^CODEX_'` (non-empty → Codex); in Claude Code, `claude mcp list` works.
+1. **Which harness** is the user in — Claude Code (most common), Codex, Cursor, Windsurf, Claude Desktop, VS Code, JetBrains, or any other MCP-compatible client? Hints: `env | grep '^CODEX_'` (non-empty → Codex); in Claude Code, `claude mcp list` works. A client not named here still works — see [`references/client-setup.md`](references/client-setup.md) for its config-file location and any per-client quirks.
 2. **How they installed** — via the Couchbase **plugin** (a bundled `mcp.json` already defines the `couchbase` server and pins the safety defaults; credentials are supplied separately in Step 5) or **manually** (no server registered yet). Context only: Step 5's recommended `local`-scoped `claude mcp add` works either way (it overrides the plugin's definition if one is present).
 
 ## Step 1 — Check existing configuration (never reveal secrets)
@@ -41,7 +43,7 @@ Determine two things before configuring anything:
 Find which `CB_*` values are already set — they live either in your shell environment or in the client's MCP config file, depending on how the server was registered:
 
 - **Shell environment** (bundled-template route, where the server inherits exported `CB_*`): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
-- **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop).
+- **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop / JetBrains; VS Code uses a top-level `servers` key instead — see [`references/client-setup.md`](references/client-setup.md)).
 
 If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
 
@@ -95,7 +97,9 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 **Other clients** — same two-way choice: **write the block into their config file for them**, or hand them the block to paste. Full blocks (+ Docker/source/Streamable-HTTP launch alternatives and cluster switching) are in [`references/client-setup.md`](references/client-setup.md):
 
 - **Codex:** the `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) in `~/.codex/config.toml`.
-- **Cursor / Windsurf / Claude Desktop:** the `mcpServers.couchbase` JSON block in that client's MCP settings.
+- **Cursor / Windsurf / Claude Desktop / JetBrains:** the `mcpServers.couchbase` JSON block in that client's MCP settings.
+- **VS Code:** the same JSON block but under the top-level **`servers`** key (not `mcpServers`), in `.vscode/mcp.json` (workspace) or the user config. The **Couchbase VS Code Extension** (v3.0.0+) also bundles the server and can start it on cluster connect.
+- **Any other MCP client:** drop the same `command`/`args`/`env` entry into that client's MCP config.
 
 **Safety vars:** pass `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` like the connection values — `-e` on `claude mcp add` (recommended), or as scoped exports if you use the bundled template (which defaults `CB_MCP_READ_ONLY_MODE` to `true`, clears the deprecated `CB_MCP_READ_ONLY_QUERY_MODE` to `false` so `CB_MCP_READ_ONLY_MODE` is the single switch, and passes any you set through). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
 
@@ -105,7 +109,7 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 
 ## Step 6 — Restart and verify
 
-1. Apply the config — **reload or restart the client** so it loads the server. Claude Code: run `/reload-plugins` to pick it up without losing your session; if the tools don't appear, restart Claude Code (a full restart is the guaranteed fallback for any registration route). Other clients: fully quit and relaunch (Codex, Claude Desktop) or reload MCP servers (Cursor / Windsurf). (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
+1. Apply the config — **reload or restart the client** so it loads the server. Claude Code: run `/reload-plugins` to pick it up without losing your session; if the tools don't appear, restart Claude Code (a full restart is the guaranteed fallback for any registration route). Other clients: fully quit and relaunch (Codex, Claude Desktop) or reload MCP servers (Cursor / Windsurf / JetBrains; VS Code: **MCP: List Servers** → restart). Any other client: reload or restart it so it re-reads its MCP config. (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 

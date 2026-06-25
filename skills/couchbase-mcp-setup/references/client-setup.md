@@ -1,5 +1,7 @@
 # Per-client configuration
 
+The Couchbase MCP server is a standard MCP server — it works with **any MCP-compatible client**, not only the ones below. Every client registers it the same way: a server entry with a `command` (`uvx`), `args`, and an `env` map holding `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD`. The blocks below differ only in *where* that entry lives and minor syntax (notably VS Code's top-level key). For a client not listed here, drop the same entry into its MCP config file.
+
 How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command pins to the current minor version: `uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server` — it picks up `0.8.x` patches but not a potentially breaking `0.9`. (When the server reaches `1.0`, widen this to `>=1.0.0,<2.0.0`.)
 
 ## Claude Code
@@ -54,7 +56,7 @@ CB_PASSWORD = "…"
 
 Fully quit and relaunch Codex to apply (it does not inherit your shell env when launched from a GUI).
 
-## Cursor / Windsurf / Claude Desktop
+## Cursor / Windsurf / Claude Desktop / JetBrains
 
 Add this JSON `mcpServers` entry in the client's MCP settings:
 
@@ -78,6 +80,39 @@ Where to put it:
 - **Cursor:** Settings → Tools & Integrations → MCP Tools.
 - **Windsurf:** Command Palette → Windsurf MCP Configuration (or Settings → Advanced → Cascade → MCP Servers).
 - **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
+- **JetBrains** (IntelliJ, PyCharm, etc.): Settings → Tools → AI Assistant (or Junie) → MCP Server → **+**. Requires the AI Assistant or Junie plugin.
+
+## VS Code
+
+VS Code (MCP support via GitHub Copilot) registers the server the same way, with **two differences** from the JSON block above:
+
+1. The top-level key is **`servers`**, not `mcpServers`.
+2. The config lives in `.vscode/mcp.json` (workspace scope) or the user config — open the latter with **MCP: Open User Configuration** from the Command Palette (on macOS it's `~/Library/Application Support/Code/User/mcp.json`).
+
+```json
+{
+  "servers": {
+    "couchbase": {
+      "command": "uvx",
+      "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
+      "env": {
+        "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
+        "CB_USERNAME": "app_user",
+        "CB_PASSWORD": "…"
+      }
+    }
+  }
+}
+```
+
+Manage and inspect it with **MCP: List Servers** in the Command Palette (→ Show Output for logs). See the [VS Code MCP docs](https://code.visualstudio.com/docs/copilot/chat/mcp-servers).
+
+**Shortcut — Couchbase VS Code Extension:** the [Couchbase extension](https://marketplace.visualstudio.com/items?itemName=Couchbase.vscode-couchbase) (v3.0.0+) bundles the MCP server and prompts to start it (stdio) when you connect to a cluster — no manual `mcp.json` needed. Command Palette: `Couchbase: Start MCP Server`, `Couchbase: Get MCP Server Config`, `Couchbase: MCP Server Settings` (disabled tools, read-only mode, elicitation, export paths, etc.).
+
+## Factory and other MCP clients
+
+- **Factory:** `droid mcp add couchbase-mcp 'uvx couchbase-mcp-server …' --type stdio` (Droid CLI), or add the `mcpServers.couchbase` block to `~/.factory/mcp.json`.
+- **Any other MCP-compatible client:** use the same `mcpServers` entry (command `uvx`, the pinned `--from` args, and the `CB_*` env map) in that client's MCP config file. The only common variant is VS Code's top-level `servers` key (above). Where a client launches from a GUI and doesn't inherit your shell environment, set the `CB_*` values in the entry's `env` map rather than relying on exported shell vars.
 
 ## Switching clusters
 
