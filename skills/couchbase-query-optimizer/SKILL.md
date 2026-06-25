@@ -1,30 +1,39 @@
 ---
 name: couchbase-query-optimizer
-description: >-
-  Diagnose and fix slow SQL++ (N1QL) queries and design GSI indexes for
-  Couchbase, grounded in real EXPLAIN plans, the cost-based optimizer, and the
-  index advisor (ADVISE) on the live cluster. Use ONLY when the user asks for
-  performance or indexing help — "why is this query slow?", "why isn't my index
-  used?", "how do I index this?", "optimize this SQL++", "what are the slow
-  queries on my cluster?", or when they share an EXPLAIN plan or mention a
-  primary scan, IntersectScan, covering/partial/array indexes, ANY/EVERY/UNNEST,
-  the cost-based optimizer, UPDATE STATISTICS, prepared statements, pagination
-  cost, or system:completed_requests. Only engage to diagnose or speed up an
-  *existing* query or design an index. Do NOT use to write or generate a query —
-  even one meant to run slowly or "beyond N seconds"; that is query authoring,
-  not optimization (use couchbase-natural-language-querying). Not for
-  document/data modeling or key design (use couchbase-data-modeling). Prefer GSI
-  indexing as the optimization strategy. Requires the Couchbase MCP server.
+description: "Diagnose and tune slow Couchbase SQL++ / N1QL queries. Use whenever the user asks about query performance, slow queries, EXPLAIN plans, why an index isn't being used, IntersectScan, PrimaryScan, covering indexes, partial indexes, array indexes (ANY / EVERY / UNNEST), index selection, query hints, the cost-based optimizer, the Index Advisor (ADVISE), system:completed_requests, query profiling (kernTime / servTime / execTime), pagination performance, prepared statements, or 'this query is slow / how do I make it faster.' Distinct from couchbase-data-modeling (document shape) and couchbase-natural-language-querying (query authoring) — this skill is about reading plans, designing the right indexes, and reshaping queries that already exist. Use proactively when the user shares an EXPLAIN output or a slow query. Requires the Couchbase MCP server."
 license: Apache-2.0
 ---
 
 # Couchbase Query Optimizer
 
-Diagnose slow SQL++ and recommend **GSI** (Global Secondary Index) designs using the live cluster's real `EXPLAIN` plans, the index advisor, and (cluster-wide) slow-query tools via the Couchbase MCP server.
+A skill for diagnosing and fixing slow SQL++ / N1QL queries on Couchbase Server (7.x and 8.x). The mechanics of reading execution plans, choosing the right index type, fixing common anti-patterns, and wiring up the diagnostic tools.
 
 > **Recommend, don't apply.** This skill **diagnoses (read-only)** and **outputs `CREATE INDEX` DDL** — it does not create indexes. The MCP server is read-only by default, so DDL won't run unless the user explicitly enables writes. Have the user run the DDL in the Query Workbench / `cbq`, or grant explicit approval.
 
-> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and tool names still use "N1QL" (e.g. `/n1ql/n1ql-language-reference/`, `N1QLQuery`) — treat every such mention as SQL++.
+> **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and tool names still use "N1QL" — treat every such mention as SQL++.
+
+Distinct from the sibling skills:
+- `couchbase-data-modeling` — how to MODEL the data (document shape, boundaries, access patterns)
+- `couchbase-natural-language-querying` — how to write or generate a query from scratch
+- `couchbase-mcp-setup` — configuring the MCP server connection string and credentials
+- **`couchbase-query-optimizer` (this skill)** — making queries that already exist run faster
+
+If the conversation is "this query is slow, what do I do," this is the right skill.
+
+## When this skill applies
+
+- "Why is this query slow?"
+- "How do I read this EXPLAIN plan?"
+- "Why isn't my index being used?"
+- "I'm seeing PrimaryScan / IntersectScan — is that bad?"
+- "How do I make this a covering index?"
+- "Should I use a partial index here?"
+- "How do I index an array field with ANY / EVERY / UNNEST?"
+- "ADVISE recommended this index — should I create it?"
+- "How do I tune pagination — LIMIT / OFFSET is slow at high offsets"
+- "What does kernTime / servTime / execTime mean in the profile?"
+- "Can I force the optimizer to use a specific index?"
+- "What do the cost-based optimizer hints do in 7.6+?"
 
 ## Step 0 — Confirm the connection (pre-flight)
 
@@ -35,66 +44,116 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 3. If the cluster isn't reachable (`status: "error"` / not connected), **stop — do not retry cluster tools.** Tell the user the MCP server is installed but not connected, then hand off to **`couchbase-mcp-setup`** to configure the connection string and credentials.
 4. Continue only once the connection is confirmed.
 
-## Step 1 — Determine the context
+## Core principles (read first)
 
-- **Specific query** ("why is *this* slow / how do I index this") → single-query diagnosis.
-- **Cluster-wide** ("what are the slow queries on my cluster?") → use the slow-query-analysis tools.
+These are the headline rules. Read them before diving into references.
 
-## Step 2 — Gather metadata (read-only MCP)
+1. **Pareto applies to query tuning.** 80% of perf problems come from 20% of queries. Use `run_sql_plus_plus_query` against `system:completed_requests` (or the MCP `get_longest_running_queries` / `get_most_frequent_queries` tools) to find that 20% first. Don't tune the wrong queries.
 
-**Specific query:**
-- `list_indexes` — existing GSIs on the keyspace.
-- `explain_sql_plus_plus_query` — the execution plan.
-- `get_index_advisor_recommendations` — `ADVISE` suggestions for the query.
-- `get_schema_for_collection` — field names/types, so recommended keys are valid.
+2. **CBO needs stats to help; without them it falls back to rule-based logic.** Couchbase has a cost-based optimizer (GA in 7.0, EE only), but it needs statistics on indexes and collections to do its job. Without stats, single-keyspace access is rule-based — index cardinality doesn't influence the choice, the optimizer picks based on which leading keys are in the WHERE clause. In 7.6+, statistics are gathered automatically when an index is created or built; in earlier versions, you run `UPDATE STATISTICS` manually. Either way: design indexes so the rules pick them, and run `UPDATE STATISTICS` on a schedule.
 
-**Cluster-wide:**
-- `get_queries_using_primary_index`, `get_queries_not_using_covering_index`, `get_queries_not_selective`, `get_longest_running_queries`, `get_most_frequent_queries`, `get_queries_with_largest_response_sizes`, `get_queries_with_large_result_count`.
+3. **The leading key of the index must appear in the WHERE clause** for an index to be picked. If a field can be missing, you need `INCLUDE MISSING` on the leading key, or you need `IS NOT MISSING` / `IS NOT NULL` in the WHERE clause to force selection.
 
-(A fresh local cluster may have little query history — say so if these come back empty.)
+4. **Cover the query when it's hot.** A covering index includes every field the query SELECTs and filters on, so the query never touches the Data service. Look for `"covers": [...]` in the EXPLAIN plan and the absence of a `Fetch` operator — that's the signal.
 
-`run_sql_plus_plus_query` is available for read-only diagnostics too — e.g. `SELECT COUNT(…)` cardinality checks, or querying `system:completed_requests` directly for control beyond the wrapper tools. → [`references/diagnosis.md`](references/diagnosis.md).
+5. **Don't index low-cardinality fields like `docType` alone.** It causes IntersectScans and wrong plans. Use a partial index (`WHERE type = 'X'`) instead — the field gates the index, but isn't the leading key.
 
-## Step 3 — Diagnose the plan
+6. **Match the query shape to the index shape for arrays.** `ANY ... SATISFIES` and `ANY AND EVERY` can use array indexes; bare `EVERY` cannot. `UNNEST` must use the **exact same binding variable name** as the `CREATE INDEX ... FOR <var> IN ...`.
 
-Read the `EXPLAIN` output for the tell-tale operators. Scan operators carry a version suffix (e.g. `PrimaryScan3`, `IndexScan3`), so match on the prefix, not the literal string:
-- **`PrimaryScan3`** → no suitable GSI; the query scans every key. The biggest red flag in production.
-- **`IndexScan3`** → the normal secondary-index scan; check its `covers` field (and whether the plan has a `Fetch`) to tell if it's covered.
-- **`Fetch`** present → not covered; documents are fetched after the index scan.
-- **`IntersectScan` / `OrderedIntersectScan`** → multiple single-key indexes intersected; usually a sign you want one composite index.
-- **`DistinctScan` / `UnionScan`** → a scan wrapping an index scan (array-index dedup, `OR`/`IN` unions); usually fine, but check selectivity and whether one composite index is better.
-- **Large `OFFSET` / no `LIMIT`** → pagination/selectivity problem.
+7. **Avoid PrimaryScan in production.** A PrimaryScan is the equivalent of a full table scan. Drop primary indexes in prod, or at least confirm no production query relies on one.
 
-Assess selectivity (how many items the index scan returns vs. the final result). For the full operator table, scan spans, runtime timings, and the three-questions method, see [`references/diagnosis.md`](references/diagnosis.md); symptom→fix in [`references/index-antipatterns.md`](references/index-antipatterns.md).
+## Pick the right reference
 
-**CBO check (joins / "right index not used"):** look for `optimizer_estimates` on the plan operators. If they're absent, or joins are always `NestedLoopJoin`, statistics are missing/stale → see [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md).
+| Question | Read |
+|---|---|
+| "How do I read this EXPLAIN plan? What's PrimaryScan / IntersectScan / Fetch?" | `references/explain-plan.md` |
+| "What kind of index should I create? Covering / partial / array / composite / vector?" | `references/index-design.md` |
+| "Why isn't my index being used? Common query anti-patterns and how to fix them" | `references/query-patterns.md` |
+| "What does the cost-based optimizer do? What are the hints?" | `references/cost-based-optimizer.md` |
+| "How do I use the MCP server tools step by step to find and fix slow queries?" | `references/diagnostic-workflow.md` |
+| "What's the exact DDL for CREATE / ALTER / DROP / BUILD INDEX, replicas, partitioning?" | `references/index-ddl.md` |
+| "How do I do efficient pagination on a large result set?" | `references/pagination.md` |
+| "How do I tune queries that join across keyspaces?" | `references/joins-and-cbo.md` |
 
-## Step 4 — Recommend a GSI design
+## Workflow
 
-- **Key order:** equality-predicate fields first, then sort, then range. Match the sort direction (`DESC` in the key).
-- **Covering:** include the `WHERE` + `SELECT` + `ORDER BY` fields in the index keys so the plan drops the `Fetch`.
-- **Partial** (`WHERE` on the index) for filtered subsets; **array** (`DISTINCT ARRAY …`) for array/`UNNEST` predicates.
-- If statistics are stale (e.g., after a bulk load), recommend `UPDATE STATISTICS` — it's a **write** (blocked in read-only mode), so hand it to the user like `CREATE INDEX`. → [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md).
-- Output the **exact `CREATE INDEX` statement**. → [`references/index-ddl.md`](references/index-ddl.md) (syntax), [`references/query-optimization.md`](references/query-optimization.md) (query-shape fixes beyond indexing).
+The general approach to tuning a slow query:
 
-## Step 5 — Communicate (recommend, don't apply)
+```
+1. Identify  →  Find the slow query (Pareto: top-20% by frequency × duration)
+                Tools: get_longest_running_queries, get_most_frequent_queries,
+                       run_sql_plus_plus_query (system:completed_requests)
 
-- Present the diagnosis, the `CREATE INDEX` DDL, and the reasoning concisely.
-- **Do not auto-run `CREATE INDEX`.** Tell the user to run it (Query Workbench / `cbq`), or proceed only with explicit approval and write mode enabled.
-- Note the trade-off: every index adds write/maintenance cost — recommend only what the workload needs, and flag redundant or unused indexes.
+2. Understand →  Run EXPLAIN. Read the plan.
+                 Tools: explain_sql_plus_plus_query (returns plan + parsed findings)
+                 What to look for: PrimaryScan? IntersectScan? Fetch present?
+                                   Is the leading key of an index in WHERE?
+
+3. Hypothesize → Pick one of:
+                 - Add a covering index (everything in the index, no Fetch)
+                 - Add a partial index (smaller, indexed on a subset)
+                 - Add an array index (DISTINCT ARRAY ... FOR ... IN ... END)
+                 - Reshape the query (drop OR predicates, add IS NOT MISSING)
+                 - Add a USE INDEX hint
+                 Tools: get_index_advisor_recommendations (ADVISE) for index recommendations
+
+4. Verify     → Re-run EXPLAIN. Check the new index is picked.
+                Run the query. Check kernTime / servTime / execTime in the profile.
+                Tools: explain_sql_plus_plus_query, run_sql_plus_plus_query with profile=on
+
+5. Iterate    → Repeat until the query meets SLA, or further tuning has
+                diminishing returns. Most queries reach acceptable performance
+                in 1-3 iterations.
+```
+
+## Anti-pattern checklist
+
+Quick scan list — if you see any of these, jump to `references/query-patterns.md`:
+
+- `SELECT *` from a large keyspace (forces Fetch, can't cover)
+- `WHERE docType = 'X'` as the leading filter (low-cardinality leading key)
+- `WHERE NOT (...)`, `!=`, `NOT IN` predicates (often not sargable)
+- `OR` across different fields (often forces IntersectScan)
+- `EVERY x IN arr SATISFIES ... END` without `ANY AND EVERY` (no array index)
+- `UNNEST` binding variable not matching the index definition
+- `LIMIT 10 OFFSET 1000000` (deep pagination — use KeySet pagination)
+- Raw user input concatenated into the statement (injection + can't prepare)
+- A query that runs thousands of times per second with no `PREPARE`
+
+## Tooling
+
+The official Couchbase MCP server exposes the tuning tools you need:
+
+| Tool | Purpose |
+|---|---|
+| `get_server_configuration_status` | Server status and connection check (no timeout) |
+| `test_cluster_connection` | Verify credentials/connection |
+| `explain_sql_plus_plus_query` | EXPLAIN + parsed plan findings |
+| `get_index_advisor_recommendations` | ADVISE statement; recommends indexes |
+| `list_indexes` | List existing GSI definitions on a keyspace |
+| `get_longest_running_queries` | Top N queries by duration |
+| `get_most_frequent_queries` | Top N queries by frequency |
+| `get_queries_with_largest_response_sizes` | Queries returning the most bytes |
+| `get_queries_with_large_result_count` | Queries returning the most rows |
+| `get_queries_using_primary_index` | Queries hitting the primary index (BAD in prod) |
+| `get_queries_not_using_covering_index` | Queries that could be covered but aren't |
+| `get_queries_not_selective` | Queries where the WHERE filter doesn't narrow much |
+| `get_schema_for_collection` | Sample document schema (for designing the right index) |
+| `run_sql_plus_plus_query` | Run any read-only SQL++ — cardinality checks, `system:completed_requests` queries |
+
+See `references/diagnostic-workflow.md` for the full step-by-step using these tools.
 
 ## Scope
 
-- **In:** diagnosing slow SQL++ via `EXPLAIN`/`ADVISE`, GSI design, index antipatterns, query-shape tuning.
-- **Out (hand off):** writing a query from scratch without a performance angle → `couchbase-natural-language-querying`; document structure / key design / embedding → `couchbase-data-modeling`.
+- **In:** diagnosing slow SQL++ via EXPLAIN/ADVISE, GSI design, index antipatterns, query-shape tuning.
+- **Out (hand off):** writing a query from scratch without a performance angle → `couchbase-natural-language-querying`; document structure / key design / embedding → `couchbase-data-modeling`; MCP connection setup → `couchbase-mcp-setup`.
 
-## References
+## Version notes
 
-Load the one that fits the current sub-task (progressive disclosure — each has its own table of contents):
+- **Pre-7.0:** No scope/collection — indexes are bucket-level
+- **7.0:** Scopes and collections; covering, partial, array indexes; CBO went GA (preview was in 6.5) — requires `UPDATE STATISTICS` to be useful
+- **7.1+:** `INCLUDE MISSING` for leading index keys (so docs without the leading-key field still get indexed)
+- **7.6+:** CBO auto-gathers stats on index create/build; join-enumeration improvements; `/*+ ... */` optimizer hints (`productivity`, `ORDERED`, `USE HASH`); `UPDATE STATISTICS` still available for manual refresh
+- **8.0+:** Vector indexes (HYPERSCALE / COMPOSITE VECTOR INDEX); Auto Update Statistics (AUS) keeps stats fresh automatically; FTS synonym sets; user lock/unlock; XDCR conflict logging
 
-- [`references/diagnosis.md`](references/diagnosis.md) — reading `EXPLAIN` (operator table + version suffixes, scan spans, runtime timings) and finding slow queries cluster-wide (the perf tools + `system:completed_requests`). Pairs with Steps 2–3.
-- [`references/cost-based-optimizer.md`](references/cost-based-optimizer.md) — CBO version gates, `optimizer_estimates`, `UPDATE STATISTICS`, join algorithms/order, and hints. Read for joins or "the right index isn't used."
-- [`references/core-indexing-principles.md`](references/core-indexing-principles.md) — key order, covering, sort direction, partial/array/functional indexing, selectivity, statistics.
-- [`references/index-antipatterns.md`](references/index-antipatterns.md) — symptom→fix quick reference for common indexing mistakes.
-- [`references/index-ddl.md`](references/index-ddl.md) — `CREATE`/`ALTER`/`DROP`/`BUILD INDEX`, replicas/partitioning, monitoring, hints, statistics.
-- [`references/query-optimization.md`](references/query-optimization.md) — query-shape tuning beyond indexes (`USE KEYS`, pushdown, pagination, prepared statements, scan consistency, `UPDATE`/`MERGE`).
+Always verify against the cluster version before recommending a feature — `get_server_configuration_status` reports the server version it has detected.
