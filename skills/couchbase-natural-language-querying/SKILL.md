@@ -15,7 +15,6 @@ description: >-
   couchbase-query-optimizer); does NOT perform writes or DDL. Requires the
   Couchbase MCP server.
 license: Apache-2.0
-allowed-tools: mcp__couchbase__*
 ---
 
 # Couchbase Natural-Language Querying

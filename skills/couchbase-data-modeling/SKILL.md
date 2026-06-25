@@ -16,7 +16,6 @@ description: >-
 license: Apache-2.0
 metadata:
   version: "0.2.0"
-allowed-tools: mcp__couchbase__*
 ---
 
 # Couchbase Data Modeling
