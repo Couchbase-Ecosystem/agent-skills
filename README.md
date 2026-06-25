@@ -36,6 +36,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | Harness | Install |
 |---------|---------|
 | **Claude Code** | `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` |
+| **Claude Desktop App** | No marketplace command — upload the repo as a plugin ZIP. See [Claude Desktop](#claude-desktop) below. |
 | **Codex** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then install `couchbase` from the plugin browser |
 | **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
@@ -43,6 +44,21 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | **Vercel Agent Skills** | `npx skills add Couchbase-Ecosystem/agent-skills` |
 
 After installing, set the `CB_*` environment variables above so the MCP server can connect — or run the **`couchbase-mcp-setup`** skill, which walks you through it per harness.
+
+### Claude Desktop
+
+Use this plugin from the **Code** tab in Claude Desktop — the experience matches Claude Code in the terminal. Claude Desktop has no marketplace command, but it installs the repo as a **plugin** from a single ZIP: the manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) bundles both the skills and the MCP server, so they install together.
+
+1. **Get the plugin ZIP.** Either:
+   - **Download it from GitHub** — on the [repo page](https://github.com/Couchbase-Ecosystem/agent-skills), use **Code → Download ZIP**.
+   - **Or clone and package it yourself**, which lets you drop the template skill:
+     ```bash
+     git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
+     cd agent-skills
+     zip -r couchbase-plugin.zip . -x '.git/*' 'skills/_template/*'
+     ```
+2. **Upload it.** Open **Customize** (available from any tab) → the `+` next to **"Personal Plugins"** → **Create Plugin → Upload Plugin**, and select the ZIP. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
+3. **Connect to your cluster.** The upload registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
 
 ## Local development
 
