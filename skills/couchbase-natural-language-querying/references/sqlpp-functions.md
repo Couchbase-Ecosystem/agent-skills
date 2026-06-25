@@ -1,6 +1,6 @@
 # SQL++ function catalog
 
-SQL++-specific function names and signatures (the ones easy to misname or invent). **Standard functions behave as expected and are not listed**: `COUNT/SUM/AVG/MIN/MAX`, `UPPER/LOWER/TRIM/LTRIM/RTRIM`, `LENGTH`, `ABS/ROUND/CEIL/FLOOR/SIGN`, `SQRT/POWER/EXP`, trig (radians). If a function isn't here, check the [official reference](https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/functions.html) rather than guessing.
+SQL++-specific function names and signatures (the ones easy to misname or invent). **Standard functions behave as expected and are not listed**: `COUNT/SUM/AVG/MIN/MAX`, `UPPER/LOWER/TRIM/LTRIM/RTRIM`, `LENGTH`, `ABS/ROUND/CEIL/FLOOR/SIGN`, `SQRT/POWER/EXP`, trig (radians). If a function isn't here, check the [official reference](https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/functions.html) rather than guessing. User-defined functions (UDFs) are a separate topic — see [`sqlpp-udfs.md`](sqlpp-udfs.md); this file is built-ins only.
 
 ## Contents
 - [Date / time](#datetime) ← largest, most error-prone

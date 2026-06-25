@@ -12,7 +12,8 @@ description: >-
   answering a data question. Does NOT handle
   full-text, vector, or semantic search (use the Couchbase Search Service); does NOT
   analyze, optimize, or speed up queries or design indexes (use
-  couchbase-query-optimizer); does NOT perform writes or DDL. Requires the
+  couchbase-query-optimizer); does NOT perform writes or run DDL (it may
+  *suggest* a CREATE FUNCTION for the user to run). Requires the
   Couchbase MCP server.
 license: Apache-2.0
 ---
@@ -22,6 +23,8 @@ license: Apache-2.0
 Convert a natural-language question into **read-only SQL++**, grounded in the live cluster via the Couchbase MCP server, then **run it and return the results**. Always ground in the *actual* schema before writing SQL++ — never guess field names.
 
 > **Read-only.** Never generate or run writes or DDL (`INSERT`/`UPDATE`/`DELETE`/`MERGE`/`CREATE`/`DROP`). The MCP server defaults to read-only mode — keep it that way for this skill.
+
+> **One exception — UDFs are *suggested*, never run.** When creating a user-defined function clearly makes sense (a reusable computation the user wants to save, or a repeated derived expression), you may **present** a `CREATE FUNCTION` statement for the user to run themselves — in the Query Workbench / `cbq`, or after they enable writes. `CREATE FUNCTION` is DDL: **never execute it** (read-only mode blocks it anyway), and note it needs a "Manage Global/Scope Functions" role. Do this only when it genuinely earns its place — by default, don't mention UDFs at all. See [`references/sqlpp-udfs.md`](references/sqlpp-udfs.md).
 
 > **Terminology: "N1QL" = "SQL++".** They name the same language. Always use **SQL++** in what you write and say. Couchbase's docs, URLs, and file names still use "N1QL" (e.g. `n1ql-language-reference`) — treat every such mention as SQL++.
 
@@ -50,6 +53,7 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 - **Infer the structure.** Call `get_schema_for_collection` (it runs SQL++ `INFER`) to get fields, types, and nesting. `INFER` samples a subset of documents, so it can miss rare fields or schema variants — treat the result as a strong hint, not a complete catalog.
 - **Look at real data.** Pull a few sample docs (a small `SELECT … LIMIT 4`, or `get_document_by_id`) to see actual values and shapes.
 - **Know the indexes.** Call `list_indexes` for the keyspace (used for the coverage note in Step 5).
+- **Check for relevant UDFs — only if the question warrants it.** If (and only if) the question maps onto a *named or reusable operation* (a unit conversion, a business rule, a domain computation) or the user references a function by name, run `SELECT identity, definition FROM system:functions` (read-only) once and reuse the result for the session. For a plain filter/aggregate/join, **skip this** — most clusters have no UDFs, and an empty result means there's nothing to use. See [`references/sqlpp-udfs.md`](references/sqlpp-udfs.md).
 
 ## Step 2 — Validate fields against the schema
 
@@ -62,6 +66,7 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 - **Pick the shape:** `SELECT … WHERE` for filters; `GROUP BY` + `COUNT/SUM/AVG` for aggregation; `JOIN` (`ON KEYS` / `ON`) for references; `UNNEST` for arrays.
 - **Reference bare collection names** (e.g. `FROM route`), not `` `bucket`.`scope`.`collection` `` — `bucket_name`/`scope_name` are passed as tool arguments (the default scope is `scope_name="_default"`). Backtick-quote a collection name only if it's a reserved word or has special characters.
 - Project only what's asked (avoid `SELECT *`); filter early in `WHERE`; prefer keyset pagination over large `OFFSET`.
+- **Reuse an existing UDF only if it fits.** If Step 1 surfaced a UDF the question maps onto naturally, call it like a built-in (`SELECT to_meters(geo.alt) FROM airport`). UDF names are **case-sensitive**; an unqualified name resolves against the current `bucket_name`/`scope_name`. Otherwise just write the SQL++ inline — don't reach for a UDF. See [`references/sqlpp-udfs.md`](references/sqlpp-udfs.md).
 - See [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) for SQL++ query shapes and syntax (joins, `UNNEST`, collection operators, subqueries). For evaluation rules (`NULL` vs `MISSING`, type collation, identifiers) see [`references/sqlpp-semantics.md`](references/sqlpp-semantics.md); for exact function names/signatures (especially date/time) see [`references/sqlpp-functions.md`](references/sqlpp-functions.md). Check these before guessing a function name.
 
 ## Step 4 — Run it read-only and return the results
@@ -78,12 +83,13 @@ Before your **first cluster tool call**, verify connectivity once — so a missi
 ## Scope
 
 - **In:** read-only `SELECT`/aggregation/`JOIN`/`UNNEST` queries, grounded in the live schema, run and returned.
-- **Out (hand off):** full-text / vector / semantic search and `SEARCH()` → the Couchbase **Search Service** (FTS); query optimization, `EXPLAIN` analysis, index design → `couchbase-query-optimizer`; any write or DDL → refuse (read-only).
+- **Out (hand off):** full-text / vector / semantic search and `SEARCH()` → the Couchbase **Search Service** (FTS); query optimization, `EXPLAIN` analysis, index design → `couchbase-query-optimizer`; any write or DDL → refuse (read-only) — the one exception is **suggesting** (never running) a `CREATE FUNCTION` when a UDF clearly fits (see Step 3 / [`references/sqlpp-udfs.md`](references/sqlpp-udfs.md)).
 
 ## References
 
-Three distilled SQL++ references — they keep only what differs from standard SQL, so the rest can be recalled directly. Load progressively: start with patterns, pull in the others as a query needs them.
+Four distilled SQL++ references — they keep only what differs from standard SQL, so the rest can be recalled directly. Load progressively: start with patterns, pull in the others as a query needs them (UDFs only when relevant).
 
 - [`references/sqlpp-patterns.md`](references/sqlpp-patterns.md) — **start here.** Query shapes and SQL++-specific syntax: keyspace/tool contract, `SELECT RAW`/`*`, joins, `UNNEST`/`NEST`, collection operators (`ANY`/`EVERY`/comprehensions, `IN` vs `WITHIN`), subqueries, string matching, functions that don't exist, common traps.
 - [`references/sqlpp-semantics.md`](references/sqlpp-semantics.md) — evaluation rules when a query returns surprising results: `NULL` vs `MISSING` (and `IS VALUED`), four-valued logic, type collation/sort order, identifiers & reserved words, literals.
 - [`references/sqlpp-functions.md`](references/sqlpp-functions.md) — function catalog (SQL++-specific names/signatures only): date/time (formats, parts, `STR`/`MILLIS` families), array, object, conditional, type, string, regex, window. Check here before guessing a function name; the official reference is linked as the fallback.
+- [`references/sqlpp-udfs.md`](references/sqlpp-udfs.md) — **User-Defined Functions, only when relevant.** Discover existing UDFs (`system:functions`), call them (case-sensitivity, qualification, arg-count error `10104`), and — only when a UDF clearly fits — *present* (never run) a `CREATE FUNCTION`. Stay silent about UDFs by default.
