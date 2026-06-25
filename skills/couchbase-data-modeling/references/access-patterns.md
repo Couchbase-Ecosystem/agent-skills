@@ -173,6 +173,8 @@ If a single read needs to combine many documents (e.g., "monthly sales totals" r
 - **Periodic batch jobs** that compute aggregates and write summary docs
 - **Couchbase Analytics service** for ad-hoc aggregation (doesn't impact OLTP)
 
+Pick by the workload: a **few predictable, repeated** aggregates belong in maintained summary docs (and live in your model). But **ad hoc, exploratory, or large-scale analytical** queries shouldn't shape your operational model at all — don't denormalize or build summary docs just to serve them; that's what the **Analytics Service** is for (it shadows the operational data without competing with OLTP). See the [Analytics Service overview](https://docs.couchbase.com/server/current/analytics/introduction.html).
+
 Pre-aggregation is a denormalization pattern. See `document-shape.md` for the tradeoffs.
 
 ## Quick decision tree
@@ -181,5 +183,5 @@ Pre-aggregation is a denormalization pattern. See `document-shape.md` for the tr
 - **Free-form text search?** → FTS with appropriate analyzer; don't try to make N1QL do this
 - **Semantic / similarity search?** → vector index on embedding field
 - **"Find similar AND filter by tag"?** → hybrid: vector for similarity, scalar fields for filters
-- **Need to aggregate many documents per read?** → pre-aggregate (Eventing, batch job, or Analytics)
+- **Need to aggregate many documents per read?** → predictable/repeated → maintained summary docs (Eventing, batch job); ad hoc / large-scale → **Analytics Service** (don't model around it)
 - **Schema has fields that vary by record type?** → don't FTS or vector-index those; only index the stable fields
