@@ -119,7 +119,7 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 - [ ] (Capella) your IP is in the **Allowed IP** list
 - [ ] Access level is intentional — read-only (`CB_MCP_READ_ONLY_MODE=true`) unless write was explicitly chosen
 - [ ] Client reloaded/restarted so the server picked up the config
-- [ ] A real tool call succeeds — `test_cluster_connection` / `get_buckets_in_cluster`
+- [ ] A real tool call succeeds — `test_cluster_connection` / `get_buckets_in_cluster` (if no tools appear yet, wait a few seconds and re-check / `/reload-plugins` before concluding it failed — `uvx`'s first launch can lag; see Troubleshooting)
 
 ## Troubleshooting
 
@@ -133,6 +133,7 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; run `/reload-plugins`, then fully restart if they still don't appear. |
+| **Tools missing right after a restart, then present on a later one** (intermittent) | Startup-timing race: `uvx` resolves/downloads the package and the server completes its MCP handshake asynchronously, so a slow launch can exceed the client's startup window. Wait a few seconds and re-check (or `/reload-plugins`) before concluding it's not installed; raise the window by launching with `MCP_TIMEOUT=30000` (ms); for deterministic startups `uv tool install "couchbase-mcp-server>=0.8.0,<0.9.0"` (or pre-warm with `uvx couchbase-mcp-server --version`) so launches skip resolution/download. |
 | HTTP transport **port in use** | Change `CB_MCP_PORT` (default `8000`). |
 | **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
