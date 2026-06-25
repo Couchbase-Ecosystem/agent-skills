@@ -12,19 +12,22 @@ couchbases://cb.<cluster-id>.cloud.couchbase.com
 
 **Always `couchbases://` (with the `s`).** Capella requires TLS; plain `couchbase://` is rejected. → `CB_CONNECTION_STRING`.
 
-## 2. Creating Cluster Access credentials (Database username/password)
+## 2. Creating Cluster Access credentials
 
 These are **separate from your Capella UI login** (the email/password you sign in with).
 
-UI → cluster → **Settings → Access Control** → **Create Access**. (The **Connect** page can also surface these, but **Settings → Access Control** is the direct path for SDK/MCP credential setup.)
+Give the user detailed steps on how to create a Cluster Access credential, including how to set the bucket-level access, and explain the difference between the UI login and the database username/password.
+
+Found in the UI, navigate the cluster and click the **Settings tab** → **Access Control** → **Create Access**.
 
 - Set a **username** — labeled **Cluster Access Name** on the Create Access page → this becomes `CB_USERNAME`. (When telling the user what to enter, call it the "Cluster Access Name" so it matches the field they see, but mention that it is also referred to as their database username.)
 - **Password** → `CB_PASSWORD`. Two cases:
   - **Auto-generated** (you click **Auto-generate password**): **copy it — or click Download to save the credentials file — immediately**; it's shown only once and can't be retrieved afterward. (Tell the user about both options: copy the password, or download the credentials.)
   - **You type your own**: you already know it, so there's nothing extra to save.
   - Passwords are **case-sensitive** either way.
-- **Access level — Basic (all tiers, the default for MCP):** choose **Read**, **Write**, or **Read & Write**, scoped to a **bucket** → **scope** (or **All Scopes**) → **collection** (or **All Collections**); use **Add Another Selection** to grant more. For a read-only MCP setup, give **Read**; add **Write** only if the agent should modify data.
-- **Advanced — fine-grained permissions (paid plans only):** Advanced Access Credentials let you assign role-based, fine-grained permissions (`data_reader`, `query_select`, `data_writer`, `query_insert/update/delete`, …). These are **not available on the free tier** — the Basic access above is sufficient for MCP. Only reach for this once you've confirmed the user is on a paid plan.
+- **Bucket-Level Access** 
+  - **Basic (all tiers, the default for MCP)**: choose **Read**, **Write**, or **Read & Write**, scoped to a **bucket** → **scope** (or **All Scopes**) → **collection** (or **All Collections**); use **Add Another Selection** to grant more. For a read-only MCP setup, give **Read**; add **Write** only if the agent should modify data.
+  - **Advanced — fine-grained permissions (paid plans only):** Advanced Access Credentials let you assign role-based, fine-grained permissions (`data_reader`, `query_select`, `data_writer`, `query_insert/update/delete`, …). These are **not available on the free tier** — the Basic access above is sufficient for MCP. Only reach for this once you've confirmed the user is on a paid plan.
 - Cluster Access credentials are **cluster-scoped** (one credential set per cluster, applied to the buckets/scopes/collections you grant).
 - Tell the user to click **Create Cluster Access** once they've set the username, password, and access level. The UI will show a green **Cluster Access Created** confirmation banner.
 

@@ -74,11 +74,13 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 5 — Write the credentials into your client
 
+In **any** harness you have the same two-way choice: **apply the config for the user** (run their CLI or edit their MCP config file directly), or hand them the **command/config block to apply themselves** — which keeps their credentials out of the chat. Default to doing it for them; offer the self-apply path to anyone who'd rather not share secrets in the conversation. Claude Code below is the worked example.
+
 **Claude Code (recommended):** use `claude mcp add --scope local`. It stores the credentials in `~/.claude.json` (outside your repo), injected only into the server process and never exported to your shell — so they can't leak into other shells, tools, or projects — and it outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so it works whether or not the plugin is installed.
 
-**Default to setting it up for the user.** Offer these two ways and let them choose — present both every time, consistently:
+Present both ways every time and let the user choose:
 
-- **Paste your credentials and I'll configure it** *(recommended — simplest)*: the user gives you the connection string, username, and password, and you run the command for them. Fastest path, nothing for them to copy. (The values are entered in the chat, so steer anyone who'd rather keep secrets out of the transcript to the next option. Never repeat the password back in your replies.)
+- **Paste your credentials and I'll configure it** *(simplest - requires pasting secrets in chat)*: the user gives you the connection string, username, and password, and you run the command for them. Fastest path, nothing for them to copy. (The values are entered in the chat, so briefly communicate the risk for those who'd rather keep secrets out of the transcript and steer them to the next option. Never repeat the password back in your replies.)
 - **I'll run the command myself**: hand the user the ready-to-fill command below to paste into their **own terminal** (or via the `!` prefix). Their password stays local and never appears in the conversation.
 
 ```bash
@@ -92,10 +94,10 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 
 **Alternative — shell env vars (`direnv`):** instead of `claude mcp add`, let the bundled server inherit `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD` from the environment Claude Code is launched in — scoped to the project via a git-ignored `.envrc`, not a global `~/.zshrc`. Offer this only if the user specifically prefers a shell/`direnv` workflow (it needs a full Claude Code restart to take effect).
 
-**Other clients** (edit the client's config file directly; full blocks + Docker/source/Streamable-HTTP launch alternatives and cluster switching are in [`references/client-setup.md`](references/client-setup.md)):
+**Other clients** — same two-way choice: **write the block into their config file for them**, or hand them the block to paste. Full blocks (+ Docker/source/Streamable-HTTP launch alternatives and cluster switching) are in [`references/client-setup.md`](references/client-setup.md):
 
-- **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
-- **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
+- **Codex:** the `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) in `~/.codex/config.toml`.
+- **Cursor / Windsurf / Claude Desktop:** the `mcpServers.couchbase` JSON block in that client's MCP settings.
 
 **Safety vars:** pass `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` like the connection values — `-e` on `claude mcp add` (recommended), or as scoped exports if you use the bundled template (which defaults `CB_MCP_READ_ONLY_MODE` to `true`, clears the deprecated `CB_MCP_READ_ONLY_QUERY_MODE` to `false` so `CB_MCP_READ_ONLY_MODE` is the single switch, and passes any you set through). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
 
@@ -105,7 +107,7 @@ Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_M
 
 ## Step 6 — Restart and verify
 
-1. Apply the config: run `/reload-plugins` to pick up the server without losing your session. If the tools don't appear, restart Claude Code — a full restart is the guaranteed fallback for any registration route. (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
+1. Apply the config — **reload or restart the client** so it loads the server. Claude Code: run `/reload-plugins` to pick it up without losing your session; if the tools don't appear, restart Claude Code (a full restart is the guaranteed fallback for any registration route). Other clients: fully quit and relaunch (Codex, Claude Desktop) or reload MCP servers (Cursor / Windsurf). (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 
