@@ -74,24 +74,30 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 5 — Write the credentials into your client
 
-Pick the user's harness. There are two equivalent ways to register the server — use whichever fits the environment:
+In **any** harness you have the same two-way choice: **apply the config for the user** (run their CLI or edit their MCP config file directly), or hand them the **command/config block to apply themselves** — which keeps their credentials out of the chat. Default to doing it for them; offer the self-apply path to anyone who'd rather not share secrets in the conversation. Claude Code below is the worked example.
 
-- **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
-- **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
+**Claude Code (recommended):** use `claude mcp add --scope local`. It stores the credentials in `~/.claude.json` (outside your repo), injected only into the server process and never exported to your shell — so they can't leak into other shells, tools, or projects — and it outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so it works whether or not the plugin is installed.
 
-Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-setup.md`](references/client-setup.md).
+Present both ways every time and let the user choose:
 
-- **Claude Code (recommended):** register the server with `claude mcp add` at **`--scope local`**. The credentials are stored in Claude Code's own per-project config (`~/.claude.json`, *not* your repo), injected only into the server process, and **never exported to your shell** — so they can't leak into other shells, tools, or projects:
-  ```bash
-  claude mcp add couchbase --scope local \
-    -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
-    -e CB_PASSWORD="…" \
-    -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
-  ```
-  A `local`-scoped server outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so **this works whether or not the plugin is installed** and needs no `${CB_*}` shell exports. Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_MODE="false" -e CB_MCP_READ_ONLY_QUERY_MODE="false"` (the second neutralizes the deprecated query-write block, keeping `CB_MCP_READ_ONLY_MODE` the only decider). Use `--scope user` only to share this cluster across *all* your Claude Code projects, and avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
-- **Claude Code, via the plugin's bundled template (alternative):** the bundled `mcp.json` pins only the safety defaults; the `couchbase` server inherits `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD` from the environment Claude Code is launched in. If you use this route, **scope those vars to the project** — e.g. a git-ignored `.envrc` loaded by `direnv` — rather than a global `~/.zshrc` export, which is visible to every shell, subprocess, and project and persists indefinitely.
-- **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
-- **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
+- **Paste your credentials and I'll configure it** *(simplest - requires pasting secrets in chat)*: the user gives you the connection string, username, and password, and you run the command for them. Fastest path, nothing for them to copy. (The values are entered in the chat, so briefly communicate the risk for those who'd rather keep secrets out of the transcript and steer them to the next option. Never repeat the password back in your replies.)
+- **I'll run the command myself**: hand the user the ready-to-fill command below to paste into their **own terminal** (or via the `!` prefix). Their password stays local and never appears in the conversation.
+
+```bash
+claude mcp add couchbase --scope local \
+  -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
+  -e CB_PASSWORD="…" \
+  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
+```
+
+Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_MODE="false" -e CB_MCP_READ_ONLY_QUERY_MODE="false"` (the second neutralizes the deprecated query-write block, keeping `CB_MCP_READ_ONLY_MODE` the only decider). Use `--scope user` only to share this cluster across *all* your Claude Code projects; avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
+
+**Alternative — shell env vars (`direnv`):** instead of `claude mcp add`, let the bundled server inherit `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD` from the environment Claude Code is launched in — scoped to the project via a git-ignored `.envrc`, not a global `~/.zshrc`. Offer this only if the user specifically prefers a shell/`direnv` workflow (it needs a full Claude Code restart to take effect).
+
+**Other clients** — same two-way choice: **write the block into their config file for them**, or hand them the block to paste. Full blocks (+ Docker/source/Streamable-HTTP launch alternatives and cluster switching) are in [`references/client-setup.md`](references/client-setup.md):
+
+- **Codex:** the `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) in `~/.codex/config.toml`.
+- **Cursor / Windsurf / Claude Desktop:** the `mcpServers.couchbase` JSON block in that client's MCP settings.
 
 **Safety vars:** pass `CB_MCP_READ_ONLY_MODE`, `CB_MCP_DISABLED_TOOLS`, and `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` like the connection values — `-e` on `claude mcp add` (recommended), or as scoped exports if you use the bundled template (which defaults `CB_MCP_READ_ONLY_MODE` to `true`, clears the deprecated `CB_MCP_READ_ONLY_QUERY_MODE` to `false` so `CB_MCP_READ_ONLY_MODE` is the single switch, and passes any you set through). **Don't edit the plugin's bundled `mcp.json`:** per-user changes there don't apply to the installed (cached) copy and are overwritten on plugin update.
 
@@ -101,7 +107,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 
 ## Step 6 — Restart and verify
 
-1. Apply the config: run `/reload-plugins` to pick up the server without losing your session. If the tools don't appear, restart Claude Code — a full restart is the guaranteed fallback for any registration route. (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
+1. Apply the config — **reload or restart the client** so it loads the server. Claude Code: run `/reload-plugins` to pick it up without losing your session; if the tools don't appear, restart Claude Code (a full restart is the guaranteed fallback for any registration route). Other clients: fully quit and relaunch (Codex, Claude Desktop) or reload MCP servers (Cursor / Windsurf). (Bundled-template route only: the server inherits `CB_*` from Claude Code's launch environment, so if you set those vars *after* launching — e.g. just ran `direnv allow` / `source ~/.zshrc` — you must restart, not just reload, for the new env to apply.)
 2. Verify by asking the agent to call a Couchbase MCP tool — *"list my buckets"* (`get_buckets_in_cluster`) or *"run `SELECT 'ok' AS status`"*. A real result means you're connected.
 3. If it fails, re-run the masked check from Step 1 and see Troubleshooting.
 
@@ -113,7 +119,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 - [ ] (Capella) your IP is in the **Allowed IP** list
 - [ ] Access level is intentional — read-only (`CB_MCP_READ_ONLY_MODE=true`) unless write was explicitly chosen
 - [ ] Client reloaded/restarted so the server picked up the config
-- [ ] A real tool call succeeds — `test_cluster_connection` / `get_buckets_in_cluster`
+- [ ] A real tool call succeeds — `test_cluster_connection` / `get_buckets_in_cluster` (if no tools appear yet, wait a few seconds and re-check / `/reload-plugins` before concluding it failed — `uvx`'s first launch can lag; see Troubleshooting)
 
 ## Troubleshooting
 
@@ -127,6 +133,7 @@ Full config blocks (including Docker/source/Streamable-HTTP launch alternatives 
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; run `/reload-plugins`, then fully restart if they still don't appear. |
+| **Tools missing right after a restart, then present on a later one** (intermittent) | Startup-timing race: `uvx` resolves/downloads the package and the server completes its MCP handshake asynchronously, so a slow launch can exceed the client's startup window. Wait a few seconds and re-check (or `/reload-plugins`) before concluding it's not installed; raise the window by launching with `MCP_TIMEOUT=30000` (ms); for deterministic startups `uv tool install "couchbase-mcp-server>=0.8.0,<0.9.0"` (or pre-warm with `uvx couchbase-mcp-server --version`) so launches skip resolution/download. |
 | HTTP transport **port in use** | Change `CB_MCP_PORT` (default `8000`). |
 | **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 
