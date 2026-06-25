@@ -8,7 +8,7 @@ How to constrain what the agent can do. **RBAC is the only authoritative control
 
 ## Read-only mode
 
-`CB_MCP_READ_ONLY_MODE=true` is the **default**. Effects:
+`CB_MCP_READ_ONLY_MODE=true` is the default in the bundled `mcp.json`. (The server's *own* default flipped from `true` on `0.8.x` to `false` on `1.0+`, so on the `claude mcp add` / direct-config routes **set it explicitly** instead of relying on the default.) Effects of `=true`:
 - The 4 KV write tools (`upsert`/`insert`/`replace`/`delete_document_by_id`) are **not loaded** — absent from tool discovery.
 - `run_sql_plus_plus_query` stays loaded but **rejects** write DML (INSERT/UPDATE/DELETE/MERGE) and DDL.
 
@@ -20,7 +20,7 @@ To allow writes, set `CB_MCP_READ_ONLY_MODE=false`.
 | `false` | `true` | KV writes allowed; query writes disabled |
 | `false` | `false` | All writes allowed |
 
-> **This plugin makes `CB_MCP_READ_ONLY_MODE` the single switch.** The bundled template pins `CB_MCP_READ_ONLY_QUERY_MODE=false`, so only rows 1 and 3 apply (fully read-only, or all writes). On the `claude mcp add` / direct-config routes the whole server entry is yours, so pass `CB_MCP_READ_ONLY_QUERY_MODE=false` too when enabling writes. The flag is deprecated and later server versions drop it entirely (`CB_MCP_READ_ONLY_MODE` alone governs).
+> **This plugin makes `CB_MCP_READ_ONLY_MODE` the single switch.** The bundled template pins `CB_MCP_READ_ONLY_QUERY_MODE=false`, so only rows 1 and 3 apply (fully read-only, or all writes). On the `claude mcp add` / direct-config routes the whole server entry is yours, so on `0.8.x` pass `CB_MCP_READ_ONLY_QUERY_MODE=false` too when enabling writes. The flag is deprecated; **`1.0+` removes it entirely** (`CB_MCP_READ_ONLY_MODE` alone governs), and the server simply ignores it if still set — so leaving it in place is harmless across the whole supported version range.
 
 ## Disabling tools
 
