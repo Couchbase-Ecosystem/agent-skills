@@ -192,4 +192,5 @@ Only the non-obvious mappings:
 - **Membership against a list?** → `x IN arr` (top level) · `x WITHIN arr` (any depth)
 - **Reads like a named operation (unit conversion, business rule) or names a function?** → check for a matching UDF first — see [`sqlpp-udfs.md`](sqlpp-udfs.md); otherwise write it inline
 - **Search / relevance / fuzzy / "similar to"?** → not SQL++ — hand off to the Couchbase **Search Service** (FTS)
-- **Result is slow or hits a scan?** → return it, then hand off to **`couchbase-query-optimizer`**
+- **Slow because a *selective* query lacks an index?** → return it, then hand off to **`couchbase-query-optimizer`** (an index can fix it)
+- **Full-dataset aggregation / ad hoc analytics over a *large* collection, where no index avoids the scan?** → return it, then note the **Analytics Service** may fit better (see SKILL.md Step 5)
