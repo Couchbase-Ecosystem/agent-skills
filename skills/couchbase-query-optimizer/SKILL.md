@@ -62,6 +62,8 @@ These are the headline rules. Read them before diving into references.
 
 7. **Avoid PrimaryScan in production.** A PrimaryScan is the equivalent of a full table scan. Drop primary indexes in prod, or at least confirm no production query relies on one.
 
+8. **Some queries don't belong in the Query Service at all.** An *inherently analytical* query — a full- or near-full-collection aggregation / `GROUP BY`, or a large multi-collection join, with no selective predicate an index could exploit — can't be fixed by any index, and `ADVISE` will offer nothing useful. Tuning is the wrong goal: the **Analytics Service** (`cbas`) is the better home for ad hoc, large-scale analytics, and it doesn't compete with operational query traffic. When that's the diagnosis, say so rather than forcing a marginal index — check `get_cluster_health_and_services` for `cbas` and recommend Analytics concretely if it's running, conditionally if not (it has no MCP tool yet, so this is a recommendation, not a handoff). See the [Analytics Service overview](https://docs.couchbase.com/server/current/analytics/introduction.html).
+
 ## Pick the right reference
 
 | Question | Read |
@@ -95,6 +97,7 @@ The general approach to tuning a slow query:
                  - Add an array index (DISTINCT ARRAY ... FOR ... IN ... END)
                  - Reshape the query (drop OR predicates, add IS NOT MISSING)
                  - Add a USE INDEX hint
+                 - Recognize a non-fixable analytical query → recommend the Analytics Service, not an index (principle 8)
                  Tools: get_index_advisor_recommendations (ADVISE) for index recommendations
 
 4. Verify     → Re-run EXPLAIN. Check the new index is picked.
@@ -146,7 +149,7 @@ See `references/diagnostic-workflow.md` for the full step-by-step using these to
 ## Scope
 
 - **In:** diagnosing slow SQL++ via EXPLAIN/ADVISE, GSI design, index antipatterns, query-shape tuning.
-- **Out (hand off):** writing a query from scratch without a performance angle → `couchbase-natural-language-querying`; document structure / key design / embedding → `couchbase-data-modeling`; MCP connection setup → `couchbase-mcp-setup`.
+- **Out (hand off):** writing a query from scratch without a performance angle → `couchbase-natural-language-querying`; document structure / key design / embedding → `couchbase-data-modeling`; MCP connection setup → `couchbase-mcp-setup`; an inherently analytical workload no index can fix → recommend the **Analytics Service** (see principle 8).
 
 ## Version notes
 
