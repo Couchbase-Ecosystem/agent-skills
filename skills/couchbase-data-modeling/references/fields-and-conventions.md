@@ -14,8 +14,8 @@ SQL++ distinguishes **four** states of a field — predicates an LLM often forge
 
 | State | Doc looks like | Predicate |
 |-------|----------------|-----------|
-| **Valued** (has a non-empty value) | `{"geo": "US"}` | `geo IS VALUED` |
-| **Empty** (present, zero-length) | `{"geo": ""}` | `geo IS NOT VALUED` |
+| **Valued** (neither NULL nor MISSING) | `{"geo": "US"}` | `geo IS VALUED` |
+| **Empty** (present, zero-length) | `{"geo": ""}` | `geo = ""` |
 | **Missing** (key absent) | `{}` | `geo IS [NOT] MISSING` |
 | **Null** (explicit null) | `{"geo": null}` | `geo IS [NOT] NULL` |
 
