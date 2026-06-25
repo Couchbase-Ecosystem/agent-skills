@@ -25,3 +25,6 @@ npm-debug.log*
 # Eval output / scratch
 *.log
 /tmp/
+
+# Packaged plugin (built for Claude Desktop upload)
+couchbase-plugin.zip
