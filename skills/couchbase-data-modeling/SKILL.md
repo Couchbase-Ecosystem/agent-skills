@@ -14,8 +14,6 @@ description: >-
   (use couchbase-natural-language-querying). Requires the Couchbase MCP server
   for verification.
 license: Apache-2.0
-metadata:
-  version: "0.2.0"
 ---
 
 # Couchbase Data Modeling
