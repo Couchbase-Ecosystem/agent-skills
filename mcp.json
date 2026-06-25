@@ -2,7 +2,7 @@
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["--from", "couchbase-mcp-server>=0.8.0,<0.9.0", "couchbase-mcp-server"],
+      "args": ["--from", "couchbase-mcp-server>=0.8.0,<1.1.0", "couchbase-mcp-server"],
       "env": {
         "CB_MCP_READ_ONLY_MODE": "${CB_MCP_READ_ONLY_MODE:-true}",
         "CB_MCP_READ_ONLY_QUERY_MODE": "false",

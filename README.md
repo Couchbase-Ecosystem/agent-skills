@@ -51,11 +51,11 @@ Use this plugin from the **Code** tab in Claude Desktop — the experience match
 
 1. **Get the plugin ZIP.** Either:
    - **Download it from GitHub** — on the [repo page](https://github.com/Couchbase-Ecosystem/agent-skills), use **Code → Download ZIP**.
-   - **Or clone and package it yourself**, which lets you drop the template skill:
+   - **Or clone and package it yourself**, which lets you drop unnecessary files (e.g., `.git`, `testing/`, `.idea/`):
      ```bash
      git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
      cd agent-skills
-     zip -r couchbase-plugin.zip . -x '.git/*' 'skills/_template/*'
+     zip -r couchbase-plugin.zip . -x '.git/*' '.github/*' 'skills/_template/*' '.idea/*' 'testing/*'
      ```
 2. **Upload it.** Open **Customize** (available from any tab) → the `+` next to **"Personal Plugins"** → **Create Plugin → Upload Plugin**, and select the ZIP. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
 3. **Connect to your cluster.** The upload registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
