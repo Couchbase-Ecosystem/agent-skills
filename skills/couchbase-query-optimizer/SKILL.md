@@ -16,8 +16,6 @@ description: >-
   document/data modeling or key design (use couchbase-data-modeling). Prefer GSI
   indexing as the optimization strategy. Requires the Couchbase MCP server.
 license: Apache-2.0
-metadata:
-  version: "0.1.0"
 allowed-tools: mcp__couchbase__*
 ---
 
