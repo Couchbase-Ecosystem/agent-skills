@@ -74,22 +74,26 @@ Use the reference for the chosen deployment to collect `CB_CONNECTION_STRING`, `
 
 ## Step 5 — Write the credentials into your client
 
-Pick the user's harness. There are two equivalent ways to register the server — use whichever fits the environment:
+**Claude Code (recommended):** use `claude mcp add --scope local`. It stores the credentials in `~/.claude.json` (outside your repo), injected only into the server process and never exported to your shell — so they can't leak into other shells, tools, or projects — and it outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so it works whether or not the plugin is installed.
 
-- **Edit the client's MCP config file** (JSON or TOML) directly — works in any harness, no shell needed.
-- **Run the client's CLI** (e.g. `claude mcp add`) where one is available.
+**Default to setting it up for the user.** Offer these two ways and let them choose — present both every time, consistently:
 
-Full config blocks (including Docker/source/Streamable-HTTP launch alternatives and how to switch clusters) are in [`references/client-setup.md`](references/client-setup.md).
+- **Paste your credentials and I'll configure it** *(recommended — simplest)*: the user gives you the connection string, username, and password, and you run the command for them. Fastest path, nothing for them to copy. (The values are entered in the chat, so steer anyone who'd rather keep secrets out of the transcript to the next option. Never repeat the password back in your replies.)
+- **I'll run the command myself**: hand the user the ready-to-fill command below to paste into their **own terminal** (or via the `!` prefix). Their password stays local and never appears in the conversation.
 
-- **Claude Code (recommended):** register the server with `claude mcp add` at **`--scope local`**. The credentials are stored in Claude Code's own per-project config (`~/.claude.json`, *not* your repo), injected only into the server process, and **never exported to your shell** — so they can't leak into other shells, tools, or projects:
-  ```bash
-  claude mcp add couchbase --scope local \
-    -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
-    -e CB_PASSWORD="…" \
-    -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
-  ```
-  A `local`-scoped server outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so **this works whether or not the plugin is installed** and needs no `${CB_*}` shell exports. Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_MODE="false" -e CB_MCP_READ_ONLY_QUERY_MODE="false"` (the second neutralizes the deprecated query-write block, keeping `CB_MCP_READ_ONLY_MODE` the only decider). Use `--scope user` only to share this cluster across *all* your Claude Code projects, and avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
-- **Claude Code, via the plugin's bundled template (alternative):** the bundled `mcp.json` pins only the safety defaults; the `couchbase` server inherits `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD` from the environment Claude Code is launched in. If you use this route, **scope those vars to the project** — e.g. a git-ignored `.envrc` loaded by `direnv` — rather than a global `~/.zshrc` export, which is visible to every shell, subprocess, and project and persists indefinitely.
+```bash
+claude mcp add couchbase --scope local \
+  -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
+  -e CB_PASSWORD="…" \
+  -- uvx --from "couchbase-mcp-server>=0.8.0,<0.9.0" couchbase-mcp-server
+```
+
+Pass safety vars the same way; to enable writes pass both `-e CB_MCP_READ_ONLY_MODE="false" -e CB_MCP_READ_ONLY_QUERY_MODE="false"` (the second neutralizes the deprecated query-write block, keeping `CB_MCP_READ_ONLY_MODE` the only decider). Use `--scope user` only to share this cluster across *all* your Claude Code projects; avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
+
+**Alternative — shell env vars (`direnv`):** instead of `claude mcp add`, let the bundled server inherit `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD` from the environment Claude Code is launched in — scoped to the project via a git-ignored `.envrc`, not a global `~/.zshrc`. Offer this only if the user specifically prefers a shell/`direnv` workflow (it needs a full Claude Code restart to take effect).
+
+**Other clients** (edit the client's config file directly; full blocks + Docker/source/Streamable-HTTP launch alternatives and cluster switching are in [`references/client-setup.md`](references/client-setup.md)):
+
 - **Codex:** add an `[mcp_servers.couchbase]` block (with `[mcp_servers.couchbase.env]`) to `~/.codex/config.toml`.
 - **Cursor / Windsurf / Claude Desktop:** add a `mcpServers.couchbase` JSON block in that client's MCP settings.
 
