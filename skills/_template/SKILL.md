@@ -5,8 +5,6 @@ description: >-
   Be specific about triggers (e.g. "Use when the user asks to optimize a SQL++
   query or diagnose a slow query / missing index").
 license: Apache-2.0
-metadata:
-  version: "0.1.0"
 ---
 
 # <Skill Title>

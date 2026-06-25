@@ -5,13 +5,11 @@
     "url": "https://www.couchbase.com"
   },
   "metadata": {
-    "description": "Official Couchbase plugins (MCP Server + Skills) for GitHub Copilot CLI.",
-    "version": "0.1.0"
+    "description": "Official Couchbase plugins (MCP Server + Skills) for GitHub Copilot CLI."
   },
   "plugins": [
     {
       "name": "couchbase",
-      "version": "0.1.0",
       "source": "./",
       "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server."
     }

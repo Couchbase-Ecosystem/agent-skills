@@ -6,8 +6,6 @@ description: >-
   content-review checklist tuned to Couchbase access patterns. Use when a user
   wants to review, validate, or quality-check a skill.
 license: Apache-2.0
-metadata:
-  version: "0.1.0"
 ---
 
 # Review Skill (meta-tool)

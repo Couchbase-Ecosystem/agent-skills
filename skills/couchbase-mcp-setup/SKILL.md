@@ -8,8 +8,6 @@ description: >-
   string and credentials configured. Does NOT tune your application's SDK
   connection or run data queries (use couchbase-natural-language-querying).
 license: Apache-2.0
-metadata:
-  version: "0.1.0"
 allowed-tools: Bash, Read, Edit, Write
 ---
 

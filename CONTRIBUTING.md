@@ -22,8 +22,6 @@ description: >-                      # when to use this skill (drives triggering
   One or two sentences describing what the skill does and when an agent
   should invoke it.
 license: Apache-2.0
-metadata:
-  version: "0.1.0"
 ---
 ```
 
