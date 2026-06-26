@@ -129,8 +129,9 @@ The official Couchbase MCP server exposes the tuning tools you need:
 
 | Tool | Purpose |
 |---|---|
-| `get_server_configuration_status` | Server status and connection check (no timeout) |
+| `get_server_configuration_status` | MCP server status and connection check (no timeout) |
 | `test_cluster_connection` | Verify credentials/connection |
+| `get_cluster_health_and_services` | Cluster health, running services (e.g. `cbas`), and server version |
 | `explain_sql_plus_plus_query` | EXPLAIN + parsed plan findings |
 | `get_index_advisor_recommendations` | ADVISE statement; recommends indexes |
 | `list_indexes` | List existing GSI definitions on a keyspace |
@@ -159,4 +160,4 @@ See `references/diagnostic-workflow.md` for the full step-by-step using these to
 - **7.6+:** CBO auto-gathers stats on index create/build; join-enumeration improvements; `/*+ ... */` optimizer hints (`productivity`, `ORDERED`, `USE HASH`); `UPDATE STATISTICS` still available for manual refresh
 - **8.0+:** Vector indexes (HYPERSCALE / COMPOSITE VECTOR INDEX); Auto Update Statistics (AUS) keeps stats fresh automatically; FTS synonym sets; user lock/unlock; XDCR conflict logging
 
-Always verify against the cluster version before recommending a feature — `get_server_configuration_status` reports the server version it has detected.
+Always verify against the cluster version before recommending a feature — `get_cluster_health_and_services` reports the server version it has detected.
