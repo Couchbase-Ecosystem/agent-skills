@@ -5,7 +5,7 @@
 #   github           — install the published plugin from the marketplace.
 set -euo pipefail
 
-CFG="${CLAUDE_CONFIG_DIR:-/root/.claude}"
+CFG="${CLAUDE_CONFIG_DIR:-/home/node/.claude}"   # match entrypoint.sh; container runs as non-root `node`
 DEST="$CFG/skills"
 MODE="${SKILL_INSTALL_MODE:-local}"
 MARKETPLACE="${SKILLS_MARKETPLACE:-Couchbase-Ecosystem/agent-skills}"

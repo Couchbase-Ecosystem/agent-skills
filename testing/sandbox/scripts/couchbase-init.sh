@@ -5,7 +5,9 @@
 set -euo pipefail
 
 CS="${CB_CONNECTION_STRING:-couchbase://couchbase}"
-host="${CS#*://}"; host="${host%%[,/?]*}"; host="${host%%:*}"
+# Extract the bare host: drop the scheme, any multi-node list / path / query,
+# optional userinfo (user:pass@), then the port.
+host="${CS#*://}"; host="${host%%[,/?]*}"; host="${host##*@}"; host="${host%%:*}"
 H="http://${host}:8091"
 
 ADMIN="${CB_ADMIN_USERNAME:-Administrator}"

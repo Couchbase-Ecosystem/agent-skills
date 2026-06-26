@@ -8,6 +8,7 @@ CS="${CB_CONNECTION_STRING:-couchbase://couchbase}"
 scheme="${CS%%://*}"
 rest="${CS#*://}"
 host="${rest%%[,/?]*}"     # first host, drop any path / extra hosts
+host="${host##*@}"         # drop userinfo (user:pass@) if present
 host="${host%%:*}"         # drop explicit port if present
 
 if [ "$scheme" = "couchbases" ]; then
