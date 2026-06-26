@@ -28,3 +28,4 @@ npm-debug.log*
 
 # Packaged plugin (built for Claude Desktop upload)
 couchbase-plugin.zip
+skill-zips/
