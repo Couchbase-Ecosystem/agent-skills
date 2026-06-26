@@ -71,6 +71,26 @@
       "reject": ["$match", "db.", ".find(", "`travel-sample`.inventory"],
       "threshold": 1,
       "tier": 3
+    },
+    {
+      "name": "retrieval verb + geo radius triggers the skill",
+      "input": "Fetch the list of hotels around Los Angeles within five miles radius using Couchbase data.",
+      "expect": ["SELECT"],
+      "reject": ["$match", "db.", ".find(", "`travel-sample`.inventory"],
+      "threshold": 1,
+      "tier": 3,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
+    },
+    {
+      "name": "retrieval verb 'fetch' triggers the skill",
+      "input": "Fetch all airlines based in the United States from travel-sample.",
+      "expect": ["SELECT", "WHERE"],
+      "reject": ["$match", "db.", "`travel-sample`.inventory"],
+      "threshold": 1,
+      "tier": 3,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
     }
   ]
 }

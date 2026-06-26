@@ -2,19 +2,19 @@
 name: couchbase-natural-language-querying
 description: >-
   Turn a plain-English data question into a read-only SQL++ query, grounded in
-  the live cluster's actual schema, sample data, and indexes — then run it and
-  return the results. Use when the user asks to write or generate a query, says
-  "show me…", "how many…", "list…", "find documents where…", uses an
-  analytical/computation opener like "what was the average…", "calculate…",
-  "compute…", "what's the mean/max/total…", or otherwise wants to
-  filter/group/aggregate Couchbase data in natural language. Applies even
-  mid-conversation when a session that began as schema/setup/modeling pivots to
-  answering a data question. Does NOT handle
-  full-text, vector, or semantic search (use the Couchbase Search Service); does NOT
-  analyze, optimize, or speed up queries or design indexes (use
-  couchbase-query-optimizer); does NOT perform writes or run DDL (it may
-  *suggest* a CREATE FUNCTION for the user to run). Requires the
-  Couchbase MCP server.
+  the live cluster's schema, sample data, and indexes — then run it and return
+  the results. Use when the user wants to read or retrieve Couchbase data in
+  natural language — "show me…", "list…", "fetch…", "get…", "retrieve…",
+  "give me…", "find documents where…", "which/what …", "how many…", or an
+  analytical opener like "what was the average…", "calculate…", "compute…",
+  "total/max/mean…". Covers filtering, grouping, aggregation, joins, and
+  matching stored values by range or location/distance ("near…", "within N
+  miles"). Applies mid-conversation when a schema/setup/modeling session pivots
+  to a data question. Does NOT handle full-text, vector, or semantic similarity
+  search (use the Couchbase Search Service); does NOT analyze, optimize, or
+  speed up queries or design indexes (use couchbase-query-optimizer); does NOT
+  perform writes or run DDL (it may *suggest* a CREATE FUNCTION for the user to
+  run). Requires the Couchbase MCP server.
 license: Apache-2.0
 ---
 
