@@ -57,8 +57,25 @@ Use this plugin from the **Code** tab in Claude Desktop — the experience match
      cd agent-skills
      zip -r couchbase-plugin.zip . -x '.git/*' '.github/*' 'skills/_template/*' '.idea/*' 'testing/*'
      ```
-2. **Upload it.** Open **Customize** (available from any tab) → the `+` next to **"Personal Plugins"** → **Create Plugin → Upload Plugin**, and select the ZIP. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
+2. **Upload it.** Open **Customize** (available from any tab) → click the `+` next to **"Personal Plugins"** → select the **Personal** tab in the modal that opens → click the `+` next to **Local Uploads**, and select the ZIP. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
 3. **Connect to your cluster.** The upload registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
+
+#### If plugin upload is not available, install each skill manually
+
+If your Claude Desktop UI does not show the plugin upload flow, use per-skill uploads instead.
+
+1. **Create one ZIP per skill** (from repo root):
+   ```bash
+   mkdir -p skill-zips
+   for d in skills/*; do
+     [ -d "$d" ] || continue
+     name="$(basename "$d")"
+     [ "$name" = "_template" ] && continue
+     zip -r "skill-zips/${name}.zip" "$d"
+   done
+   ```
+2. **Upload each skill ZIP in Claude Desktop.** For each file in `skill-zips/`, go to **Customize → Skills → + icon → Create Skill → Upload a Skill**.
+3. **Set up the MCP server separately.** Per-skill uploads do not include the bundled MCP server wiring, so follow the quickstart here: https://mcp-server.couchbase.com/get-started/quickstart
 
 ## Local development
 
