@@ -1,0 +1,8 @@
+# The image only needs the harness assets that are COPYed in the Dockerfile.
+# Skills + mcp.json arrive via the bind mount at runtime, not the image.
+.env
+.env.*
+reports/
+.mcp.json
+*.log
+README.md

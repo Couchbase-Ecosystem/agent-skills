@@ -1,0 +1,57 @@
+name: cb-skills-harness
+
+services:
+  # Local Couchbase cluster. Only started for the `local` profile; in remote
+  # mode (CB_PROFILE=remote, no --profile local) this service is absent and the
+  # runner connects straight to the cluster named by CB_CONNECTION_STRING.
+  couchbase:
+    profiles: ["local"]
+    image: ${CB_IMAGE:-couchbase:enterprise-8.0.1}
+    ports:
+      - "8091-8097:8091-8097"
+      - "9123:9123"
+      - "11210:11210"
+      - "11280:11280"
+      - "18091-18097:18091-18097"
+    # ulimits Couchbase asks for; harmless if the host ignores them.
+    ulimits:
+      nofile:
+        soft: 40960
+        hard: 40960
+    healthcheck:
+      # Couchbase 8.0 secures /pools (answers 401 once up); 7.x answers 200. Accept
+      # either as healthy — `curl -f` would wrongly treat the 401 as a failure.
+      test: ["CMD-SHELL", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8091/pools | grep -qE '^(200|401)$$'"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
+
+  runner:
+    build:
+      context: .
+      args:
+        # Use HARNESS_-prefixed names: a bare CLAUDE_CODE_VERSION is set in any
+        # Claude Code terminal (to "x.y.z (Claude Code)") and would corrupt the
+        # npm install spec if interpolated here.
+        CLAUDE_CODE_VERSION: "${HARNESS_CLAUDE_CODE_VERSION:-latest}"
+        MCP_SERVER_SPEC: "${HARNESS_MCP_SERVER_SPEC:-couchbase-mcp-server>=0.8.0,<0.9.0}"
+        SKILL_INSTALL_MODE: "${SKILL_INSTALL_MODE:-local}"
+        SKILLS_MARKETPLACE: "${SKILLS_MARKETPLACE:-Couchbase-Ecosystem/agent-skills}"
+    image: cbskills-harness:latest
+    # .env is the ONLY source of cluster config / credentials. We deliberately do
+    # NOT add an `environment:` block that interpolates ${CB_*} — that would pull
+    # values from your host shell (e.g. a Capella CB_CONNECTION_STRING exported in
+    # ~/.zshrc) straight into the container, defeating the fresh-environment goal.
+    # Per-run orchestration (HARNESS_MODE / CB_PROFILE) is injected by the Makefile
+    # via `docker compose run -e`, not from your shell.
+    env_file:
+      - .env
+    volumes:
+      - ../../:/work:ro            # repo working tree (local skills + mcp.json)
+    depends_on:
+      couchbase:
+        condition: service_healthy
+        required: false            # remote mode: service absent, runner still starts
+    stdin_open: true               # for the sandbox REPL
+    tty: true

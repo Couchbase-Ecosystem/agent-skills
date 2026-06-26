@@ -10,6 +10,8 @@ Thumbs.db
 # Secrets / local env
 .env
 .env.*
+# .env.example is a template (no real secrets) and must be committed
+!.env.example
 *.local
 
 # Python
