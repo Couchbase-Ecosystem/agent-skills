@@ -87,6 +87,15 @@ def validate_suite(data):
                     f"(impossible to pass)")
         if "tier" in c and c["tier"] not in (2, 3):
             problems.append(f"{tag}: invalid 'tier' {c['tier']!r} (expected 2 or 3)")
+        # Optional real-harness fields (consumed by testing/sandbox/run-tests.py).
+        # Validate their types if present so a typo'd field can't silently make a
+        # case un-checkable (which would read as a false pass).
+        if "smoke" in c and not isinstance(c["smoke"], bool):
+            problems.append(f"{tag}: 'smoke' must be true/false")
+        if "expect_skill" in c and not isinstance(c["expect_skill"], str):
+            problems.append(f"{tag}: 'expect_skill' must be a string")
+        if "expect_tools" in c and not isinstance(c["expect_tools"], list):
+            problems.append(f"{tag}: 'expect_tools' must be a list")
     return problems
 
 

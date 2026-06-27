@@ -41,6 +41,7 @@ make build
 | `make sandbox-setup` | Local cluster, **no MCP pre-wired** — exercise the `couchbase-mcp-setup` skill end-to-end. |
 | `make sandbox-setup-remote` | Same, but targeting Capella — test the Capella setup path. |
 | `make sandbox-setup-cold` | Like `sandbox-setup` but **no `CB_*` in the env either** — a true first-time setup. |
+| `make smoke` | **Automated** per-skill smoke tests (headless `claude -p`) on a local cluster — see below. |
 | `make clean` | Tear down containers and drop the cluster volume. |
 
 > **Testing the *setup* skill.** The plain `sandbox` target **pre-wires** the
@@ -69,6 +70,35 @@ The harness never reads `CB_*` from your shell environment, so an exported
 `CB_CONNECTION_STRING` (e.g. a Capella URL in `~/.zshrc`) cannot leak in.
 
 `./run.sh <target>` is an equivalent wrapper if you'd rather not `cd`.
+
+## Automated smoke tests
+
+`make smoke` is the first step back toward automated coverage: it runs **one
+curated case per skill** headlessly (via `claude -p`). Each case checks two things:
+
+1. **the right skill auto-triggered** — `run-tests.py` parses the stream-json for
+   a `Skill` tool_use and matches it against the case's `expect_skill`, and
+2. **the answer is reasonable** — expect/reject substring scoring, with the
+   querying/optimizer cases also asserting the expected MCP tool actually ran
+   (`expect_tools`).
+
+It runs in **two phases**, each putting the skill in its meaningful environment
+(the same split as `sandbox` vs `sandbox-setup`):
+
+- **MCP pre-wired** — `couchbase-data-modeling`, `couchbase-natural-language-querying`,
+  `couchbase-query-optimizer`, so the query skills hit the live `travel-sample` cluster.
+- **No MCP pre-wired** — `couchbase-mcp-setup`, so it actually drives the setup flow
+  (registering the server, choosing the `couchbase://` scheme, read-only mode) rather
+  than just observing an already-connected server.
+
+The cases are the `"smoke": true` entries in `testing/<skill>/evals/evals.json`
+(one per skill), so the case format stays single-sourced with the model-only
+`tools/run-evals.py`. `run-tests.py` prints `PASS`/`FAIL` per case and exits
+non-zero if any fail. It uses real OAuth-token inference — roughly four
+`claude -p` calls per run.
+
+> This is intentionally a tiny, reliable subset; the fuller eval suites aren't
+> wired here yet. Promote another case later by adding `"smoke": true` to it.
 
 ## How it works
 
@@ -112,3 +142,7 @@ The harness never reads `CB_*` from your shell environment, so an exported
 - **GitHub-mode plugin commands.** The non-interactive `claude plugin ...`
   syntax in `install-skills.sh` may vary by CLI version — confirm with
   `claude plugin --help` if GitHub mode fails. Local mode is the primary path.
+- **Skill-trigger detection (`make smoke`).** `run-tests.py` infers skill
+  activation from a `Skill` tool_use in the stream. If a CLI update changes that
+  event shape, the trigger check can mis-fire — run `HARNESS_SHOW_STREAM=1 make
+  smoke` to dump the raw stream and adjust `skill_from_tool_use` accordingly.

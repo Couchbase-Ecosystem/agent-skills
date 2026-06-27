@@ -22,10 +22,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NPM_CONFIG_PREFIX=/home/node/.npm-global \
     PATH="/home/node/.npm-global/bin:/usr/local/bin:${PATH}"
 
-# Runtime tooling. couchbase-cli is intentionally NOT installed — cluster init
-# uses the plain REST API via curl, which keeps the image small.
+# Runtime tooling. python3 runs the smoke-test runner (run-tests.py); couchbase-cli
+# is intentionally NOT installed — cluster init uses the plain REST API via curl,
+# which keeps the image small.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        jq git curl ca-certificates \
+        jq git curl ca-certificates python3 \
     && rm -rf /var/lib/apt/lists/*
 
 # uv / uvx → installed to a global path so the non-root user can run them.
@@ -41,8 +42,8 @@ RUN uvx --from "${MCP_SERVER_SPEC}" couchbase-mcp-server --help >/dev/null 2>&1 
 # Harness assets (the only things copied into the image). Hand the npm prefix +
 # uv cache to node.
 COPY scripts/ /opt/harness/scripts/
-COPY entrypoint.sh /opt/harness/
-RUN chmod +x /opt/harness/entrypoint.sh /opt/harness/scripts/*.sh \
+COPY entrypoint.sh run-tests.py /opt/harness/
+RUN chmod +x /opt/harness/entrypoint.sh /opt/harness/scripts/*.sh /opt/harness/run-tests.py \
     && mkdir -p /home/node/.npm-global \
     && chown -R node:node /home/node /opt/uv-cache
 

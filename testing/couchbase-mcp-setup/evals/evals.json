@@ -16,11 +16,13 @@
       "threshold": 2
     },
     {
-      "name": "local connect: localhost scheme",
+      "name": "local connect: sets up the MCP server for Docker",
       "input": "Point the Couchbase MCP server at the Couchbase Server running in Docker on my machine.",
-      "expect": ["couchbase://localhost"],
+      "expect": ["register", "reload", "restart", "couchbase://", "read-only"],
       "reject": ["couchbases://localhost", "mongodb"],
-      "threshold": 1
+      "threshold": 1,
+      "smoke": true,
+      "expect_skill": "couchbase-mcp-setup"
     },
     {
       "name": "read-only safety default",

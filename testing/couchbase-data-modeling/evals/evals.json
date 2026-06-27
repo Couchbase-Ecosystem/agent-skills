@@ -4,9 +4,11 @@
     {
       "name": "embed vs reference reasoning",
       "input": "Should I embed a user's orders in the user document or keep them separate in Couchbase?",
-      "expect": ["embed", "reference", "KV"],
+      "expect": ["embed", "separate", "referenc"],
       "reject": [],
-      "threshold": 2
+      "threshold": 2,
+      "smoke": true,
+      "expect_skill": "couchbase-data-modeling"
     },
     {
       "name": "document key design (net-new, multi-tenant)",

@@ -157,8 +157,31 @@ case "${HARNESS_MODE:-sandbox}" in
     fi
     exec claude "${MCP_ARGS[@]}" --dangerously-skip-permissions
     ;;
+  test)
+    # Headless smoke tests: drive `claude -p` across the curated one-per-skill
+    # cases and score skill-triggering + MCP tool calls + the answer. All setup
+    # (skills, MCP render, cluster init) already ran above; just forward the MCP
+    # config the same way the sandbox REPL receives it.
+    RUNNER_ARGS=(--smoke --repo /work)
+    if [ "$MODE" = "github" ]; then
+      RUNNER_ARGS+=(--github)              # plugin supplies skills + MCP server
+    elif [ "$PREWIRE" != "0" ] && [ "$MODE" = "local" ] && [ -f "$MCP_CONFIG" ]; then
+      RUNNER_ARGS+=(--mcp-config "$MCP_CONFIG")
+    fi
+    if [ "${HARNESS_SHOW_STREAM:-0}" = "1" ]; then
+      RUNNER_ARGS+=(--show-stream)         # dump raw stream-json to confirm event shapes
+    fi
+    if [ -n "${HARNESS_TEST_ARGS:-}" ]; then
+      # Extra runner flags for ad-hoc runs, e.g. HARNESS_TEST_ARGS="--skill X --case Y".
+      # Word-split intentionally so multiple flags pass through.
+      # shellcheck disable=SC2206
+      RUNNER_ARGS+=(${HARNESS_TEST_ARGS})
+    fi
+    echo "==> Smoke tests: headless \`claude -p\` across the curated per-skill cases"
+    exec python3 /opt/harness/run-tests.py "${RUNNER_ARGS[@]}"
+    ;;
   *)
-    echo "FATAL: unknown HARNESS_MODE='${HARNESS_MODE:-}' (only 'sandbox' is supported)" >&2
+    echo "FATAL: unknown HARNESS_MODE='${HARNESS_MODE:-}' (use 'sandbox' or 'test')" >&2
     exit 2
     ;;
 esac

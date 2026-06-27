@@ -7,7 +7,9 @@
       "expect": ["EXPLAIN", "CREATE INDEX", "PrimaryScan"],
       "reject": ["COLLSCAN", "createIndex(", "db.", "$match"],
       "threshold": 2,
-      "tier": 3
+      "tier": 3,
+      "smoke": true,
+      "expect_skill": "couchbase-query-optimizer"
     },
     {
       "name": "index for filter + sort (key order)",

@@ -7,7 +7,10 @@
       "expect": ["SELECT", "COUNT", "WHERE", "travel-sample"],
       "reject": ["$match", "db.", "aggregate(", ".find(", "$group", "`travel-sample`.inventory"],
       "threshold": 3,
-      "tier": 3
+      "tier": 3,
+      "smoke": true,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
     },
     {
       "name": "analytical opener triggers aggregation",
