@@ -206,11 +206,12 @@ def main():
     print(f"Repo: {opts.repo} | install: {'github' if opts.github else 'local'} "
           f"| selecting: {selection}")
 
-    n_pass = n_fail = n_err = n_skip = 0
+    n_pass = n_fail = n_err = 0
     executed = 0
 
     for suite_name, path in suites:
         if suite_name in opts.skip_skills:
+            print(f"SKIP  {suite_name}: --skip-skill")
             continue
         data = json.loads(Path(path).read_text())
         problems = run_evals.validate_suite(data)
@@ -263,7 +264,7 @@ def main():
         return 1
 
     print("\n---")
-    print(f"{n_pass} passed, {n_fail} failed, {n_err} errored, {n_skip} skipped.")
+    print(f"{n_pass} passed, {n_fail} failed, {n_err} errored.")
     return 0 if (n_fail == 0 and n_err == 0) else 1
 
 
