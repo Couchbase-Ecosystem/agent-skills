@@ -41,7 +41,8 @@ make build
 | `make sandbox-setup` | Local cluster, **no MCP pre-wired** — exercise the `couchbase-mcp-setup` skill end-to-end. |
 | `make sandbox-setup-remote` | Same, but targeting Capella — test the Capella setup path. |
 | `make sandbox-setup-cold` | Like `sandbox-setup` but **no `CB_*` in the env either** — a true first-time setup. |
-| `make smoke` | **Automated** per-skill smoke tests (headless `claude -p`) on a local cluster — see below. |
+| `make smoke` | **Automated** one-per-skill gate (headless `claude -p`) on a local cluster — fast, keep green. See below. |
+| `make scenarios` | **Automated** broader curated suite (headless) — `smoke` plus more cases per skill. See below. |
 | `make clean` | Tear down containers and drop the cluster volume. |
 
 > **Testing the *setup* skill.** The plain `sandbox` target **pre-wires** the
@@ -71,18 +72,24 @@ The harness never reads `CB_*` from your shell environment, so an exported
 
 `./run.sh <target>` is an equivalent wrapper if you'd rather not `cd`.
 
-## Automated smoke tests
+## Automated tests
 
-`make smoke` is the first step back toward automated coverage: it runs **one
-curated case per skill** headlessly (via `claude -p`). Each case checks two things:
+Two headless targets drive the **real** `claude -p` CLI across curated eval cases
+and score each one. They form a reliability ladder — `smoke ⊆ scenarios ⊆ all`:
+
+| Target | Runs | Use it for |
+|--------|------|------------|
+| `make smoke` | one case per skill (`"smoke": true`) | the always-green gate — fast, run it often / in CI |
+| `make scenarios` | `smoke` **+** every `"scenario": true` case | broader coverage while iterating on a skill |
+
+Each case checks two things:
 
 1. **the right skill auto-triggered** — `run-tests.py` parses the stream-json for
    a `Skill` tool_use and matches it against the case's `expect_skill`, and
 2. **the answer is reasonable** — expect/reject substring scoring, with the
-   querying/optimizer cases also asserting the expected MCP tool actually ran
-   (`expect_tools`).
+   querying cases also asserting the expected MCP tool actually ran (`expect_tools`).
 
-It runs in **two phases**, each putting the skill in its meaningful environment
+Both run in **two phases**, each putting the skill in its meaningful environment
 (the same split as `sandbox` vs `sandbox-setup`):
 
 - **MCP pre-wired** — `couchbase-data-modeling`, `couchbase-natural-language-querying`,
@@ -91,14 +98,17 @@ It runs in **two phases**, each putting the skill in its meaningful environment
   (registering the server, choosing the `couchbase://` scheme, read-only mode) rather
   than just observing an already-connected server.
 
-The cases are the `"smoke": true` entries in `testing/<skill>/evals/evals.json`
-(one per skill), so the case format stays single-sourced with the model-only
-`tools/run-evals.py`. `run-tests.py` prints `PASS`/`FAIL` per case and exits
-non-zero if any fail. It uses real OAuth-token inference — roughly four
-`claude -p` calls per run.
+The cases live as `"smoke"` / `"scenario"` entries in `testing/<skill>/evals/evals.json`,
+so the case format stays single-sourced with the model-only `tools/run-evals.py`.
+`run-tests.py` prints `PASS`/`FAIL` per case and exits non-zero if any fail; it uses
+real OAuth-token inference (~4 `claude -p` calls for `smoke`, ~12 for `scenarios`).
 
-> This is intentionally a tiny, reliable subset; the fuller eval suites aren't
-> wired here yet. Promote another case later by adding `"smoke": true` to it.
+> **Growing the suite.** Add a case to `evals.json`, run it ad-hoc against the
+> harness while you tune its assertions (`HARNESS_TEST_ARGS="--skill <name> --case
+> <substr>"`), then promote it: `"scenario": true` once it passes reliably, and
+> `"smoke": true` for the one broad case per skill that guards the gate. Cases that
+> assert `expect_skill` need a prompt that clearly sits in that skill's domain —
+> imperative/advisory framing triggers; vague conceptual questions often don't.
 
 ## How it works
 

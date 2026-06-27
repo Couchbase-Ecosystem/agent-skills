@@ -92,6 +92,8 @@ def validate_suite(data):
         # case un-checkable (which would read as a false pass).
         if "smoke" in c and not isinstance(c["smoke"], bool):
             problems.append(f"{tag}: 'smoke' must be true/false")
+        if "scenario" in c and not isinstance(c["scenario"], bool):
+            problems.append(f"{tag}: 'scenario' must be true/false")
         if "expect_skill" in c and not isinstance(c["expect_skill"], str):
             problems.append(f"{tag}: 'expect_skill' must be a string")
         if "expect_tools" in c and not isinstance(c["expect_tools"], list):

@@ -158,11 +158,21 @@ case "${HARNESS_MODE:-sandbox}" in
     exec claude "${MCP_ARGS[@]}" --dangerously-skip-permissions
     ;;
   test)
-    # Headless smoke tests: drive `claude -p` across the curated one-per-skill
-    # cases and score skill-triggering + MCP tool calls + the answer. All setup
-    # (skills, MCP render, cluster init) already ran above; just forward the MCP
-    # config the same way the sandbox REPL receives it.
-    RUNNER_ARGS=(--smoke --repo /work)
+    # Headless tests: drive `claude -p` across the curated eval cases and score
+    # skill-triggering + MCP tool calls + the answer. All setup (skills, MCP
+    # render, cluster init) already ran above; just forward the MCP config the
+    # same way the sandbox REPL receives it.
+    #   HARNESS_TEST_SELECT=smoke      (default) — the one-per-skill gate
+    #   HARNESS_TEST_SELECT=scenarios            — the broader curated set
+    #   HARNESS_TEST_SELECT=all                  — every case in the tier range
+    RUNNER_ARGS=(--repo /work)
+    case "${HARNESS_TEST_SELECT:-smoke}" in
+      smoke)     RUNNER_ARGS+=(--smoke) ;;
+      scenarios) RUNNER_ARGS+=(--scenarios) ;;
+      all)       : ;;   # tier-based default in run-tests.py
+      *) echo "WARN: unknown HARNESS_TEST_SELECT='${HARNESS_TEST_SELECT}', using smoke" >&2
+         RUNNER_ARGS+=(--smoke) ;;
+    esac
     if [ "$MODE" = "github" ]; then
       RUNNER_ARGS+=(--github)              # plugin supplies skills + MCP server
     elif [ "$PREWIRE" != "0" ] && [ "$MODE" = "local" ] && [ -f "$MCP_CONFIG" ]; then
@@ -177,7 +187,7 @@ case "${HARNESS_MODE:-sandbox}" in
       # shellcheck disable=SC2206
       RUNNER_ARGS+=(${HARNESS_TEST_ARGS})
     fi
-    echo "==> Smoke tests: headless \`claude -p\` across the curated per-skill cases"
+    echo "==> Tests (${HARNESS_TEST_SELECT:-smoke}): headless \`claude -p\` across the curated eval cases"
     exec python3 /opt/harness/run-tests.py "${RUNNER_ARGS[@]}"
     ;;
   *)

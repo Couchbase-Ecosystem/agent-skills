@@ -175,6 +175,9 @@ def main():
                     help="skills/MCP come from the installed plugin (omit --mcp-config)")
     ap.add_argument("--smoke", action="store_true",
                     help="run only cases flagged \"smoke\": true (ignores tier bounds)")
+    ap.add_argument("--scenarios", action="store_true",
+                    help="run the broader curated set: cases flagged \"smoke\" OR "
+                         "\"scenario\": true (ignores tier bounds)")
     ap.add_argument("--skill", help="run only this skill's suite")
     ap.add_argument("--skip-skill", action="append", default=[], dest="skip_skills",
                     help="exclude this skill's suite (repeatable)")
@@ -194,7 +197,12 @@ def main():
         print(f"No eval suites found{target}.")
         return 1
 
-    selection = "smoke cases" if opts.smoke else f"tiers {opts.tier_min}-{opts.tier_max}"
+    if opts.smoke:
+        selection = "smoke cases"
+    elif opts.scenarios:
+        selection = "scenario cases (smoke + scenario)"
+    else:
+        selection = f"tiers {opts.tier_min}-{opts.tier_max}"
     print(f"Repo: {opts.repo} | install: {'github' if opts.github else 'local'} "
           f"| selecting: {selection}")
 
@@ -215,6 +223,9 @@ def main():
         for case in data["cases"]:
             if opts.smoke:
                 if not case.get("smoke"):
+                    continue
+            elif opts.scenarios:
+                if not (case.get("smoke") or case.get("scenario")):
                     continue
             else:
                 tier = case.get("tier", 2)
@@ -247,7 +258,7 @@ def main():
                 print(f"  FAIL  {case['name']}  — {'; '.join(reasons)}")
 
     if executed == 0:
-        what = "smoke" if opts.smoke else "matching"
+        what = "smoke" if opts.smoke else "scenario" if opts.scenarios else "matching"
         print(f"\nNo {what} cases selected — nothing to run.")
         return 1
 

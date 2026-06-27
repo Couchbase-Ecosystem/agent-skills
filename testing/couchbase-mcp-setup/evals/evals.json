@@ -6,7 +6,9 @@
       "input": "I installed the Couchbase plugin in Claude Code but it can't connect to my Capella cluster. Help me set it up.",
       "expect": ["connection string", "credential", "couchbases://"],
       "reject": ["mongodb", "Atlas", "MDB_MCP"],
-      "threshold": 2
+      "threshold": 2,
+      "scenario": true,
+      "expect_skill": "couchbase-mcp-setup"
     },
     {
       "name": "capella prerequisites: database creds + allowed IP",
@@ -26,10 +28,12 @@
     },
     {
       "name": "read-only safety default",
-      "input": "If I connect the agent to Couchbase, can it modify or delete my data?",
+      "input": "Set up the Couchbase MCP server against my local cluster, and configure it so the agent can only read data and never modify or delete it.",
       "expect": ["CB_MCP_READ_ONLY_MODE", "read-only"],
       "reject": ["mongodb"],
-      "threshold": 1
+      "threshold": 1,
+      "scenario": true,
+      "expect_skill": "couchbase-mcp-setup"
     }
   ]
 }

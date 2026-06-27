@@ -12,7 +12,7 @@ Official Couchbase **agent skills** + **MCP server** for your favorite coding ag
 | `mcp.json` | Couchbase MCP server wiring (consumed by the plugin manifests). |
 | `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `.agents/`, `gemini-extension.json` | Per-harness plugin/extension manifests. |
 | `tools/` | Repo tooling — skill validator and the `review-skill` meta-tool. |
-| `testing/` | Per-skill evaluation suites (`evals.json`). |
+| `testing/` | Eval suites and the testing sandbox — how to test the skills. See [`testing/`](./testing/README.md). |
 
 ## Prerequisites: the Couchbase MCP server
 
@@ -77,18 +77,11 @@ If your Claude Desktop UI does not show the plugin upload flow, use per-skill up
 2. **Upload each skill ZIP in Claude Desktop.** For each file in `skill-zips/`, go to **Customize → Skills → + icon → Create Skill → Upload a Skill**.
 3. **Set up the MCP server separately.** Per-skill uploads do not include the bundled MCP server wiring, so follow the quickstart here: https://mcp-server.couchbase.com/get-started/quickstart
 
-## Local development
+## Contributing
 
-```bash
-# Validate skill structure (frontmatter, links, sizes)
-./tools/validate-skills.sh
-
-# Validate eval-suite schema (no API key needed)
-python3 tools/run-evals.py --dry-run
-
-# Run behavioral evals against a model (needs ANTHROPIC_API_KEY or OPENAI_API_KEY) — see testing/
-python3 tools/run-evals.py --execute
-```
+Authoring, validating, and testing skills is documented in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md). For testing specifics — eval suites and
+the [real-harness sandbox](./testing/sandbox/README.md) — see [`testing/`](./testing/README.md).
 
 ## License
 

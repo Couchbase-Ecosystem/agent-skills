@@ -39,7 +39,24 @@ license: Apache-2.0
 ./tools/validate-skills.sh
 ```
 
-CI runs the same checks (`.github/workflows/validate-skills.yml`). Before opening a PR, also run the relevant eval suite under `testing/`.
+CI runs the same checks (`.github/workflows/validate-skills.yml`).
+
+## Testing
+
+Validate eval-suite schema (free, deterministic, no API key — runs on every PR):
+
+```bash
+python3 tools/run-evals.py --dry-run
+```
+
+Two runners exercise a skill's behavior — see [`testing/README.md`](./testing/README.md):
+
+- **Model-only evals** (`tools/run-evals.py --execute`) — quick scoring of a skill's
+  guidance against a model. Needs an API key; no cluster.
+- **The real-harness sandbox** ([`testing/sandbox/`](./testing/sandbox/README.md)) — the
+  real Claude Code CLI against a live Couchbase cluster: a manual REPL plus automated
+  `make smoke` / `make scenarios` tests that verify skill **triggering** and real
+  **MCP tool calls**.
 
 ## Reviewing a skill
 

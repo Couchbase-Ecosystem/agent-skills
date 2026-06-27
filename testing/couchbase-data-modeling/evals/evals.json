@@ -15,7 +15,18 @@
       "input": "How should I design document keys for a multi-tenant Couchbase app?",
       "expect": ["key", "composite", "tenant"],
       "reject": [],
-      "threshold": 2
+      "threshold": 2,
+      "scenario": true,
+      "expect_skill": "couchbase-data-modeling"
+    },
+    {
+      "name": "key scheme for time-series sensor data",
+      "input": "What's a good document key naming scheme for storing time-series IoT sensor readings in Couchbase?",
+      "expect": ["key", "prefix", "timestamp", "device", "sensor"],
+      "reject": [],
+      "threshold": 2,
+      "scenario": true,
+      "expect_skill": "couchbase-data-modeling"
     },
     {
       "name": "unbounded array → sizing + pattern",

@@ -5,6 +5,7 @@
 #   ./run.sh sandbox-remote
 #   ./run.sh sandbox-setup
 #   ./run.sh smoke
+#   ./run.sh scenarios
 #   ./run.sh clean
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,11 +14,11 @@ cmd="${1:-help}"
 shift || true
 
 case "$cmd" in
-  build|sandbox|sandbox-remote|sandbox-setup|sandbox-setup-remote|sandbox-setup-cold|smoke|clean|help)
+  build|sandbox|sandbox-remote|sandbox-setup|sandbox-setup-remote|sandbox-setup-cold|smoke|scenarios|clean|help)
     exec make "$cmd" "$@"
     ;;
   *)
-    echo "usage: ./run.sh {build|sandbox|sandbox-remote|sandbox-setup|sandbox-setup-remote|sandbox-setup-cold|smoke|clean}" >&2
+    echo "usage: ./run.sh {build|sandbox|sandbox-remote|sandbox-setup|sandbox-setup-remote|sandbox-setup-cold|smoke|scenarios|clean}" >&2
     exit 2
     ;;
 esac
