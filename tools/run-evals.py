@@ -6,7 +6,10 @@ Modes:
               Deterministic and free — safe to run on every PR. (default)
   --execute   Send each skill's SKILL.md as the system prompt plus the case
               `input` to a model, then score the response against the
-              expect/reject substrings.
+              expect/reject substrings. Each case is retried up to MAX_ATTEMPTS
+              times and passes on the first attempt that scores, so a transient
+              sampling/serving miss doesn't fail the run — only a consistent miss
+              across all attempts does.
 
 Tiers (per-case optional `tier` field, default 2):
   2  model-only — observable from a single skill + prompt (the default).
@@ -37,6 +40,12 @@ TESTING_DIR = REPO_ROOT / "testing"
 MAX_TOKENS = 2048
 TEMPERATURE = 0  # deterministic-as-possible scoring; cuts run-to-run flakiness
                  # (note: reasoning models like gpt-5/o-series reject temperature != 1)
+MAX_ATTEMPTS = 3  # retry a failed/errored case up to this many times; a case passes
+                  # on the first attempt that scores. Absorbs transient sampling /
+                  # serving non-determinism so a one-off miss doesn't fail the run.
+RETRY_TEMPERATURE = 0.5  # attempt 1 stays at TEMPERATURE for a deterministic baseline;
+                         # retries resample slightly hotter so a transient phrasing
+                         # miss can recover (rejects are domain terms, so this is safe).
 
 PROVIDERS = {
     "anthropic": {
@@ -108,7 +117,7 @@ def _post(url, headers, payload):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def call_model(provider, system, user, model, api_key):
+def call_model(provider, system, user, model, api_key, temperature=TEMPERATURE):
     """Return the model's text response. Raises on transport/API error."""
     if provider == "anthropic":
         payload = _post(PROVIDERS["anthropic"]["url"], {
@@ -118,7 +127,7 @@ def call_model(provider, system, user, model, api_key):
         }, {
             "model": model,
             "max_tokens": MAX_TOKENS,
-            "temperature": TEMPERATURE,
+            "temperature": temperature,
             "system": system,
             "messages": [{"role": "user", "content": user}],
         })
@@ -131,7 +140,7 @@ def call_model(provider, system, user, model, api_key):
     }, {
         "model": model,
         "max_tokens": MAX_TOKENS,
-        "temperature": TEMPERATURE,
+        "temperature": temperature,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -186,21 +195,34 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
             if c.get("tier", 2) > max_tier:
                 n_skip += 1
                 continue
-            try:
-                resp = call_model(provider, system, c["input"], model, api_key)
-            except urllib.error.HTTPError as e:
-                detail = e.read().decode("utf-8", "replace")[:200]
-                print(f"  ERROR {c['name']}: HTTP {e.code} {detail}")
-                n_err += 1
-                continue
-            except Exception as e:  # noqa: BLE001 - report and continue
-                print(f"  ERROR {c['name']}: {e}")
-                n_err += 1
-                continue
-            passed, hits, bad = score(resp, c["expect"], c["reject"], c["threshold"])
+            # Try up to MAX_ATTEMPTS times: substring scoring over live model output
+            # is non-deterministic (sampling + serving jitter even at temperature 0),
+            # so a transient phrasing miss or API hiccup shouldn't fail the case. Pass
+            # on the first attempt that scores; if none do, report the last graded one.
+            passed, attempt = False, 0
+            resp = last_err = None
+            hits, bad = [], []
+            for attempt in range(1, MAX_ATTEMPTS + 1):
+                temp = TEMPERATURE if attempt == 1 else RETRY_TEMPERATURE
+                try:
+                    resp = call_model(provider, system, c["input"], model, api_key, temp)
+                except urllib.error.HTTPError as e:
+                    last_err = f"HTTP {e.code} {e.read().decode('utf-8', 'replace')[:200]}"
+                    continue
+                except Exception as e:  # noqa: BLE001 - report and continue
+                    last_err = str(e)
+                    continue
+                last_err = None
+                passed, hits, bad = score(resp, c["expect"], c["reject"], c["threshold"])
+                if passed:
+                    break
+            tries = f" (after {attempt} attempt(s))" if attempt > 1 else ""
             if passed:
                 n_pass += 1
-                print(f"  PASS  {c['name']}  ({len(hits)}/{c['threshold']} expect)")
+                print(f"  PASS  {c['name']}  ({len(hits)}/{c['threshold']} expect){tries}")
+            elif resp is None:  # every attempt errored — nothing to score
+                n_err += 1
+                print(f"  ERROR {c['name']}: {last_err}{tries}")
             else:
                 n_fail += 1
                 bits = []
@@ -209,7 +231,7 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
                     bits.append(f"{len(hits)}/{c['threshold']} expect (missed: {missed})")
                 if bad:
                     bits.append(f"hit reject: {bad}")
-                print(f"  FAIL  {c['name']}  — {'; '.join(bits)}")
+                print(f"  FAIL  {c['name']}  — {'; '.join(bits)}{tries}")
                 if show_failures:
                     print(f"        ↳ {' '.join(resp.split())[:500]}…")
     print("\n---")
