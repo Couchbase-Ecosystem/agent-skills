@@ -4,6 +4,9 @@
     "name": "Couchbase",
     "url": "https://www.couchbase.com"
   },
+  "metadata": {
+    "description": "Official Couchbase marketplace for Claude Code plugins."
+  },
   "plugins": [
     {
       "name": "couchbase",
