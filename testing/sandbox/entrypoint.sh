@@ -157,8 +157,45 @@ case "${HARNESS_MODE:-sandbox}" in
     fi
     exec claude "${MCP_ARGS[@]}" --dangerously-skip-permissions
     ;;
+  test)
+    # Headless tests: drive `claude -p` across the curated eval cases and score
+    # skill-triggering + MCP tool calls + the answer. All setup (skills, MCP
+    # render, cluster init) already ran above; just forward the MCP config the
+    # same way the sandbox REPL receives it.
+    #   HARNESS_TEST_SELECT=smoke      (default) — the one-per-skill gate
+    #   HARNESS_TEST_SELECT=scenarios            — the broader curated set
+    #   HARNESS_TEST_SELECT=all                  — every case in the tier range
+    RUNNER_ARGS=(--repo /work)
+    case "${HARNESS_TEST_SELECT:-smoke}" in
+      smoke)     RUNNER_ARGS+=(--smoke) ;;
+      scenarios) RUNNER_ARGS+=(--scenarios) ;;
+      all)       : ;;   # tier-based default in run-tests.py
+      *) echo "WARN: unknown HARNESS_TEST_SELECT='${HARNESS_TEST_SELECT}', using smoke" >&2
+         RUNNER_ARGS+=(--smoke) ;;
+    esac
+    if [ "$MODE" = "github" ]; then
+      RUNNER_ARGS+=(--github)              # plugin supplies skills + MCP server
+    elif [ "$PREWIRE" != "0" ] && [ "$MODE" = "local" ] && [ -f "$MCP_CONFIG" ]; then
+      RUNNER_ARGS+=(--mcp-config "$MCP_CONFIG")
+    fi
+    if [ "${HARNESS_SHOW_STREAM:-0}" = "1" ]; then
+      RUNNER_ARGS+=(--show-stream)         # dump raw stream-json to confirm event shapes
+    fi
+    if [ -n "${HARNESS_TEST_ARGS:-}" ]; then
+      # Extra runner flags for ad-hoc runs, e.g. HARNESS_TEST_ARGS="--skill X --case Y".
+      # Word-split intentionally so multiple flags pass through; disable globbing
+      # (set -f) around the expansion so a literal * or ? in a flag isn't expanded
+      # against the working directory's files. Restored with set +f immediately after.
+      set -f
+      # shellcheck disable=SC2206
+      RUNNER_ARGS+=(${HARNESS_TEST_ARGS})
+      set +f
+    fi
+    echo "==> Tests (${HARNESS_TEST_SELECT:-smoke}): headless \`claude -p\` across the curated eval cases"
+    exec python3 /opt/harness/run-tests.py "${RUNNER_ARGS[@]}"
+    ;;
   *)
-    echo "FATAL: unknown HARNESS_MODE='${HARNESS_MODE:-}' (only 'sandbox' is supported)" >&2
+    echo "FATAL: unknown HARNESS_MODE='${HARNESS_MODE:-}' (use 'sandbox' or 'test')" >&2
     exit 2
     ;;
 esac

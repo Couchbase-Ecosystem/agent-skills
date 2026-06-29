@@ -7,7 +7,9 @@
       "expect": ["EXPLAIN", "CREATE INDEX", "PrimaryScan"],
       "reject": ["COLLSCAN", "createIndex(", "db.", "$match"],
       "threshold": 2,
-      "tier": 3
+      "tier": 3,
+      "smoke": true,
+      "expect_skill": "couchbase-query-optimizer"
     },
     {
       "name": "index for filter + sort (key order)",
@@ -15,7 +17,9 @@
       "expect": ["CREATE INDEX", "country", "airportname"],
       "reject": ["createIndex(", "$sort", "COLLSCAN"],
       "threshold": 2,
-      "tier": 3
+      "tier": 3,
+      "scenario": true,
+      "expect_skill": "couchbase-query-optimizer"
     },
     {
       "name": "cluster-wide slow query discovery",
@@ -30,7 +34,9 @@
       "input": "Make `SELECT city FROM `travel-sample`.inventory.airport WHERE country='France'` covered so it stops fetching documents.",
       "expect": ["CREATE INDEX", "covering", "Fetch"],
       "reject": [],
-      "threshold": 2
+      "threshold": 2,
+      "scenario": true,
+      "expect_skill": "couchbase-query-optimizer"
     },
     {
       "name": "antipattern: function-wrapped predicate",

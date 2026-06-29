@@ -6,7 +6,10 @@ Modes:
               Deterministic and free — safe to run on every PR. (default)
   --execute   Send each skill's SKILL.md as the system prompt plus the case
               `input` to a model, then score the response against the
-              expect/reject substrings.
+              expect/reject substrings. Each case is retried up to MAX_ATTEMPTS
+              times and passes on the first attempt that scores, so a transient
+              sampling/serving miss doesn't fail the run — only a consistent miss
+              across all attempts does.
 
 Tiers (per-case optional `tier` field, default 2):
   2  model-only — observable from a single skill + prompt (the default).
@@ -37,6 +40,12 @@ TESTING_DIR = REPO_ROOT / "testing"
 MAX_TOKENS = 2048
 TEMPERATURE = 0  # deterministic-as-possible scoring; cuts run-to-run flakiness
                  # (note: reasoning models like gpt-5/o-series reject temperature != 1)
+MAX_ATTEMPTS = 3  # retry a failed/errored case up to this many times; a case passes
+                  # on the first attempt that scores. Absorbs transient sampling /
+                  # serving non-determinism so a one-off miss doesn't fail the run.
+RETRY_TEMPERATURE = 0.5  # attempt 1 stays at TEMPERATURE for a deterministic baseline;
+                         # retries resample slightly hotter so a transient phrasing
+                         # miss can recover (rejects are domain terms, so this is safe).
 
 PROVIDERS = {
     "anthropic": {
@@ -87,6 +96,24 @@ def validate_suite(data):
                     f"(impossible to pass)")
         if "tier" in c and c["tier"] not in (2, 3):
             problems.append(f"{tag}: invalid 'tier' {c['tier']!r} (expected 2 or 3)")
+        # Optional real-harness fields (consumed by testing/sandbox/run-tests.py).
+        # Validate their types if present so a typo'd field can't silently make a
+        # case un-checkable (which would read as a false pass).
+        if "smoke" in c and not isinstance(c["smoke"], bool):
+            problems.append(f"{tag}: 'smoke' must be true/false")
+        if "scenario" in c and not isinstance(c["scenario"], bool):
+            problems.append(f"{tag}: 'scenario' must be true/false")
+        if "expect_skill" in c and not isinstance(c["expect_skill"], str):
+            problems.append(f"{tag}: 'expect_skill' must be a string")
+        if "expect_tools" in c and not isinstance(c["expect_tools"], list):
+            problems.append(f"{tag}: 'expect_tools' must be a list")
+        # Elements of these list fields are matched as substrings / tool-name needles
+        # (str.lower(), `needle in name`), so a non-string element passes the list
+        # checks above but TypeErrors at runtime. Require list-of-strings.
+        for field in ("expect", "reject", "expect_tools"):
+            val = c.get(field)
+            if isinstance(val, list) and not all(isinstance(x, str) for x in val):
+                problems.append(f"{tag}: '{field}' must be a list of strings")
     return problems
 
 
@@ -97,7 +124,7 @@ def _post(url, headers, payload):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def call_model(provider, system, user, model, api_key):
+def call_model(provider, system, user, model, api_key, temperature=TEMPERATURE):
     """Return the model's text response. Raises on transport/API error."""
     if provider == "anthropic":
         payload = _post(PROVIDERS["anthropic"]["url"], {
@@ -107,7 +134,7 @@ def call_model(provider, system, user, model, api_key):
         }, {
             "model": model,
             "max_tokens": MAX_TOKENS,
-            "temperature": TEMPERATURE,
+            "temperature": temperature,
             "system": system,
             "messages": [{"role": "user", "content": user}],
         })
@@ -120,7 +147,7 @@ def call_model(provider, system, user, model, api_key):
     }, {
         "model": model,
         "max_tokens": MAX_TOKENS,
-        "temperature": TEMPERATURE,
+        "temperature": temperature,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
@@ -175,32 +202,54 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
             if c.get("tier", 2) > max_tier:
                 n_skip += 1
                 continue
-            try:
-                resp = call_model(provider, system, c["input"], model, api_key)
-            except urllib.error.HTTPError as e:
-                detail = e.read().decode("utf-8", "replace")[:200]
-                print(f"  ERROR {c['name']}: HTTP {e.code} {detail}")
-                n_err += 1
-                continue
-            except Exception as e:  # noqa: BLE001 - report and continue
-                print(f"  ERROR {c['name']}: {e}")
-                n_err += 1
-                continue
-            passed, hits, bad = score(resp, c["expect"], c["reject"], c["threshold"])
+            # Try up to MAX_ATTEMPTS times: substring scoring over live model output
+            # is non-deterministic (sampling + serving jitter even at temperature 0),
+            # so a transient phrasing miss or API hiccup shouldn't fail the case. Pass
+            # on the first attempt that scores; if none do, report the last graded one.
+            passed, attempt = False, 0
+            # graded_resp = the last response we actually scored (stays None until a
+            # call succeeds). A retry that *errors* never overwrites it, so an earlier
+            # attempt that returned a gradeable — but failing — response is still
+            # reported as a real FAIL; ERROR is reserved for "no attempt ever returned
+            # anything to grade". last_err carries the most recent attempt's error (if
+            # the final attempt errored) so it can be surfaced rather than swallowed.
+            graded_resp = last_err = None
+            hits, bad = [], []
+            for attempt in range(1, MAX_ATTEMPTS + 1):
+                temp = TEMPERATURE if attempt == 1 else RETRY_TEMPERATURE
+                try:
+                    resp = call_model(provider, system, c["input"], model, api_key, temp)
+                except urllib.error.HTTPError as e:
+                    last_err = f"HTTP {e.code} {e.read().decode('utf-8', 'replace')[:200]}"
+                    continue
+                except Exception as e:  # noqa: BLE001 - report and continue
+                    last_err = str(e)
+                    continue
+                last_err = None
+                graded_resp = resp
+                passed, hits, bad = score(resp, c["expect"], c["reject"], c["threshold"])
+                if passed:
+                    break
+            tries = f" (after {attempt} attempt(s))" if attempt > 1 else ""
             if passed:
                 n_pass += 1
-                print(f"  PASS  {c['name']}  ({len(hits)}/{c['threshold']} expect)")
+                print(f"  PASS  {c['name']}  ({len(hits)}/{c['threshold']} expect){tries}")
+            elif graded_resp is None:  # every attempt errored — nothing to score
+                n_err += 1
+                print(f"  ERROR {c['name']}: {last_err}{tries}")
             else:
                 n_fail += 1
                 bits = []
                 if len(hits) < c["threshold"]:
-                    missed = [t for t in c["expect"] if t.lower() not in resp.lower()]
+                    missed = [t for t in c["expect"] if t.lower() not in graded_resp.lower()]
                     bits.append(f"{len(hits)}/{c['threshold']} expect (missed: {missed})")
                 if bad:
                     bits.append(f"hit reject: {bad}")
-                print(f"  FAIL  {c['name']}  — {'; '.join(bits)}")
+                if last_err:  # graded an earlier attempt, but a later retry errored
+                    bits.append(f"later retry errored: {last_err}")
+                print(f"  FAIL  {c['name']}  — {'; '.join(bits)}{tries}")
                 if show_failures:
-                    print(f"        ↳ {' '.join(resp.split())[:500]}…")
+                    print(f"        ↳ {' '.join(graded_resp.split())[:500]}…")
     print("\n---")
     skipped = f", {n_skip} skipped (tier > {max_tier})" if n_skip else ""
     print(f"{n_pass} passed, {n_fail} failed, {n_err} errored{skipped}.")

@@ -2,7 +2,7 @@
 # real Claude Code CLI. Usage: make <target>
 COMPOSE := docker compose
 
-.PHONY: help build sandbox sandbox-remote sandbox-setup sandbox-setup-remote sandbox-setup-cold clean ensure-env
+.PHONY: help build sandbox sandbox-remote sandbox-setup sandbox-setup-remote sandbox-setup-cold smoke scenarios clean ensure-env
 
 help:
 	@echo "Targets:"
@@ -12,6 +12,8 @@ help:
 	@echo "  sandbox-setup        REPL on a local cluster with NO MCP pre-wired — test couchbase-mcp-setup"
 	@echo "  sandbox-setup-remote REPL with NO MCP pre-wired against Capella — test the Capella setup path"
 	@echo "  sandbox-setup-cold   Like sandbox-setup but NO CB_* in the env either — a true first-time setup"
+	@echo "  smoke           Automated one-per-skill gate (headless) — fast, keep green"
+	@echo "  scenarios       Automated broader curated suite (headless) — smoke + more cases"
 	@echo "  clean           Tear down containers + the local cluster volume"
 
 ensure-env:
@@ -63,6 +65,37 @@ sandbox-setup-cold: ensure-env
 	  -e HARNESS_MODE=sandbox -e CB_PROFILE=local \
 	  -e HARNESS_PREWIRE_MCP=0 -e HARNESS_SEED_CB_ENV=0 \
 	  runner
+
+# Automated tests: headless `claude -p` across the curated eval cases, scoring
+# each skill's auto-trigger + MCP tool calls + answer. Both targets run in two
+# phases, each putting the skill in its meaningful environment (mirrors `sandbox`
+# vs `sandbox-setup`): the query/modeling skills run with MCP pre-wired so they
+# hit the live cluster; couchbase-mcp-setup runs with NO MCP pre-wired so it
+# actually drives the setup flow. Exit non-zero if any case fails.
+#
+#   smoke      — the one-per-skill gate (`"smoke": true`). Fast; keep it green.
+#   scenarios  — the broader curated set (smoke + `"scenario": true`). Run while
+#                iterating on a skill. (smoke ⊆ scenarios ⊆ all cases.)
+#
+# TEST_SELECT is the knob both share; `smoke`/`scenarios` just preset it.
+TEST_SELECT ?= smoke
+
+smoke: TEST_SELECT = smoke
+scenarios: TEST_SELECT = scenarios
+
+smoke scenarios: ensure-env
+	@rc=0; \
+	echo "── $(TEST_SELECT) 1/2: query + modeling skills (MCP pre-wired) ──"; \
+	$(COMPOSE) --profile local run --rm \
+	  -e HARNESS_MODE=test -e CB_PROFILE=local -e HARNESS_TEST_SELECT=$(TEST_SELECT) \
+	  -e HARNESS_TEST_ARGS="--skip-skill couchbase-mcp-setup" \
+	  runner || rc=1; \
+	echo "── $(TEST_SELECT) 2/2: couchbase-mcp-setup (no MCP pre-wired — setup flow) ──"; \
+	$(COMPOSE) --profile local run --rm \
+	  -e HARNESS_MODE=test -e CB_PROFILE=local -e HARNESS_PREWIRE_MCP=0 -e HARNESS_TEST_SELECT=$(TEST_SELECT) \
+	  -e HARNESS_TEST_ARGS="--skill couchbase-mcp-setup" \
+	  runner || rc=1; \
+	exit $$rc
 
 clean:
 	-$(COMPOSE) --profile local down -v --remove-orphans

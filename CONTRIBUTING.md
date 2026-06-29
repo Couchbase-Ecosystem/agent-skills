@@ -11,7 +11,46 @@ skills/<skill-name>/
   examples/examples.md     # optional — worked examples (also used by eval suites)
 ```
 
-Start from the template at [`skills/_template/SKILL.md`](./skills/_template/SKILL.md).
+Start from this template:
+
+```markdown
+---
+name: couchbase-skill-name
+description: >-
+  One or two sentences: what this skill does and WHEN an agent should invoke it.
+  Be specific about triggers (e.g. "Use when the user asks to optimize a SQL++
+  query or diagnose a slow query / missing index").
+license: Apache-2.0
+---
+
+# <Skill Title>
+
+## When to use this skill
+
+<Concrete triggers. What's in scope and out of scope. Which sibling skill to
+hand off to for out-of-scope requests.>
+
+## Gather context (via the Couchbase MCP server)
+
+<Which MCP tools to call first to ground the work in the live cluster, e.g.
+`get_schema_for_collection`, `list_indexes`, `explain_sql_plus_plus_query`,
+`run_sql_plus_plus_query`. Treat the cluster as read-only unless the user
+approves a write/DDL.>
+
+## Workflow
+
+1. <Step>
+2. <Step>
+
+## Guidelines
+
+- Use Couchbase-native terminology (SQL++, GSI, Bucket/Scope/Collection, Search Service, Capella).
+- Prefer real-cluster evidence over generic advice.
+
+## References
+
+- `references/<topic>.md` — <what it covers>
+```
 
 ### `SKILL.md` frontmatter
 
@@ -39,7 +78,24 @@ license: Apache-2.0
 ./tools/validate-skills.sh
 ```
 
-CI runs the same checks (`.github/workflows/validate-skills.yml`). Before opening a PR, also run the relevant eval suite under `testing/`.
+CI runs the same checks (`.github/workflows/validate-skills.yml`).
+
+## Testing
+
+Validate eval-suite schema (free, deterministic, no API key — runs on every PR):
+
+```bash
+python3 tools/run-evals.py --dry-run
+```
+
+Two runners exercise a skill's behavior — see [`testing/README.md`](./testing/README.md):
+
+- **Model-only evals** (`tools/run-evals.py --execute`) — quick scoring of a skill's
+  guidance against a model. Needs an API key; no cluster.
+- **The real-harness sandbox** ([`testing/sandbox/`](./testing/sandbox/README.md)) — the
+  real Claude Code CLI against a live Couchbase cluster: a manual REPL plus automated
+  `make smoke` / `make scenarios` tests that verify skill **triggering** and real
+  **MCP tool calls**.
 
 ## Reviewing a skill
 

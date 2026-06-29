@@ -7,7 +7,10 @@
       "expect": ["SELECT", "COUNT", "WHERE", "travel-sample"],
       "reject": ["$match", "db.", "aggregate(", ".find(", "$group", "`travel-sample`.inventory"],
       "threshold": 3,
-      "tier": 3
+      "tier": 3,
+      "smoke": true,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
     },
     {
       "name": "analytical opener triggers aggregation",
@@ -23,7 +26,21 @@
       "expect": ["GROUP BY", "COUNT", "ORDER BY"],
       "reject": ["$group", "$sort", "db.", "aggregation pipeline", "`travel-sample`.inventory"],
       "threshold": 2,
-      "tier": 3
+      "tier": 3,
+      "scenario": true,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
+    },
+    {
+      "name": "join routes to airline names",
+      "input": "For travel-sample, list a few routes along with the name of the airline operating each.",
+      "expect": ["SELECT", "JOIN", "airline"],
+      "reject": ["$lookup", "db.", ".aggregate(", "`travel-sample`.inventory"],
+      "threshold": 2,
+      "tier": 3,
+      "scenario": true,
+      "expect_skill": "couchbase-natural-language-querying",
+      "expect_tools": ["run_sql_plus_plus_query"]
     },
     {
       "name": "array handling with UNNEST",
