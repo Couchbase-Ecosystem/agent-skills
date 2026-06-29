@@ -107,6 +107,13 @@ def validate_suite(data):
             problems.append(f"{tag}: 'expect_skill' must be a string")
         if "expect_tools" in c and not isinstance(c["expect_tools"], list):
             problems.append(f"{tag}: 'expect_tools' must be a list")
+        # Elements of these list fields are matched as substrings / tool-name needles
+        # (str.lower(), `needle in name`), so a non-string element passes the list
+        # checks above but TypeErrors at runtime. Require list-of-strings.
+        for field in ("expect", "reject", "expect_tools"):
+            val = c.get(field)
+            if isinstance(val, list) and not all(isinstance(x, str) for x in val):
+                problems.append(f"{tag}: '{field}' must be a list of strings")
     return problems
 
 
@@ -200,7 +207,13 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
             # so a transient phrasing miss or API hiccup shouldn't fail the case. Pass
             # on the first attempt that scores; if none do, report the last graded one.
             passed, attempt = False, 0
-            resp = last_err = None
+            # graded_resp = the last response we actually scored (stays None until a
+            # call succeeds). A retry that *errors* never overwrites it, so an earlier
+            # attempt that returned a gradeable — but failing — response is still
+            # reported as a real FAIL; ERROR is reserved for "no attempt ever returned
+            # anything to grade". last_err carries the most recent attempt's error (if
+            # the final attempt errored) so it can be surfaced rather than swallowed.
+            graded_resp = last_err = None
             hits, bad = [], []
             for attempt in range(1, MAX_ATTEMPTS + 1):
                 temp = TEMPERATURE if attempt == 1 else RETRY_TEMPERATURE
@@ -213,6 +226,7 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
                     last_err = str(e)
                     continue
                 last_err = None
+                graded_resp = resp
                 passed, hits, bad = score(resp, c["expect"], c["reject"], c["threshold"])
                 if passed:
                     break
@@ -220,20 +234,22 @@ def run_execute(suites, provider, model, api_key, max_tier, show_failures=False)
             if passed:
                 n_pass += 1
                 print(f"  PASS  {c['name']}  ({len(hits)}/{c['threshold']} expect){tries}")
-            elif resp is None:  # every attempt errored — nothing to score
+            elif graded_resp is None:  # every attempt errored — nothing to score
                 n_err += 1
                 print(f"  ERROR {c['name']}: {last_err}{tries}")
             else:
                 n_fail += 1
                 bits = []
                 if len(hits) < c["threshold"]:
-                    missed = [t for t in c["expect"] if t.lower() not in resp.lower()]
+                    missed = [t for t in c["expect"] if t.lower() not in graded_resp.lower()]
                     bits.append(f"{len(hits)}/{c['threshold']} expect (missed: {missed})")
                 if bad:
                     bits.append(f"hit reject: {bad}")
+                if last_err:  # graded an earlier attempt, but a later retry errored
+                    bits.append(f"later retry errored: {last_err}")
                 print(f"  FAIL  {c['name']}  — {'; '.join(bits)}{tries}")
                 if show_failures:
-                    print(f"        ↳ {' '.join(resp.split())[:500]}…")
+                    print(f"        ↳ {' '.join(graded_resp.split())[:500]}…")
     print("\n---")
     skipped = f", {n_skip} skipped (tier > {max_tier})" if n_skip else ""
     print(f"{n_pass} passed, {n_fail} failed, {n_err} errored{skipped}.")

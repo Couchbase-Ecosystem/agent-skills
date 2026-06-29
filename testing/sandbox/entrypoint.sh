@@ -183,9 +183,13 @@ case "${HARNESS_MODE:-sandbox}" in
     fi
     if [ -n "${HARNESS_TEST_ARGS:-}" ]; then
       # Extra runner flags for ad-hoc runs, e.g. HARNESS_TEST_ARGS="--skill X --case Y".
-      # Word-split intentionally so multiple flags pass through.
+      # Word-split intentionally so multiple flags pass through; disable globbing
+      # (set -f) around the expansion so a literal * or ? in a flag isn't expanded
+      # against the working directory's files. Restored with set +f immediately after.
+      set -f
       # shellcheck disable=SC2206
       RUNNER_ARGS+=(${HARNESS_TEST_ARGS})
+      set +f
     fi
     echo "==> Tests (${HARNESS_TEST_SELECT:-smoke}): headless \`claude -p\` across the curated eval cases"
     exec python3 /opt/harness/run-tests.py "${RUNNER_ARGS[@]}"
