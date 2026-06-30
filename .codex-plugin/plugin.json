@@ -4,6 +4,7 @@
   "description": "Official Couchbase plugin (MCP Server + Skills) for Codex. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server.",
   "author": {
     "name": "Couchbase",
+    "email": "devadvocates@couchbase.com",
     "url": "https://www.couchbase.com"
   },
   "homepage": "https://docs.couchbase.com/",
@@ -20,9 +21,21 @@
   "skills": "./skills/",
   "mcpServers": "./mcp.json",
   "interface": {
-    "displayName": "Couchbase Skills",
+    "displayName": "Couchbase",
     "shortDescription": "Couchbase MCP + skills: query, optimize, and model a live cluster.",
-    "category": "Productivity",
-    "capabilities": ["Read"]
+    "developerName": "Couchbase",
+    "category": "Databases",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://www.couchbase.com",
+    "privacyPolicyURL": "https://www.couchbase.com/privacy-policy/",
+    "defaultPrompt": [
+      "Set up my Couchbase connection using the couchbase-mcp-setup skill.",
+      "Connect to my Couchbase cluster and explore its buckets, scopes, and collections.",
+      "Write a SQL++ query to analyze the documents in my collection.",
+      "Optimize the slow SQL++ queries and indexes in my Couchbase cluster.",
+      "Design a Couchbase document data model for my use case."
+    ],
+    "logo": "./assets/logo.png",
+    "brandColor": "#EC1218"
   }
 }
