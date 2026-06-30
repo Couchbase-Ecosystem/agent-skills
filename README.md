@@ -32,7 +32,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | **Cursor** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install `couchbase` via `/add-plugin` or the marketplace UI |
 | **Vercel Agent Skills** | `npx skills add Couchbase-Ecosystem/agent-skills` |
 
-After installing, set the `CB_*` environment variables above so the MCP server can connect — or run the **`couchbase-mcp-setup`** skill, which walks you through it per harness.
+After installing, run the **`couchbase-mcp-setup`** skill to connect to your cluster — it walks you through setting the `CB_*` environment variables (`CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD`) per harness.
 
 ### Install each skill manually (Claude Desktop)
 
