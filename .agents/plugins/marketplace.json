@@ -1,19 +1,21 @@
 {
-  "name": "couchbase-plugins",
+  "name": "couchbase-agent-skills",
   "owner": {
-    "name": "Couchbase",
-    "url": "https://www.couchbase.com"
+    "name": "Couchbase Agent Skills"
   },
   "plugins": [
     {
       "name": "couchbase",
-      "source": "./",
-      "description": "Official Couchbase plugin (MCP Server + Skills) for agent harnesses. Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server.",
-      "category": "Productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Couchbase-Ecosystem/agent-skills.git",
+        "ref": "main"
+      },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
-      }
+      },
+      "category": "Databases"
     }
   ]
 }

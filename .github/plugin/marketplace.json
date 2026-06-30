@@ -2,6 +2,7 @@
   "name": "couchbase-plugins",
   "owner": {
     "name": "Couchbase",
+    "email": "devadvocates@couchbase.com",
     "url": "https://www.couchbase.com"
   },
   "metadata": {
@@ -11,9 +12,19 @@
   "plugins": [
     {
       "name": "couchbase",
+      "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server.",
       "version": "0.1.0",
-      "source": "./",
-      "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server."
+      "keywords": [
+        "couchbase",
+        "capella",
+        "database",
+        "nosql",
+        "mcp",
+        "sql++"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/Couchbase-Ecosystem/agent-skills",
+      "source": "./"
     }
   ]
 }
