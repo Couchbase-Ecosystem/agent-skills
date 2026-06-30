@@ -24,8 +24,9 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | Harness | Install |
 |---------|---------|
 | **Claude Code** | `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` |
-| **Claude Desktop App** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install the `couchbase` plugin. See [Claude Desktop](#claude-desktop) below. |
-| **Codex** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then install `couchbase` from the plugin browser |
+| **Claude Desktop App** | In **Customize**, click the `+` next to **Personal Plugins** → **Add** → **Add Marketplace**, enter `Couchbase-Ecosystem/agent-skills` (or the repo URL), and click **Sync**. Then click the `+` to install the **couchbase** plugin. _No marketplace flow in your UI? [Install each skill manually](#install-each-skill-manually-claude-desktop) below._ |
+| **Codex CLI** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `codex plugin add couchbase@couchbase-plugins` |
+| **Codex Desktop App** | Go to **Plugins** → click the dropdown next to the `+` (top-right) → **Add marketplace**, enter `Couchbase-Ecosystem/agent-skills` as the source, and click **Add marketplace**. Then on the **Plugins → Personal** tab, click **Install** next to **Couchbase**. |
 | **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
 | **Cursor** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install `couchbase` via `/add-plugin` or the marketplace UI |
@@ -33,15 +34,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 
 After installing, set the `CB_*` environment variables above so the MCP server can connect — or run the **`couchbase-mcp-setup`** skill, which walks you through it per harness.
 
-### Claude Desktop
-
-Use this plugin from the **Code** tab in Claude Desktop — the experience matches Claude Code in the terminal. Add the repo as a **plugin marketplace**: the manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) bundles both the skills and the MCP server, so they install together.
-
-1. **Add the marketplace.** Open **Customize** (available from any tab) → click the `+` next to **"Personal Plugins"** → **Add** → **Add Marketplace**. Paste `Couchbase-Ecosystem/agent-skills` (or the GitHub repo URL) and click **Sync**.
-2. **Install the plugin.** Click the `+` to add the **couchbase** plugin. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
-3. **Connect to your cluster.** Installing registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
-
-#### If plugin marketplace is not available, install each skill manually
+### Install each skill manually (Claude Desktop)
 
 If your Claude Desktop UI does not show the plugin marketplace flow, use per-skill uploads instead.
 
