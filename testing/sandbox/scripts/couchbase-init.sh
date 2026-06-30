@@ -11,9 +11,9 @@ host="${CS#*://}"; host="${host%%[,/?]*}"; host="${host##*@}"; host="${host%%:*}
 H="http://${host}:8091"
 
 ADMIN="${CB_ADMIN_USERNAME:-Administrator}"
-ADMIN_PW="${CB_ADMIN_PASSWORD:-password123}"
+ADMIN_PW="${CB_ADMIN_PASSWORD:?CB_ADMIN_PASSWORD must be set}"
 DBUSER="${CB_USERNAME:-tester}"
-DBPASS="${CB_PASSWORD:-password123}"
+DBPASS="${CB_PASSWORD:?CB_PASSWORD must be set}"
 
 echo "[cb-init] initializing cluster at $H"
 

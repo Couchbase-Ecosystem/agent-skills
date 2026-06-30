@@ -75,12 +75,20 @@ JSON
 # inherited CB_* — so a dangling host/Capella value can never leak into the run.
 # In REMOTE mode we use the CB_* supplied via .env as-is.
 if [ "${CB_PROFILE:-local}" = "local" ]; then
+  # CB_LOCAL_PASSWORD is the canonical name; CB_PASSWORD is accepted for existing .env files.
+  _local_pw="${CB_LOCAL_PASSWORD:-${CB_PASSWORD:-}}"
+  if [ -z "$_local_pw" ]; then
+    echo "FATAL: no local password set. Add CB_LOCAL_PASSWORD to testing/sandbox/.env (see .env.example)." >&2
+    exit 2
+  fi
   export CB_CONNECTION_STRING="couchbase://couchbase"
   export CB_USERNAME="${CB_LOCAL_USERNAME:-tester}"
-  export CB_PASSWORD="${CB_LOCAL_PASSWORD:-password123}"
+  export CB_PASSWORD="$_local_pw"
   export CB_MCP_READ_ONLY_MODE="${CB_MCP_READ_ONLY_MODE:-true}"
   export CB_ADMIN_USERNAME="${CB_ADMIN_USERNAME:-Administrator}"
-  export CB_ADMIN_PASSWORD="${CB_ADMIN_PASSWORD:-password123}"
+  # CB_ADMIN_PASSWORD is only used by couchbase-init.sh to provision the local container;
+  # defaults to the db password if not explicitly overridden.
+  export CB_ADMIN_PASSWORD="${CB_ADMIN_PASSWORD:-$_local_pw}"
   echo "==> Local cluster: $CB_CONNECTION_STRING (db user: $CB_USERNAME)"
 elif [ "${HARNESS_PREWIRE_MCP:-1}" = "0" ] && [ -z "${CB_CONNECTION_STRING:-}" ]; then
   # Remote setup-flow target with nothing preset: let the couchbase-mcp-setup skill
@@ -135,7 +143,7 @@ case "${HARNESS_MODE:-sandbox}" in
           echo "    Your local cluster — give these to the skill when it asks:"
           echo "      connection string : couchbase://couchbase"
           echo "      database user     : ${CB_USERNAME:-tester}"
-          echo "      password          : ${CB_PASSWORD:-password123}"
+          echo "      password          : $CB_PASSWORD"
         else
           echo "    Target your Capella cluster; the skill will gather the connection string + creds."
         fi
