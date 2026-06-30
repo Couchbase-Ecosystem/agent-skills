@@ -1,35 +1,23 @@
 # Couchbase Agent Skills
 
-Official Couchbase **agent skills** + **MCP server** for your favorite coding agent. Connect to a live Couchbase cluster, explore data, write and run SQL++, optimize queries and GSI indexes, and design data models — grounded in your real cluster.
+Couchbase agent skills bring Couchbase expertise to your agents out of the box, letting them operate from authoritative knowledge rather than relying on training data or guesswork. Designed with the enterprise-supported Couchbase MCP server, these skills work against a real, live cluster — grounding every answer in your actual schema, data, and indexes so agents deliver reliable, high-quality results.
 
-> **Status:** v1 skills built — MCP-centric (the agent operates a live cluster via the Couchbase MCP server): `couchbase-mcp-setup`, `couchbase-natural-language-querying`, `couchbase-query-optimizer`, `couchbase-data-modeling`.
+Enterprise support for Couchbase MCP Server is available by licensing Couchbase AI Data Plane, which also entitles use and enterprise support of Couchbase Agent Memory and Couchbase Agent Catalog.
 
-## What's here
+## Available Skills
 
-| Path | Purpose |
-|------|---------|
-| `skills/` | Agent Skills (one directory per skill, each with a `SKILL.md`). |
-| `mcp.json` | Couchbase MCP server wiring (consumed by the plugin manifests). |
-| `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `.agents/`, `gemini-extension.json` | Per-harness plugin/extension manifests. |
-| `tools/` | Repo tooling — skill validator and the `review-skill` meta-tool. |
-| `testing/` | Eval suites and the testing sandbox — how to test the skills. See [`testing/`](./testing/README.md). |
+| Skill Name | What it does |
+|------------|--------------|
+| `couchbase-mcp-setup` | **Initial configuration:** setting CB_* environment variables for the MCP server environment. |
+| `couchbase-natural-language-querying` | Translating natural language into SQL++ for execution against live cluster environments. |
+| `couchbase-query-optimizer` | Optimization of EXPLAIN plans, GSI index architecture, and identifying slow query bottlenecks. |
+| `couchbase-data-modeling` | Schema design for JSON, evaluating embedding vs. referencing strategies, and defining document key patterns. |
 
-## Prerequisites: the Couchbase MCP server
+## Prerequisites
 
-These skills act on a live cluster through the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) (`couchbase-mcp-server`). It runs via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker — **not** a plain `npx` command.
+The skills act on a live cluster through the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) which can be installed via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker. For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/couchbase/mcp-server-couchbase#readme).
 
-Set these environment variables (the manifests reference them):
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CB_CONNECTION_STRING` | Cluster connection string, e.g. `couchbases://cb.xxxx.cloud.couchbase.com` | **required** |
-| `CB_USERNAME` | Database username | **required** |
-| `CB_PASSWORD` | Database password | **required** |
-| `CB_MCP_READ_ONLY_MODE` | Block all data modifications (KV and Query) | `true` |
-
-For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/couchbase/mcp-server-couchbase#readme).
-
-## Install
+## Installation methods
 
 The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ecosystem/agent-skills) is itself the plugin / marketplace source — install directly from it:
 
