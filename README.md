@@ -29,7 +29,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | **Codex Desktop App** | Go to **Plugins** → click the dropdown next to the `+` (top-right) → **Add marketplace**, enter `Couchbase-Ecosystem/agent-skills` as the source, and click **Add marketplace**. Then on the **Plugins → Personal** tab, click **Install** next to **Couchbase**. |
 | **Antigravity CLI** | `agy plugin install https://github.com/Couchbase-Ecosystem/agent-skills` |
 | **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
-| **GitHub Copilot CLI** | Within a Copilot CLI Session: `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
+| **GitHub Copilot CLI** | Within a Copilot CLI session: `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
 | **Cursor** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install `couchbase` via `/add-plugin` or the marketplace UI |
 
 After installing, run the **`couchbase-mcp-setup`** skill to connect to your cluster — it walks you through setting the `CB_*` environment variables (`CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD`) per harness.
