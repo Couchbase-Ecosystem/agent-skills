@@ -36,7 +36,7 @@ Work through the steps in order. Be imperative and never print secret values bac
 Determine two things before configuring anything:
 
 1. **Which harness** is the user in — Claude Code (most common), Codex, Cursor, Windsurf, Claude Desktop, VS Code, JetBrains, or any other MCP-compatible client? Hints: `env | grep '^CODEX_'` (non-empty → Codex); in Claude Code, `claude mcp list` works. A client not named here still works — see [`references/client-setup.md`](references/client-setup.md) for its config-file location and any per-client quirks.
-2. **How they installed** — via the Couchbase **plugin** (a bundled `mcp.json` already defines the `couchbase` server and pins the safety defaults; credentials are supplied separately in Step 5) or **manually** (no server registered yet). Context only: Step 5's recommended `local`-scoped `claude mcp add` works either way (it overrides the plugin's definition if one is present).
+2. **How they installed** — via the Couchbase **plugin** (a bundled `mcp.json` already defines the `couchbase` server, pins the safety defaults, and passes through `CB_CONNECTION_STRING`/`CB_USERNAME`/`CB_PASSWORD` from whatever environment the client launches it in) or **manually** (no server registered yet). Context only: Step 5's recommended `local`-scoped `claude mcp add` works either way (it overrides the plugin's definition if one is present).
 
 ## Step 1 — Check existing configuration (never reveal secrets)
 
