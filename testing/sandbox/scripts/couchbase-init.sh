@@ -25,7 +25,7 @@ curl -sf -X POST "$H/node/controller/setupServices" \
 
 # 2. Admin credentials (sets the web/admin user).
 curl -sf -X POST "$H/settings/web" \
-  -d port=8091 -d "username=$ADMIN" -d "password=$ADMIN_PW" >/dev/null 2>&1 || true
+  -d port=8091 --data-urlencode "username=$ADMIN" --data-urlencode "password=$ADMIN_PW" >/dev/null 2>&1 || true
 
 # 3. GSI storage mode: plasma (EE) if allowed, else forestdb (CE).
 curl -sf -u "$ADMIN:$ADMIN_PW" -X POST "$H/settings/indexes" \
