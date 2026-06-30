@@ -143,7 +143,7 @@ case "${HARNESS_MODE:-sandbox}" in
           echo "    Your local cluster — give these to the skill when it asks:"
           echo "      connection string : couchbase://couchbase"
           echo "      database user     : ${CB_USERNAME:-tester}"
-          printf "      password          : %s\n" "$CB_PASSWORD"
+          echo "      password          : [configured in CB_LOCAL_PASSWORD]"
         else
           echo "    Target your Capella cluster; the skill will gather the connection string + creds."
         fi
