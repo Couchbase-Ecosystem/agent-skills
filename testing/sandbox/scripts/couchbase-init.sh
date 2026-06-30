@@ -11,9 +11,9 @@ host="${CS#*://}"; host="${host%%[,/?]*}"; host="${host##*@}"; host="${host%%:*}
 H="http://${host}:8091"
 
 ADMIN="${CB_ADMIN_USERNAME:-Administrator}"
-ADMIN_PW="${CB_ADMIN_PASSWORD:-password123}"
+ADMIN_PW="${CB_ADMIN_PASSWORD:?CB_ADMIN_PASSWORD must be set}"
 DBUSER="${CB_USERNAME:-tester}"
-DBPASS="${CB_PASSWORD:-password123}"
+DBPASS="${CB_PASSWORD:?CB_PASSWORD must be set}"
 
 echo "[cb-init] initializing cluster at $H"
 
@@ -25,7 +25,7 @@ curl -sf -X POST "$H/node/controller/setupServices" \
 
 # 2. Admin credentials (sets the web/admin user).
 curl -sf -X POST "$H/settings/web" \
-  -d port=8091 -d "username=$ADMIN" -d "password=$ADMIN_PW" >/dev/null 2>&1 || true
+  -d port=8091 --data-urlencode "username=$ADMIN" --data-urlencode "password=$ADMIN_PW" >/dev/null 2>&1 || true
 
 # 3. GSI storage mode: plasma (EE) if allowed, else forestdb (CE).
 curl -sf -u "$ADMIN:$ADMIN_PW" -X POST "$H/settings/indexes" \
