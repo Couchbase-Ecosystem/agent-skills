@@ -24,7 +24,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 | Harness | Install |
 |---------|---------|
 | **Claude Code** | `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` |
-| **Claude Desktop App** | No marketplace command — upload the repo as a plugin ZIP. See [Claude Desktop](#claude-desktop) below. |
+| **Claude Desktop App** | Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace, then install the `couchbase` plugin. See [Claude Desktop](#claude-desktop) below. |
 | **Codex** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then install `couchbase` from the plugin browser |
 | **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` (restart to activate the MCP server) |
@@ -35,22 +35,15 @@ After installing, set the `CB_*` environment variables above so the MCP server c
 
 ### Claude Desktop
 
-Use this plugin from the **Code** tab in Claude Desktop — the experience matches Claude Code in the terminal. Claude Desktop has no marketplace command, but it installs the repo as a **plugin** from a single ZIP: the manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) bundles both the skills and the MCP server, so they install together.
+Use this plugin from the **Code** tab in Claude Desktop — the experience matches Claude Code in the terminal. Add the repo as a **plugin marketplace**: the manifest at [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) bundles both the skills and the MCP server, so they install together.
 
-1. **Get the plugin ZIP.** Either:
-   - **Download it from GitHub** — on the [repo page](https://github.com/Couchbase-Ecosystem/agent-skills), use **Code → Download ZIP**.
-   - **Or clone and package it yourself**, which lets you drop unnecessary files (e.g., `.git`, `testing/`, `.idea/`):
-     ```bash
-     git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
-     cd agent-skills
-     zip -r couchbase-plugin.zip . -x '.git/*' '.github/*' 'skills/_template/*' '.idea/*' 'testing/*'
-     ```
-2. **Upload it.** Open **Customize** (available from any tab) → click the `+` next to **"Personal Plugins"** → select the **Personal** tab in the modal that opens → click the `+` next to **Local Uploads**, and select the ZIP. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
-3. **Connect to your cluster.** The upload registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
+1. **Add the marketplace.** Open **Customize** (available from any tab) → click the `+` next to **"Personal Plugins"** → **Add** → **Add Marketplace**. Paste `Couchbase-Ecosystem/agent-skills` (or the GitHub repo URL) and click **Sync**.
+2. **Install the plugin.** Click the `+` to add the **couchbase** plugin. The skills register and the Couchbase MCP server is wired up automatically from [`mcp.json`](./mcp.json).
+3. **Connect to your cluster.** Installing registers the server but not your credentials. Run the **`couchbase-mcp-setup`** skill — it walks you through supplying `CB_CONNECTION_STRING`, `CB_USERNAME`, and `CB_PASSWORD`, the same way it does in Claude Code.
 
-#### If plugin upload is not available, install each skill manually
+#### If plugin marketplace is not available, install each skill manually
 
-If your Claude Desktop UI does not show the plugin upload flow, use per-skill uploads instead.
+If your Claude Desktop UI does not show the plugin marketplace flow, use per-skill uploads instead.
 
 1. **Create one ZIP per skill** (from repo root):
    ```bash
@@ -69,7 +62,7 @@ If your Claude Desktop UI does not show the plugin upload flow, use per-skill up
 
 Authoring, validating, and testing skills is documented in
 [`CONTRIBUTING.md`](./CONTRIBUTING.md). For testing specifics — eval suites and
-the [real-harness sandbox](./testing/sandbox/README.md) — see [`testing/`](./testing/README.md).
+the [harness sandbox](./testing/sandbox/README.md) — see [`testing/`](./testing/README.md).
 
 ## License
 

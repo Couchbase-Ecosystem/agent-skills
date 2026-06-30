@@ -28,6 +28,5 @@ npm-debug.log*
 *.log
 /tmp/
 
-# Packaged plugin (built for Claude Desktop upload)
-couchbase-plugin.zip
+# Packaged skill files (built for Claude Desktop upload)
 skill-zips/
