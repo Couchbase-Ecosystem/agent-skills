@@ -4,7 +4,7 @@
   "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, write and run SQL++ queries, optimize queries and GSI indexes, and design data models — grounded in your real cluster via the Couchbase MCP server.",
   "author": {
     "name": "Couchbase",
-    "email": "devadvocates@couchbase.com",
+    "email": "agent-plugins@couchbase.com",
     "url": "https://www.couchbase.com"
   },
   "homepage": "https://docs.couchbase.com/",

@@ -2,7 +2,7 @@
   "name": "couchbase-plugins",
   "owner": {
     "name": "Couchbase",
-    "email": "devadvocates@couchbase.com",
+    "email": "agent-plugins@couchbase.com",
     "url": "https://www.couchbase.com"
   },
   "metadata": {
