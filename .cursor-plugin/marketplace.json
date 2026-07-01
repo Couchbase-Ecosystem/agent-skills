@@ -6,7 +6,8 @@
     "url": "https://www.couchbase.com"
   },
   "metadata": {
-    "description": "Official Couchbase marketplace (MCP Server + Skills) for Cursor."
+    "description": "Official Couchbase marketplace (MCP Server + Skills) for Cursor.",
+    "version": "0.1.0"
   },
   "plugins": [
     {
