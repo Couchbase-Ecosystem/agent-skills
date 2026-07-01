@@ -35,7 +35,7 @@ services:
         # Claude Code terminal (to "x.y.z (Claude Code)") and would corrupt the
         # npm install spec if interpolated here.
         CLAUDE_CODE_VERSION: "${HARNESS_CLAUDE_CODE_VERSION:-latest}"
-        MCP_SERVER_SPEC: "${HARNESS_MCP_SERVER_SPEC:-couchbase-mcp-server>=0.8.0,<0.9.0}"
+        MCP_SERVER_SPEC: "${HARNESS_MCP_SERVER_SPEC:-couchbase-mcp-server>=1.0.0,<1.1.0}"
         SKILL_INSTALL_MODE: "${SKILL_INSTALL_MODE:-local}"
         SKILLS_MARKETPLACE: "${SKILLS_MARKETPLACE:-Couchbase-Ecosystem/agent-skills}"
     image: cbskills-harness:latest

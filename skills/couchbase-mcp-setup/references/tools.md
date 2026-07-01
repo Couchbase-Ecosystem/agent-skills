@@ -1,6 +1,6 @@
 # MCP tool catalog
 
-Exact tool names the server exposes (verified on v0.8; re-check with `get_server_configuration_status` after upgrading). Use these for verification, and for `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` lists (names must match exactly). `[W]` = write tool, not loaded when `CB_MCP_READ_ONLY_MODE=true` (the bundled default; the server's own default is `true` on `0.8.x`, `false` on `1.0+`). See [`safety.md`](safety.md).
+Exact tool names the server exposes (verified on v1.0; re-check with `get_server_configuration_status` after upgrading). Use these for verification, and for `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` lists (names must match exactly). `[W]` = write tool, not loaded when `CB_MCP_READ_ONLY_MODE=true` (the bundled default; the server's own default is `false` on `1.0+`). See [`safety.md`](safety.md).
 
 - [Cluster health](#cluster-health) · use for verification
 - [Schema discovery](#schema-discovery)
