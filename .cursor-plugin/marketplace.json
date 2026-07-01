@@ -1,0 +1,18 @@
+{
+  "name": "couchbase-plugins",
+  "owner": {
+    "name": "Couchbase",
+    "email": "devadvocates@couchbase.com",
+    "url": "https://www.couchbase.com"
+  },
+  "metadata": {
+    "description": "Official Couchbase marketplace (MCP Server + Skills) for Cursor."
+  },
+  "plugins": [
+    {
+      "name": "couchbase",
+      "source": "./",
+      "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, write and run SQL++ queries, optimize queries and GSI indexes, and design data models — grounded in your real cluster via the Couchbase MCP server."
+    }
+  ]
+}
