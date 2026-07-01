@@ -25,7 +25,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 |---|---|
 | **Claude Code** | Within a Claude Code session: `/plugin marketplace add Couchbase-Ecosystem/agent-skills`, then `/plugin install couchbase@couchbase-plugins` |
 | **Claude Desktop App** | In **Customize**, click the `+` next to **Personal Plugins** → **Add** → **Add Marketplace**, enter `Couchbase-Ecosystem/agent-skills` (or the repo URL), and click **Sync**. Then click the `+` to install the **couchbase** plugin. _No marketplace flow in your UI? [Install each skill manually](#install-each-skill-manually-claude-desktop) below._ |
-| **Codex CLI** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then start codex and open the plugins browser `/plugins`. Find the `couchbase` plugin and install. |
+| **Codex CLI** | `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`, then start `codex` and open the plugins browser `/plugins`. Find the `couchbase` plugin and install. |
 | **Codex Desktop App** | Go to **Plugins** → click the dropdown next to the `+` (top-right) → **Add marketplace**, enter `Couchbase-Ecosystem/agent-skills` as the source, and click **Add marketplace**. Then on the **Plugins → Personal** tab, click **Install** next to **Couchbase**. |
 | **Antigravity CLI** | `agy plugin install https://github.com/Couchbase-Ecosystem/agent-skills` |
 | **Gemini CLI** | `gemini extensions install https://github.com/Couchbase-Ecosystem/agent-skills` |
