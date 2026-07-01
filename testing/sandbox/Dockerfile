@@ -6,7 +6,7 @@
 FROM node:22-bookworm-slim
 
 ARG CLAUDE_CODE_VERSION=latest
-ARG MCP_SERVER_SPEC="couchbase-mcp-server>=0.8.0,<0.9.0"
+ARG MCP_SERVER_SPEC="couchbase-mcp-server>=1.0.0,<1.1.0"
 ARG SKILL_INSTALL_MODE=local
 ARG SKILLS_MARKETPLACE="Couchbase-Ecosystem/agent-skills"
 

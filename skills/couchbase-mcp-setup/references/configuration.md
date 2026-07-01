@@ -19,7 +19,7 @@ Every var has a CLI-arg equivalent; **CLI args override env vars**. Read-only/di
 | `CB_CLIENT_CERT_PATH` | `--client-cert-path` | required for mTLS | client certificate |
 | `CB_CLIENT_KEY_PATH` | `--client-key-path` | required for mTLS | client key |
 | `CB_CA_CERT_PATH` | `--ca-cert-path` | — | server root CA for self-signed / untrusted TLS. **Not needed for Capella** |
-| `CB_MCP_READ_ONLY_MODE` | `--read-only-mode` | `true` (`0.8.x`) → `false` (`1.0+`) | block all writes (KV + query) — **set explicitly**, the server default flips at `1.0` |
+| `CB_MCP_READ_ONLY_MODE` | `--read-only-mode` | `false` | block all writes (KV + query) — **set explicitly** to `true`; the server default allows writes |
 | `CB_MCP_TRANSPORT` | `--transport` | `stdio` | `stdio` · `http` · `sse` (deprecated) |
 | `CB_MCP_HOST` | `--host` | `127.0.0.1` | bind host (http/sse only) |
 | `CB_MCP_PORT` | `--port` | `8000` | bind port (http/sse only) |
@@ -53,6 +53,6 @@ TLS server-cert validation:
 | Docker image | `couchbaseecosystem/mcp-server-couchbase` (also `mcp/couchbase` on the Docker MCP catalog) |
 | Version check | `uvx couchbase-mcp-server --version` |
 
-> **First-launch latency:** on a cold cache `uvx` resolves the version range and downloads the package before the server starts, so the first launch (or the first after a cache prune) can be slow enough to miss the client's MCP startup window — the tools then appear only on a later restart. For deterministic startups, `uv tool install "couchbase-mcp-server>=0.8.0,<1.1.0"` or pre-warm with the version-check command above, and/or launch with a larger `MCP_TIMEOUT` (ms). See SKILL.md → Troubleshooting.
+> **First-launch latency:** on a cold cache `uvx` resolves the version range and downloads the package before the server starts, so the first launch (or the first after a cache prune) can be slow enough to miss the client's MCP startup window — the tools then appear only on a later restart. For deterministic startups, `uv tool install "couchbase-mcp-server>=1.0.0,<1.1.0"` or pre-warm with the version-check command above, and/or launch with a larger `MCP_TIMEOUT` (ms). See SKILL.md → Troubleshooting.
 
 Unsupported services (no tools): Analytics, Sync Gateway, Couchbase Lite, Capella AI Services.
