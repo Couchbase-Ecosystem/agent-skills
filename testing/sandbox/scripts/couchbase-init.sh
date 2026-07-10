@@ -40,6 +40,20 @@ curl -sf -u "$ADMIN:$ADMIN_PW" -X PUT "$H/settings/rbac/users/local/$DBUSER" \
   --data-urlencode "roles=data_reader[*],query_select[*],query_system_catalog" \
   >/dev/null 2>&1 || true
 
+# 4b. Verify provisioning actually succeeded before proceeding: the admin
+#     credentials must authenticate. If they don't, the cluster never initialized
+#     — most often because the password is under Couchbase's 6-character minimum,
+#     which makes the /settings/web call above fail silently (note the `|| true`s).
+#     Fail loudly here instead of letting the misleading "travel-sample did not
+#     load in time" timeout below mask the real cause.
+if ! curl -sf -u "$ADMIN:$ADMIN_PW" "$H/pools/default" >/dev/null 2>&1; then
+  echo "[cb-init] ERROR: cannot authenticate to $H as '$ADMIN' after initialization." >&2
+  echo "[cb-init]   The cluster did not provision with the expected admin password." >&2
+  echo "[cb-init]   Most common cause: the password is shorter than Couchbase's 6-character minimum." >&2
+  echo "[cb-init]   Set CB_LOCAL_PASSWORD (or CB_ADMIN_PASSWORD) to 6+ characters and retry." >&2
+  exit 1
+fi
+
 # 5. Load travel-sample (no-op / error if already present).
 echo "[cb-init] requesting travel-sample sample bucket"
 curl -sf -u "$ADMIN:$ADMIN_PW" -X POST "$H/sampleBuckets/install" \
