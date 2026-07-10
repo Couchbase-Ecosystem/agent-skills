@@ -42,15 +42,15 @@ curl -sf -u "$ADMIN:$ADMIN_PW" -X PUT "$H/settings/rbac/users/local/$DBUSER" \
 
 # 4b. Verify provisioning actually succeeded before proceeding: the admin
 #     credentials must authenticate. If they don't, the cluster never initialized
-#     — most often because the password is under Couchbase's 6-character minimum,
-#     which makes the /settings/web call above fail silently (note the `|| true`s).
+#     — the /settings/web call above can fail silently (note the `|| true`s).
 #     Fail loudly here instead of letting the misleading "travel-sample did not
-#     load in time" timeout below mask the real cause.
-if ! curl -sf -u "$ADMIN:$ADMIN_PW" "$H/pools/default" >/dev/null 2>&1; then
-  echo "[cb-init] ERROR: cannot authenticate to $H as '$ADMIN' after initialization." >&2
-  echo "[cb-init]   The cluster did not provision with the expected admin password." >&2
-  echo "[cb-init]   Most common cause: the password is shorter than Couchbase's 6-character minimum." >&2
-  echo "[cb-init]   Set CB_LOCAL_PASSWORD (or CB_ADMIN_PASSWORD) to 6+ characters and retry." >&2
+#     load in time" timeout below mask the real cause. Use -sS (not -s alone) so
+#     curl still prints the underlying connection/HTTP error to stderr.
+if ! curl -sSf -u "$ADMIN:$ADMIN_PW" "$H/pools/default" >/dev/null; then
+  echo "[cb-init] ERROR: cannot authenticate to $H as '$ADMIN' after initialization (see the curl error above)." >&2
+  echo "[cb-init]   The cluster did not provision correctly. Common causes:" >&2
+  echo "[cb-init]     - CB_LOCAL_PASSWORD / CB_ADMIN_PASSWORD under Couchbase's 6-character minimum" >&2
+  echo "[cb-init]     - the cluster is not fully provisioned or not reachable" >&2
   exit 1
 fi
 
