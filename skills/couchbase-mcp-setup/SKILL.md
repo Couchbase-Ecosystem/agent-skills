@@ -78,6 +78,12 @@ In **any** harness you have the same two-way choice: **apply the config for the 
 
 **Claude Code (recommended):** use `claude mcp add --scope local`. It stores the credentials in `~/.claude.json` (outside your repo), injected only into the server process and never exported to your shell — so they can't leak into other shells, tools, or projects — and it outranks the plugin's bundled definition (precedence: `local` > `project` > `user` > plugin), so it works whether or not the plugin is installed.
 
+**What each `--scope` means** — choose deliberately; the wrong one can leak secrets:
+
+- **`local`** *(recommended, the CLI default)* — this project only, stored in `~/.claude.json` (outside your repo) and never exported to your shell. Highest precedence.
+- **`user`** — shared across *all* your Claude Code projects (also in `~/.claude.json`). Use only when you want this cluster available everywhere.
+- **`project`** — written to a `.mcp.json` that is **committed to the repo**. Avoid it: this puts credentials into version control where they get shared and leak.
+
 Present both ways every time and let the user choose:
 
 - **Paste your credentials and I'll configure it** *(simplest - requires pasting secrets in chat)*: the user gives you the connection string, username, and password, and you run the command for them. Fastest path, nothing for them to copy. (The values are entered in the chat, so briefly communicate the risk for those who'd rather keep secrets out of the transcript and steer them to the next option. Never repeat the password back in your replies.)
@@ -91,7 +97,7 @@ claude mcp add couchbase --scope local \
   -- uvx --from "couchbase-mcp-server>=1.0.0,<1.1.0" couchbase-mcp-server
 ```
 
-Pass `CB_MCP_READ_ONLY_MODE` **explicitly** (as above) on this and the other direct-config routes — don't rely on the server default, which is `false` on `1.0+`, so an omitted flag would silently enable writes. To enable writes, pass `-e CB_MCP_READ_ONLY_MODE="false"`. Use `--scope user` only to share this cluster across *all* your Claude Code projects; avoid `--scope project`, which writes the credentials into a committed `.mcp.json`.
+Pass `CB_MCP_READ_ONLY_MODE` **explicitly** (as above) on this and the other direct-config routes — don't rely on the server default, which is `false` on `1.0+`, so an omitted flag would silently enable writes. To enable writes, pass `-e CB_MCP_READ_ONLY_MODE="false"`.
 
 **Alternative — shell env vars (`direnv`):** instead of `claude mcp add`, let the bundled server inherit `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD` from the environment Claude Code is launched in — scoped to the project via a git-ignored `.envrc`, not a global `~/.zshrc`. Offer this only if the user specifically prefers a shell/`direnv` workflow (it needs a full Claude Code restart to take effect).
 
