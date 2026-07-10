@@ -45,6 +45,11 @@ Find which `CB_*` values are already set — they live either in your shell envi
 - **Shell environment** (bundled-template route, where the server inherits exported `CB_*`): `env | grep '^CB_' | sed 's/=.*/=<set>/'`.
 - **Client MCP config file**: inspect it and mask values — `claude mcp list` then `claude mcp get couchbase` (Claude Code), the `[mcp_servers.couchbase]` block in `~/.codex/config.toml` (Codex), or the `mcpServers.couchbase` entry in the client's MCP settings JSON (Cursor / Windsurf / Claude Desktop / JetBrains; VS Code uses a top-level `servers` key instead — see [`references/client-setup.md`](references/client-setup.md)).
 
+**If a `couchbase` server is already registered** (from a previous attempt or the plugin), deal with it before adding another — two registrations can conflict silently, with the wrong one answering tool calls:
+
+- It already works → verify a tool call and skip to **Step 6**; you're done.
+- It's stale or misconfigured → remove it before re-adding in Step 5 — `claude mcp remove couchbase` (Claude Code), or delete the `couchbase` entry from the client's MCP config. In Claude Code a `--scope local` add outranks a same-named plugin / `user` / `project` server (precedence in Step 5), but a duplicate at the *same* scope — or the server registered in two different places — still causes confusion, so clear the old one first.
+
 If all three values are present and a tool call already works, skip to **Step 6** to verify. Otherwise continue.
 
 ## Step 2 — Choose where Couchbase lives
