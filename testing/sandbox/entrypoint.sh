@@ -81,6 +81,10 @@ if [ "${CB_PROFILE:-local}" = "local" ]; then
     echo "FATAL: no local password set. Add CB_LOCAL_PASSWORD to testing/sandbox/.env (see .env.example)." >&2
     exit 2
   fi
+  if [ "${#_local_pw}" -lt 6 ]; then
+    echo "FATAL: CB_LOCAL_PASSWORD must be at least 6 characters (Couchbase Server's minimum admin-password length). Update testing/sandbox/.env (see .env.example)." >&2
+    exit 2
+  fi
   export CB_CONNECTION_STRING="couchbase://couchbase"
   export CB_USERNAME="${CB_LOCAL_USERNAME:-tester}"
   export CB_PASSWORD="$_local_pw"
