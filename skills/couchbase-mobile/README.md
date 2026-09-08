@@ -77,6 +77,7 @@ those at the six folders. Symlinks are recommended so a later `git pull` updates
 **Personal (available in every project):**
 ```bash
 cd agent-skills                 # the repo you cloned
+mkdir -p "$HOME/.claude/skills" # ensure the personal skills dir exists (first time)
 for s in couchbase-mobile-cloud-edge-sync-app \
          couchbase-mobile-concepts-patterns \
          couchbase-mobile-access-control-function \
@@ -89,8 +90,8 @@ done
 (Prefer a copy instead of symlinks? Swap the `ln -s` line for
 `cp -R "$(pwd)/skills/couchbase-mobile/$s" "$HOME/.claude/skills/$s"`.)
 
-**Project only (just this repo):** same loop, but target `.claude/skills/` in your project instead
-of `$HOME/.claude/skills/`.
+**Project only (just this repo):** `mkdir -p .claude/skills` in your project, then the same loop
+targeting `.claude/skills/` instead of `$HOME/.claude/skills/`.
 
 **Verify & use:**
 - Start Claude Code (`claude`). Run `/skills` — the six should be listed. (Claude Code hot-reloads
@@ -106,12 +107,17 @@ of `$HOME/.claude/skills/`.
 Cowork doesn't read your local `~/.claude/skills/` — it loads the skills enabled for your
 **claude.ai account** (synced into each session). So you add each skill to your account once.
 
-1. **Make one ZIP per skill** (from the cloned repo root):
+1. **Make one ZIP per skill.** Each zip must have `SKILL.md` in its **top-level folder** (i.e.
+   `<skill-name>/SKILL.md`). The trick is to `cd` **into** the skills directory first so the archive
+   is rooted at each skill folder — zipping from the repo root nests `SKILL.md` too deep and the
+   uploader rejects it.
    ```bash
-   cd agent-skills && mkdir -p skill-zips
-   for s in skills/couchbase-mobile/*/; do
-     zip -r "skill-zips/$(basename "$s").zip" "$s"
+   cd agent-skills/skills/couchbase-mobile     # <-- cd IN here (important)
+   mkdir -p ../../skill-zips
+   for s in */; do
+     zip -r "../../skill-zips/${s%/}.zip" "$s" -x '*.DS_Store'
    done
+   # → six zips in agent-skills/skill-zips/, each containing <skill-name>/SKILL.md at the top
    ```
 2. In the desktop app, open **Customize** (sidebar) → **Skills** → the **＋** → **Create Skill** →
    **Upload a Skill**, and pick a skill's ZIP. Repeat for all six.
