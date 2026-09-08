@@ -48,9 +48,21 @@ The recipe checks your toolchain version up front and pins a compatible Couchbas
 
 ## Get the skills from GitHub
 
+These skills currently live on the **`add-couchbase-mobile-skills`** branch (not yet merged to
+`main`), so clone that branch directly:
+
 ```bash
-git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
+git clone -b add-couchbase-mobile-skills https://github.com/Couchbase-Ecosystem/agent-skills.git
 ```
+
+Already have the repo cloned? Just fetch and switch to the branch:
+
+```bash
+git fetch origin add-couchbase-mobile-skills
+git checkout add-couchbase-mobile-skills
+```
+
+> Once this is merged to `main`, a plain `git clone https://github.com/Couchbase-Ecosystem/agent-skills.git` is all you need.
 
 The six skills live in **`agent-skills/skills/couchbase-mobile/`**.
 
@@ -110,11 +122,21 @@ Cowork doesn't read your local `~/.claude/skills/` — it loads the skills enabl
 
 ---
 
-## Coming soon — one-command install
+## Coming soon — one-command install (planned)
 
-Once testing wraps, these will also ship as an installable **plugin / marketplace**, so instead of
-the steps above you'll be able to:
-- **CLI:** `/plugin marketplace add Couchbase-Ecosystem/agent-skills` → `/plugin install couchbase-mobile@couchbase-plugins`
-- **Cowork:** Customize → Plugins → **Add marketplace** → paste `Couchbase-Ecosystem/agent-skills` → install **couchbase-mobile**
+These will **eventually** also ship as an installable **plugin** in this repo's marketplace
+(`couchbase-plugins`), separate from the existing `couchbase` data plugin. That removes the manual
+clone/upload for the plugin-capable surfaces. Planned experience:
 
-Until then, use the skills directly as above.
+- **Claude Code CLI** (and the Desktop app's **Code** tab): the plugin marketplace fetches straight
+  from GitHub — no manual clone. It can even be pinned to a branch with `#<branch>`:
+  ```
+  /plugin marketplace add Couchbase-Ecosystem/agent-skills           # default branch
+  /plugin marketplace add Couchbase-Ecosystem/agent-skills#<branch>  # a specific branch/tag
+  /plugin install couchbase-mobile@couchbase-plugins
+  ```
+- **Cowork** (Claude desktop app): Cowork loads what's enabled on your **claude.ai account**, so once
+  published you enable the plugin/skills there (Customize) and they sync into your Cowork sessions.
+
+**Until the plugin ships, use the skills directly** (clone + point Claude Code at them, or upload the
+per-skill ZIPs to your account for Cowork) — see the sections above.
