@@ -22,7 +22,7 @@ The entire backend — cluster, bucket, App Service, App Endpoint, Access Contro
 
 ### Set up the backend -- hand the user the steps to run the script
 
-The only thing that requires the user is a **Capella API key** (and an admin password). Everything else is automated. Prepare the files, then **hand the user the numbered steps to run the script themselves** -- do **not** run `setup-capella.sh` for them, and never ask them to paste their API key into the chat. Their key stays on their machine.
+The only thing that requires the user is a **Capella API key**. Everything else is automated — including the App Services Admin Credential password, which the script generates and saves itself (see Step 3) unless the user chooses to set their own. Prepare the files, then **hand the user the numbered steps to run the script themselves** -- do **not** run `setup-capella.sh` for them, and never ask them to paste their API key into the chat. Their key stays on their machine.
 
 **Step 1 — prepare the files.** Copy `setup-capella.sh` into the project (`chmod +x`), and generate `provision.env` from `assets/provision.env.example` with the app-specific values (`CB_ENDPOINT_NAME`, `COLLECTIONS`, `SYNC_FUNCTIONS_DIR`) filled to match the app.
 
@@ -34,8 +34,8 @@ The only thing that requires the user is a **Capella API key** (and an admin pas
 > 3. Under **Organization Roles**, check **Organization Owner**. Leave the other roles, the 180-day expiration, and Allowed IP Addresses at their defaults.
 > 4. Click **Generate**, then **copy or download the key** (download it to be safe) — it's shown only once and can't be retrieved after you leave the page.
 
-**Step 3 -- hand the user the steps to run it themselves.** Claude leaves `provision.env` ready with the app values filled; the user adds the two secrets and runs the script. Present it as a numbered list:
-> 1. Open `provision.env` in the project folder; open the downloaded key file and copy the **`APIKeyToken`** value (shown as **API Secret** in the Capella UI) into `CB_API_KEY=''` and (optionally) set `APPSVC_ADMIN_PASS` (preset `Password1!` for dev). App values (endpoint, collections, `SYNC_FUNCTIONS_DIR`) are already filled in.
+**Step 3 -- hand the user the steps to run it themselves.** Claude leaves `provision.env` ready with the app values filled; the user adds their API key and runs the script. Present it as a numbered list:
+> 1. Open `provision.env` in the project folder; open the downloaded key file and copy the **`APIKeyToken`** value (shown as **API Secret** in the Capella UI) into `CB_API_KEY=''`. Leave `APPSVC_ADMIN_PASS` blank — the script generates a strong password on first run and saves it back into `provision.env` (never printed). To set one yourself instead, put it directly on that line in the file, not via shell `export` (`source provision.env` will silently overwrite a shell export with the file's own value). `MANAGER_PASS`/`BOB_PASS` are pre-filled with the static default `Password1!` — fine for these low-privilege test accounts, but if you want different values, edit those two lines in `provision.env` the same way. App values (endpoint, collections, `SYNC_FUNCTIONS_DIR`) are already filled in.
 > 2. From the project folder, run `source provision.env && ./setup-capella.sh`.
 > 3. It runs ~20-45 min; tell Claude when the App Endpoint is Online.
 
@@ -58,7 +58,7 @@ It fully automates the backend — no manual UI steps: creates the cluster/bucke
 
 The script already writes the WSS URL into your app's `Info.plist` (`AppServicesEndpointURL`) automatically — no manual paste. So:
 
-1. Build and run your iOS app — sign in as `bob` / `Password1!` to test. (If the script couldn't locate `Info.plist`, set `AppServicesEndpointURL` there manually — see `couchbase-lite-ios-app`.)
+1. Build and run your iOS app — sign in with the `manager`/`bob` credentials. Don't assume the literal default; run `grep -E "MANAGER_PASS|BOB_PASS" provision.env` in the project folder to get the actual values used for this run (defaults are `Password1!` for both unless customized). (If the script couldn't locate `Info.plist`, set `AppServicesEndpointURL` there manually — see `couchbase-lite-ios-app`.)
 
 ### Manual setup (fallback)
 

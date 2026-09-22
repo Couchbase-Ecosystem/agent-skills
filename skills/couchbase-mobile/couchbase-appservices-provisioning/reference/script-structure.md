@@ -98,14 +98,17 @@ Also handle the free-tier cluster **turnedOff** state — see the turnedOff rule
 
 ```bash
 export CB_API_KEY='your-api-key-secret'
-export APPSVC_ADMIN_PASS='Passw0rd!'
 export SYNC_FUNCTIONS_DIR='sync-functions'           # resolved relative to the script's location — no project-name prefix
+# APPSVC_ADMIN_PASS is optional — leave unset and the script generates + saves a strong one
+# (never printed anywhere). Set it yourself only if you want a specific value.
 # WSS URL is written automatically to the app's Info.plist (auto-detected) — no plist env var needed.
 ./setup-capella.sh
 ```
 
 **Password requirements for `APPSVC_ADMIN_PASS`:**
-- Minimum 8 characters, mix of uppercase, lowercase, numbers, special characters
+- Optional — leave unset and the script generates a strong 20-char password meeting these rules itself, and saves it back to `provision.env` (never printed, including in the script's own output)
+- If set manually: minimum 8 characters, mix of uppercase, lowercase, numbers, special characters
+- **Avoid `=` and `&` in a manual password** — Capella's Admin Credential API rejects both with HTTP 422 (confirmed empirically; Capella publishes no official allowed/disallowed character list). The auto-generated password only ever uses `! @ +` as specials for this reason — safest to stick to those, or just leave the field blank.
 - Single quotes prevent bash expanding `!` as history
 - Used for the App Services Admin Credential (the `admin` credential is NOT an App User)
 
@@ -117,6 +120,12 @@ export SYNC_FUNCTIONS_DIR='sync-functions'           # resolved relative to the 
 4. Sets up allowed CIDR `0.0.0.0/0` on the App Service
 5. Brings App Endpoint Online
 6. Creates via Admin REST API: `admin` App Role, `manager` App User (admin role), `bob` App User
+   - Before creating these, the script pauses (up to 20 seconds, or press Enter to continue immediately)
+     and prints guidance that `manager`/`bob` will get whatever password is currently set for
+     `MANAGER_PASS`/`BOB_PASS` in `provision.env` (default `Password1!`). To use different passwords,
+     press Ctrl+C during the pause, edit those two values in `provision.env`, then re-run
+     `source provision.env && ./setup-capella.sh` — safe to re-run, only the changed password is applied
+     to the already-provisioned user.
 7. Auto-writes the WSS URL into the app's `Info.plist` (`AppServicesEndpointURL`) — then build & run
 
 **The Access Control Function update (step 2) is a separate step from endpoint creation.** This is critical because on re-runs the endpoint already exists and is skipped — without a separate update step, the function would never be updated. Always structure the script with `get_or_create_app_endpoint` and `update_access_control_functions` as two distinct calls.
@@ -125,7 +134,7 @@ export SYNC_FUNCTIONS_DIR='sync-functions'           # resolved relative to the 
 
 | Username | Password | App Role | Channel | Purpose |
 |---|---|---|---|---|
-| `admin` (credential) | `APPSVC_ADMIN_PASS` | — | — | **App Services Admin Credential** — infrastructure only, not a mobile user |
+| `admin` (credential) | auto-generated (or `APPSVC_ADMIN_PASS`, never printed) | — | — | **App Services Admin Credential** — infrastructure only, not a mobile user |
 | `manager` (App User) | `Password1!` | admin | admin | Manages and assigns tasks, sees all documents |
 | `bob` (App User) | `Password1!` | — | bob | Default regular App User, sees only their assigned documents |
 

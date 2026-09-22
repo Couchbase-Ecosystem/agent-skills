@@ -26,8 +26,17 @@
 #
 # Usage:
 #   export CB_API_KEY='your-api-key-secret'
-#   export APPSVC_ADMIN_PASS='Passw0rd!'   # single quotes — avoids ! expansion
 #   ./setup-capella.sh
+#   # APPSVC_ADMIN_PASS is optional — leave it unset and the script generates a strong one
+#   # and saves it to provision.env (never printed anywhere). Set your own (single-quoted,
+#   # to avoid bash expanding !) if you'd rather choose it.
+#   # MANAGER_PASS / BOB_PASS are optional too, and default to 'Password1!' if left unset —
+#   # fine for these, they're low-privilege test accounts you type into the app.
+#
+#   If you're using provision.env (recommended — see provision.env.example), set these
+#   values directly IN THAT FILE, not via `export` in your shell first: `source
+#   provision.env` runs before this script and will overwrite a same-named shell export
+#   with the file's own value (blank, by default).
 #
 # Optional overrides (defaults work for most users):
 #   export CLOUD_PROVIDER='aws'           # aws (default), gcp, azure
@@ -62,16 +71,93 @@ done
 
 CB_API_KEY="${CB_API_KEY:-}"
 
-# App Services Admin Credential — created automatically via Capella Management API.
-# Password requirements: min 8 chars, uppercase + lowercase + number + special char.
-# IMPORTANT: Use single quotes when exporting to avoid bash expanding !
-#   export APPSVC_ADMIN_PASS='Passw0rd!'
+# Resolved once, used to find provision.env so a generated Admin Credential password can be
+# saved back into it (see _persist_secret below) — works no matter what directory this is
+# run from, and is reused later to resolve SYNC_FUNCTIONS_DIR.
+_script_dir="$(cd "$(dirname "$0")" && pwd)"
+_provision_env_file="${_script_dir}/provision.env"
+
+# Generates a password meeting the Admin/App User complexity rule (8+ chars: upper, lower,
+# digit, special) using only bash builtins — no subprocess/pipe, so there's nothing for a
+# shell-output leak to expose the way a printed credential could be.
+_generate_password() {
+  local len="${1:-20}" i r tmp out=""
+  local upper='ABCDEFGHJKLMNPQRSTUVWXYZ'   # no ambiguous I/O
+  local lower='abcdefghijkmnpqrstuvwxyz'   # no ambiguous l/o
+  local digit='23456789'                   # no ambiguous 0/1
+  local special='!@+'   # Narrowed to only chars with POSITIVE confirmed-safe evidence from live Capella API testing.
+  # Capella publishes no allowed/disallowed character list for Admin Credential passwords. Confirmed REJECTED
+  # empirically (HTTP 422): '=' and '&' -- both are form/URL-encoding delimiter characters, so #%^*_ were
+  # dropped too rather than risk another round of guess-and-check. Confirmed ACCEPTED: '!' '@' '+'.
+  local all="${upper}${lower}${digit}${special}"
+  local -a chars=(
+    "${upper:$((RANDOM % ${#upper})):1}"
+    "${lower:$((RANDOM % ${#lower})):1}"
+    "${digit:$((RANDOM % ${#digit})):1}"
+    "${special:$((RANDOM % ${#special})):1}"
+  )
+  for (( i = 4; i < len; i++ )); do
+    chars+=("${all:$((RANDOM % ${#all})):1}")
+  done
+  for (( i = ${#chars[@]} - 1; i > 0; i-- )); do
+    r=$(( RANDOM % (i + 1) ))
+    tmp="${chars[i]}"; chars[i]="${chars[r]}"; chars[r]="$tmp"
+  done
+  for (( i = 0; i < ${#chars[@]}; i++ )); do out+="${chars[i]}"; done
+  printf '%s' "$out"
+}
+
+# Saves a generated secret back into provision.env so it survives re-runs. Without this, a
+# value generated here would only live in this one invocation — and since Step 10 always
+# deletes and recreates the Admin Credential to match APPSVC_ADMIN_PASS (its password can't
+# be read back or updated via the API), the password would silently change on every re-run.
+# Only ever touches the one line for the given var.
+_persist_secret() {
+  local var="$1" val="$2"
+  if [[ ! -f "$_provision_env_file" ]]; then
+    echo "   ⚠️  provision.env not found next to the script — generated ${var} applies to this run only." >&2
+    return 0
+  fi
+  # Pure-bash line rewrite (no sed/awk) — the generated value can contain regex-special
+  # characters (#, &, ^, *, ...) that would corrupt a sed s/// pattern or replacement.
+  local line found=0
+  local -a out=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "export ${var}="* ]]; then
+      out+=("export ${var}='${val}'")
+      found=1
+    else
+      out+=("$line")
+    fi
+  done < "$_provision_env_file"
+  if [[ "$found" -eq 0 ]]; then
+    out+=("export ${var}='${val}'")
+  fi
+  printf '%s\n' "${out[@]}" > "$_provision_env_file"
+}
+
+# App Services Admin Credential — used to create and manage App Users and App Roles.
+# To use your own, put it directly on the APPSVC_ADMIN_PASS line in provision.env before
+# running (must meet: min 8 chars, uppercase + lowercase + number + special char; AVOID '=' and
+# '&' -- Capella's Admin Credential API rejects both with HTTP 422, confirmed empirically; stick
+# to '!' '@' '+' as specials if unsure). Don't
+# `export` it in your shell instead — `source provision.env` runs first, and its blank
+# `export APPSVC_ADMIN_PASS=''` line will overwrite that shell export with nothing. Leave it
+# blank in the file (recommended) and the script generates a strong one and saves it back to
+# provision.env — it is never printed anywhere, including here.
 APPSVC_ADMIN_USER="${APPSVC_ADMIN_USER:-admin}"
-APPSVC_ADMIN_PASS="${APPSVC_ADMIN_PASS:-}"
+if [[ -z "${APPSVC_ADMIN_PASS:-}" ]]; then
+  APPSVC_ADMIN_PASS="$(_generate_password 20)"
+  _persist_secret APPSVC_ADMIN_PASS "$APPSVC_ADMIN_PASS"
+  echo "🔑 Generated APPSVC_ADMIN_PASS and saved it to provision.env (never printed)."
+fi
 
 # App Users created by the script.
 # "manager" = admin App Role — sees all docs, creates and assigns tasks.
 # "bob"     = regular App User — sees only their own assigned docs.
+# To use your own MANAGER_PASS / BOB_PASS, put them directly in provision.env the same way
+# (same reason as above — not as a shell export). Left blank, both default to 'Password1!' —
+# fine for these, they're low-privilege test accounts you'll type into the app to sign in.
 MANAGER_USER="${MANAGER_USER:-manager}"
 MANAGER_PASS="${MANAGER_PASS:-Password1!}"
 BOB_PASS="${BOB_PASS:-Password1!}"
@@ -100,7 +186,6 @@ COLLECTIONS="${COLLECTIONS:-todo/todos}"
 # SYNC_FUNCTIONS_DIR='RetailPOSApp/sync-functions' still resolves correctly).
 # Resolution order: env var (as-is → relative to script dir → by basename under script dir)
 #   → sync-functions/ next to the script → first sync-functions/ found under the script dir.
-_script_dir="$(cd "$(dirname "$0")" && pwd)"
 _resolve_sfd() {
   local v="$1"
   [[ -d "$v" ]] && { (cd "$v" && pwd); return; }                                  # absolute, or relative to CWD
@@ -752,6 +837,25 @@ setup_app_users() {
 
   echo ""
   echo "👥 Step 12: Setting up App Roles and App Users..."
+  echo ""
+  echo "   ℹ️  About to create 'manager'/'bob' App Users using the password currently set for"
+  echo "      MANAGER_PASS / BOB_PASS in provision.env (default: 'Password1!' unless you changed it)."
+  echo "      To use a different password instead: press Ctrl+C now, edit MANAGER_PASS and/or"
+  echo "      BOB_PASS in provision.env, then re-run: source provision.env && ./setup-capella.sh"
+  echo "      (safe to re-run — already-provisioned resources are skipped; only the changed"
+  echo "      password gets applied to the existing user)."
+  echo "      Press Enter to continue now, or wait 20 seconds."
+  # read -t 1 in a loop: gives a live countdown AND lets Enter skip the wait immediately,
+  # without blocking indefinitely if the user does nothing (times out and continues on its own).
+  # Whatever is typed before Enter is discarded, never inspected -- this only detects "did they
+  # press Enter," never captures input as a value.
+  for _i in $(seq 20 -1 1); do
+    printf '\r   Continuing in %2d seconds (press Enter to skip)...   ' "$_i"
+    if read -t 1 -r _skip_wait; then
+      break
+    fi
+  done
+  printf '\r%s\n' "   Continuing...                                                              "
 
   # Bring endpoint Online — required before Admin REST API calls.
   # Use curl with || true, NOT api(). api() exits on 4xx.
@@ -955,20 +1059,14 @@ main() {
     admin_url="<see Capella UI → App Services → endpoint → Connect → Admin REST tab>"
   fi
 
-  if [[ -z "$APPSVC_ADMIN_PASS" ]]; then
-    echo ""
-    echo "⚠️  APPSVC_ADMIN_PASS is not set — skipping Admin Credential and App User setup."
-    echo "   Re-run with: export APPSVC_ADMIN_PASS='Passw0rd!'  (single quotes)"
-  else
-    create_admin_credential "$org_id" "$project_id" "$cluster_id" "$app_service_id"
-    setup_allowed_cidr "$org_id" "$project_id" "$cluster_id" "$app_service_id"
+  create_admin_credential "$org_id" "$project_id" "$cluster_id" "$app_service_id"
+  setup_allowed_cidr "$org_id" "$project_id" "$cluster_id" "$app_service_id"
 
-    if [[ -n "$admin_url" && "$admin_url" != "null" && "$admin_url" != *"see Capella"* ]]; then
-      setup_app_users "$admin_url" "$org_id" "$project_id" "$cluster_id" "$app_service_id"
-    else
-      echo "⚠️  Admin URL not available — skipping App User setup."
-      echo "   Find it in Capella UI → App Services → endpoint → Connect → Admin REST tab."
-    fi
+  if [[ -n "$admin_url" && "$admin_url" != "null" && "$admin_url" != *"see Capella"* ]]; then
+    setup_app_users "$admin_url" "$org_id" "$project_id" "$cluster_id" "$app_service_id"
+  else
+    echo "⚠️  Admin URL not available — skipping App User setup."
+    echo "   Find it in Capella UI → App Services → endpoint → Connect → Admin REST tab."
   fi
 
   # Auto-find and update the client config with the WSS URL, by detection:
@@ -1086,8 +1184,14 @@ main() {
   fi
   echo ""
   echo "=================================================="
-  echo " App Services Admin Credential: ${APPSVC_ADMIN_USER} / ${APPSVC_ADMIN_PASS}"
+  echo " App Services Admin Credential: ${APPSVC_ADMIN_USER}  (password: see APPSVC_ADMIN_PASS in provision.env — never printed)"
   echo " (Infrastructure only — use this to add App Users via Admin REST API)"
+  echo ""
+  echo " ⚠️  Before running the curl commands below in THIS terminal: run \"source provision.env\""
+  echo "    again first. If APPSVC_ADMIN_PASS was blank and got auto-generated during this run, your"
+  echo "    shell still has the OLD (blank) value from before the script started — the script updated"
+  echo "    the file, not your shell's environment. Re-sourcing picks up the real value. Check with:"
+  echo "    echo \$APPSVC_ADMIN_PASS  (if that's empty, you need to re-source)."
   echo ""
   # Build a ready-to-paste collection_access literal for an example user "alice"
   # (grants the "alice" channel across every scope/collection this backend provisioned),
@@ -1100,19 +1204,21 @@ main() {
   done
   local _alice_body
   _alice_body=$(jq -cn --argjson ca "$_alice_ca" \
-    '{"name":"alice","password":"Password1!","collection_access":$ca}')
-  echo " To add a regular App User (e.g. alice) — copy/paste, no jq needed:"
+    '{"name":"alice","password":"CHANGE-ME","collection_access":$ca}')
+  echo " To add a regular App User with non-admin role, like the bob user above (e.g. alice) — copy/paste, no jq needed:"
   echo "   # Use collection_access — flat admin_channels is silently ignored by App Services"
+  echo "   # \$APPSVC_ADMIN_USER / \$APPSVC_ADMIN_PASS come from your shell — re-source provision.env"
+  echo "   # first (see warning above) if you haven't since this run. Never printed here either way."
   echo "   curl -X POST \"${admin_url}/_user/\" \\"
-  echo "     -u '${APPSVC_ADMIN_USER}:${APPSVC_ADMIN_PASS}' \\"
+  echo '     -u "$APPSVC_ADMIN_USER:$APPSVC_ADMIN_PASS" \'
   echo "     -H 'Content-Type: application/json' \\"
   echo "     -d '${_alice_body}'"
   echo ""
-  echo " To add an admin App User (e.g. carol):"
+  echo " To add an App User with admin role, like the manager user above (e.g. carol):"
   echo "   curl -X POST \"${admin_url}/_user/\" \\"
-  echo "     -u '${APPSVC_ADMIN_USER}:${APPSVC_ADMIN_PASS}' \\"
+  echo '     -u "$APPSVC_ADMIN_USER:$APPSVC_ADMIN_PASS" \'
   echo "     -H 'Content-Type: application/json' \\"
-  echo "     -d '{\"name\":\"carol\",\"password\":\"Password1!\",\"admin_roles\":[\"admin\"]}'"
+  echo "     -d '{\"name\":\"carol\",\"password\":\"CHANGE-ME\",\"admin_roles\":[\"admin\"]}'"
   echo "   (admin_roles:[\"admin\"] — inherits admin channel from the role)"
   echo ""
   echo "=================================================="

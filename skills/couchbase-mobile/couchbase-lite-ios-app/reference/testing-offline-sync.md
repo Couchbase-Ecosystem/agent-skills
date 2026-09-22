@@ -14,15 +14,15 @@ Sign the two instances in as **different users** so access control and sync are 
 - **Team / Group:** both sims = **members of the same team** — both see and edit the shared pool. (Optionally add a third sim as a *different* team's member to show that teams are isolated.)
 - **Shared Read-Only:** Sim 1 = **admin** (creates/edits the reference docs); Sim 2 = **regular user** (receives them automatically, read-only — attempts to edit are rejected).
 
-Use the default logins created by provisioning — `manager` / `Password1!` (admin) and `bob` / `Password1!` (regular) — unless you created others. Substitute the domain's nouns for "record" (task, inspection, transaction, order…).
+Use the logins created by provisioning — run `grep -E "MANAGER_PASS|BOB_PASS" provision.env` in the project folder to get the actual values (defaults are `Password1!` for both unless you customized them) — unless you created others. Substitute the domain's nouns for "record" (task, inspection, transaction, order…).
 
 ### Running on two simulators — the reliable procedure (this is fiddly; follow the order exactly)
 
 **Why it's tricky:** Xcode builds/runs/debugs only **one** destination at a time. When you run the *second* simulator, Xcode **ends its session on the first** (the app there is killed — you'll see `Message from debugger: killed`). So you bring the first app back by **tapping its icon** — a **standalone launch** with no Xcode attached. That only works because the CouchbaseLite framework is embedded in the app bundle; if embedding is missing, tapping the icon crashes with `Library not loaded: CouchbaseLiteSwift.framework` (the "won't launch unless Xcode is attached" symptom). Confirm the embedding fix is in place first: `LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks")` + the empty Embed Frameworks phase (see `installation-and-plist.md` / project.pbxproj rules).
 
-1. **Build & run on Simulator 1 from Xcode.** Set the run destination to Simulator 1 → **Cmd+R**. **Confirm the app actually launches on Simulator 1**, then sign in as `manager` / `Password1!`. *(When you run the app, ignore any "Signing for … requires a development team" warning — signing is only needed for a physical device; the app runs on the Simulator without it.)*
+1. **Build & run on Simulator 1 from Xcode.** Set the run destination to Simulator 1 → **Cmd+R**. **Confirm the app actually launches on Simulator 1**, then sign in as `manager` (run `grep MANAGER_PASS provision.env` in the project folder for the actual password — default `Password1!` unless customized). *(When you run the app, ignore any "Signing for … requires a development team" warning — signing is only needed for a physical device; the app runs on the Simulator without it.)*
 2. **Stop the run in Xcode.** Click **Stop (■)** (or **Cmd+.**). The app on Simulator 1 is killed (`Message from debugger: killed` in the console) but stays **installed**.
-3. **Select Simulator 2 and build & run.** Change Xcode's run destination to Simulator 2 → **Cmd+R**. Sign in as `bob` / `Password1!`.
+3. **Select Simulator 2 and build & run.** Change Xcode's run destination to Simulator 2 → **Cmd+R**. Sign in as `bob` (run `grep BOB_PASS provision.env` in the project folder for the actual password — default `Password1!` unless customized).
 4. **Launch the app on Simulator 1 by tapping its icon** on the home screen. It runs **standalone** (Xcode is now attached to Simulator 2). Both apps are now live side by side.
 
 > `Cmd+B` only compiles — it does **not** install or launch on a simulator. Use `Cmd+R` per destination, then the icon-tap to bring Simulator 1's app back.

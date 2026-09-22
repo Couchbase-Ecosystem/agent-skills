@@ -14,7 +14,7 @@ Sign the two instances in as **different users** so access control and sync are 
 - **Team / Group:** both emulators = **members of the same team** — both see and edit the shared pool.
 - **Shared Read-Only:** Emulator 1 = **admin** (creates/edits reference docs); Emulator 2 = **regular user** (receives them automatically, read-only).
 
-Use the default logins created by provisioning — `manager` / `Password1!` (admin) and `bob` / `Password1!` (regular) — unless you created others.
+Use the logins created by provisioning — run `grep -E "MANAGER_PASS|BOB_PASS" provision.env` in the project folder to get the actual values (defaults are `Password1!` for both unless you customized them) — unless you created others.
 
 ### Creating and starting the emulators (from scratch — every click)
 
@@ -42,7 +42,7 @@ You now have two independent, running emulators — they will appear as run targ
 1. **Make sure both emulators are running** — booted to the Android home screen (see *Creating and starting the emulators* just above; click **▶** on each device in Device Manager). Only running emulators appear as run targets.
 2. In the **target/device dropdown** at the top (next to the green Run ▶ — it normally shows one device name), click **Select Multiple Devices…**. Tick the emulators you want (two or more) → **OK**. The dropdown now reads **"Multiple Devices (N)"**.
 3. Click **Run ▶ once.** Android Studio builds once and installs + launches the app on **all** selected devices simultaneously.
-4. **Sign in independently on each device** — `manager` / `Password1!` on one, `bob` / `Password1!` on another. The app always starts at Login and each emulator has its own storage, so the two sessions are fully independent.
+4. **Sign in independently on each device** — `manager` on one, `bob` on the other (run `grep -E "MANAGER_PASS|BOB_PASS" provision.env` in the project folder for the actual passwords — default `Password1!` for both unless customized). The app always starts at Login and each emulator has its own storage, so the two sessions are fully independent.
 
 > If the dropdown doesn't list a device, it isn't running yet — start it in Device Manager (▶) and reopen the dropdown. "Select Multiple Devices…" only shows **running** emulators (and connected physical devices).
 
