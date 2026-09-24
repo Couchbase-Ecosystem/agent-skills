@@ -338,15 +338,82 @@ get_or_create_project() {
   log ""
   log "📁 Step 2: Finding or creating project '$CB_PROJECT_NAME'..."
 
-  local list_resp existing_id
+  local list_resp
   list_resp=$(api GET "/organizations/${org_id}/projects")
-  existing_id=$(echo "$list_resp" | jq -r --arg n "$CB_PROJECT_NAME" \
-    '.data[]? | select(.name == $n) | .id' | head -1)
+
+  # The same org can have MULTIPLE projects sharing the exact same name (confirmed on a
+  # real account). Blindly reusing the first name-match can land in an empty duplicate
+  # while a different, same-named duplicate holds this app's actual cluster. For a paid
+  # (non-free-tier) cluster that doesn't fail loudly like the free-tier case does -- it
+  # silently provisions a second cluster in the wrong duplicate and starts billing for it.
+  # So when more than one project shares the name, check each candidate for the target
+  # cluster first and prefer whichever one actually has it, instead of guessing.
+  local name_matches match_count
+  name_matches=$(echo "$list_resp" | jq -r --arg n "$CB_PROJECT_NAME" \
+    '.data[]? | select(.name == $n) | .id')
+  match_count=$(printf '%s\n' "$name_matches" | grep -c . || true)
+
+  if [[ "$match_count" -gt 1 ]]; then
+    log "   ⚠️  Found $match_count projects named '$CB_PROJECT_NAME' -- checking which one has cluster '$CB_CLUSTER_NAME'..."
+    local dup_pid dup_clist dup_crows dup_cid
+    while IFS= read -r dup_pid; do
+      [[ -z "$dup_pid" ]] && continue
+      dup_clist=$(api_or_empty GET "/organizations/${org_id}/projects/${dup_pid}/clusters")
+      dup_crows=$(_cluster_rows "$dup_clist")
+      dup_cid=$(printf '%s\n' "$dup_crows" | awk -F'\t' -v n="$CB_CLUSTER_NAME" '$2==n{print $1; exit}')
+      if [[ -n "$dup_cid" ]]; then
+        log "   ♻️  Project '$CB_PROJECT_NAME' ($dup_pid) has cluster '$CB_CLUSTER_NAME' -- using this one."
+        echo "$dup_pid"
+        return
+      fi
+    done <<< "$name_matches"
+    log "   None of the $match_count duplicates has cluster '$CB_CLUSTER_NAME' yet -- using the first found."
+  fi
+
+  local existing_id
+  existing_id=$(printf '%s\n' "$name_matches" | head -1)
 
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
     log "   ♻️  Reusing existing project: $existing_id"
     echo "$existing_id"
     return
+  fi
+
+  # Target project doesn't exist yet. If the org already has OTHER projects,
+  # confirm before creating a new one -- Capella allows only 1 free-tier
+  # cluster per org, so an existing project may already hold it. Surfacing
+  # the existing names here is what lets the user avoid a doomed 2nd cluster.
+  local other_names other_count
+  other_names=$(echo "$list_resp" | jq -r '.data[]?.name // empty')
+  other_count=$(printf '%s\n' "$other_names" | grep -c . || true)
+
+  if [[ "$other_count" -gt 0 ]]; then
+    log ""
+    log "   ⚠️  This organization already has $other_count project(s):"
+    while IFS= read -r n; do [[ -n "$n" ]] && log "      - $n"; done <<< "$other_names"
+    log ""
+    read -r -p "   OK to create a NEW project named '$CB_PROJECT_NAME'? [y/N] " ans
+    if [[ ! "$ans" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+      log ""
+      read -r -p "   Which existing project should I use instead? (enter the name exactly, or press Enter to cancel): " chosen
+      if [[ -z "$chosen" ]]; then
+        log ""
+        log "❌ Cancelled -- nothing was created."
+        exit 1
+      fi
+      local chosen_id
+      chosen_id=$(echo "$list_resp" | jq -r --arg n "$chosen" '.data[]? | select(.name == $n) | .id' | head -1)
+      if [[ -z "$chosen_id" || "$chosen_id" == "null" ]]; then
+        log ""
+        log "❌ '$chosen' doesn't match any existing project. Existing projects:"
+        while IFS= read -r n; do [[ -n "$n" ]] && log "      - $n"; done <<< "$other_names"
+        log "   Re-run and enter one of these exactly."
+        exit 1
+      fi
+      log "   ♻️  Using existing project '$chosen': $chosen_id"
+      echo "$chosen_id"
+      return
+    fi
   fi
 
   local resp id
@@ -362,19 +429,53 @@ get_or_create_project() {
 # STEP 3 — Cluster (idempotent, handles turnedOff state)
 # ---------------------------------------------------------------------------
 
+# Extracts "<id>\t<name>\t<currentState>" lines from a Capella "list clusters" response
+# ({"data":[...]}) -- defensively also accepts a bare list or a single bare object, in case
+# this is ever reused against a different endpoint shape.
+_cluster_rows() {
+  local resp="$1"
+  [[ -z "$resp" ]] && return 0
+  echo "$resp" | jq -r '
+    def rows: if (type) == "array" then .[]
+      elif (type) == "object" and has("data") then (.data // [])[]
+      elif (type) == "object" and has("id") then .
+      else empty end;
+    rows | [(.id // empty), (.name // empty), (.currentState // empty)] | @tsv
+  ' 2>/dev/null
+}
+
 get_or_create_cluster() {
   local org_id="$1" project_id="$2"
   log ""
   log "☁️  Step 3: Finding or creating cluster '$CB_CLUSTER_NAME'..."
 
-  local list_resp existing_id existing_state
+  # Verified against the Capella v4 Management API spec (bundled in this skill's
+  # reference/ -- see references/capella-management-api-v4.json): there is NO
+  # collection-level "list free-tier clusters" endpoint. GET .../clusters/freeTier requires
+  # a clusterId (it's a "get one", not "list"); listing -- free-tier or otherwise -- goes
+  # only through the general GET .../clusters, which is the complete, correct source for
+  # this check. (A dead code path that queried .../clusters/freeTier with no ID was removed
+  # here -- that endpoint does not exist and always returned nothing.)
+  local list_resp rows existing_id existing_state
   list_resp=$(api GET "/organizations/${org_id}/projects/${project_id}/clusters")
-  existing_id=$(echo "$list_resp" | jq -r --arg n "$CB_CLUSTER_NAME" \
-    '.data[]? | select(.name == $n) | .id' | head -1)
+  rows="$(_cluster_rows "$list_resp")"
+
+  # Always log what the list call actually returned -- this has disagreed with the documented
+  # API behavior in practice (a real free-tier cluster in the target project went undetected
+  # once already), so leave this visible rather than only logging on the happy path.
+  if [[ -z "$rows" ]]; then
+    log "   (debug) clusters list for this project came back empty. Raw response: $list_resp"
+  else
+    log "   (debug) clusters found in this project:"
+    while IFS=$'\t' read -r _rid _rname _rstate; do
+      [[ -n "$_rid" ]] && log "   (debug)   - '$_rname' ($_rid) state=$_rstate"
+    done <<< "$rows"
+  fi
+
+  existing_id=$(printf '%s\n' "$rows" | awk -F'\t' -v n="$CB_CLUSTER_NAME" '$2==n{print $1; exit}')
 
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
-    existing_state=$(echo "$list_resp" | jq -r --arg n "$CB_CLUSTER_NAME" \
-      '.data[]? | select(.name == $n) | .currentState' | head -1)
+    existing_state=$(printf '%s\n' "$rows" | awk -F'\t' -v n="$CB_CLUSTER_NAME" '$2==n{print $3; exit}')
     log "   ♻️  Found existing cluster (state: $existing_state): $existing_id"
     # Free-tier clusters turn off after 72h inactivity — wake it up
     if [[ "$existing_state" == "turnedOff" ]]; then
@@ -384,6 +485,37 @@ get_or_create_cluster() {
     fi
     echo "$existing_id"
     return
+  fi
+
+  # No cluster named $CB_CLUSTER_NAME, but this project may already hold a
+  # DIFFERENT cluster. Capella allows only 1 free-tier cluster per org, so
+  # attempting to create a 2nd one here would 422 -- ask first.
+  local any_id any_name any_state
+  any_id=$(printf '%s\n' "$rows" | awk -F'\t' '$1!=""{print $1; exit}')
+  if [[ -n "$any_id" ]]; then
+    any_name=$(printf '%s\n' "$rows" | awk -F'\t' -v id="$any_id" '$1==id{print $2; exit}')
+    any_state=$(printf '%s\n' "$rows" | awk -F'\t' -v id="$any_id" '$1==id{print $3; exit}')
+    log ""
+    log "   ⚠️  This project already has a cluster '$any_name' (state: $any_state)."
+    log "   Capella allows only one free-tier cluster per organization, so creating"
+    log "   another one here would fail."
+    read -r -p "   OK to create the app's bucket inside the existing cluster '$any_name'? [y/N] " ans
+    if [[ "$ans" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+      log "   ♻️  Using existing cluster '$any_name': $any_id"
+      if [[ "$any_state" == "turnedOff" ]]; then
+        log "   Cluster is off — turning it on..."
+        api POST "/organizations/${org_id}/projects/${project_id}/clusters/freeTier/${any_id}/activationState" "" > /dev/null
+        log "   Cluster wake requested. Waiting for healthy..."
+      fi
+      echo "$any_id"
+      return
+    else
+      log ""
+      log "❌ Not proceeding. To start fresh, delete cluster '$any_name' in this project"
+      log "   via the Capella console (Projects → your project → Clusters → ⋮ → Delete),"
+      log "   or the Management API, then re-run this script."
+      exit 1
+    fi
   fi
 
   log "   Creating new cluster ($CLOUD_PROVIDER / $CLOUD_REGION)..."
@@ -431,14 +563,14 @@ wait_for_cluster() {
 # STEP 5 — Bucket (idempotent, returns bucket UUID)
 # ---------------------------------------------------------------------------
 
-get_or_create_bucket() {
-  local org_id="$1" project_id="$2" cluster_id="$3"
-  log ""
-  log "🪣  Step 5: Finding or creating bucket '$CB_BUCKET_NAME'..."
-
-  # Scopes/collections API requires the bucket UUID — NOT the bucket name.
-  # Using the name returns 404 "bucket does not exist".
-  local list_resp existing_id
+# Looks up a bucket by name in a cluster without creating anything. Used by
+# get_or_create_bucket (below) and by main(), which needs to know -- before it decides
+# whether to prompt for an org-wide free-tier cluster redirect -- whether this app's bucket
+# is already sitting there from a previous run (if so, nothing new would be created, so
+# there's nothing to ask permission for).
+bucket_exists_in_cluster() {
+  local org_id="$1" project_id="$2" cluster_id="$3" bucket_name="$4"
+  local list_resp
   if [[ "$FREE_TIER" == "true" ]]; then
     list_resp=$(api_or_empty GET \
       "/organizations/${org_id}/projects/${project_id}/clusters/${cluster_id}/buckets/freeTier")
@@ -446,9 +578,19 @@ get_or_create_bucket() {
     list_resp=$(api_or_empty GET \
       "/organizations/${org_id}/projects/${project_id}/clusters/${cluster_id}/buckets")
   fi
+  echo "$list_resp" | jq -r --arg n "$bucket_name" \
+    '.data[]? | select(.name == $n) | .id' | head -1
+}
 
-  existing_id=$(echo "$list_resp" | jq -r --arg n "$CB_BUCKET_NAME" \
-    '.data[]? | select(.name == $n) | .id' | head -1)
+get_or_create_bucket() {
+  local org_id="$1" project_id="$2" cluster_id="$3"
+  log ""
+  log "🪣  Step 5: Finding or creating bucket '$CB_BUCKET_NAME'..."
+
+  # Scopes/collections API requires the bucket UUID — NOT the bucket name.
+  # Using the name returns 404 "bucket does not exist".
+  local existing_id
+  existing_id=$(bucket_exists_in_cluster "$org_id" "$project_id" "$cluster_id" "$CB_BUCKET_NAME")
 
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
     log "   ♻️  Bucket '$CB_BUCKET_NAME' already exists (UUID: $existing_id) — skipping."
@@ -547,17 +689,33 @@ get_or_create_app_service() {
   log ""
   log "🔧 Step 7: Finding or creating App Service '$CB_APP_SERVICE_NAME'..."
 
-  local list_resp existing_id existing_state
+  # Capella allows exactly ONE App Service per cluster (not one per app). So the match here
+  # is by clusterId alone, never by name -- a cluster shared with another app already has its
+  # one App Service under that app's name, and that's still the right one to reuse. Each app
+  # keeps its own data isolated via its own App Endpoint (bucket/scope-scoped, step 9), not by
+  # having its own App Service. No prompt needed here: unlike the free-tier-cluster redirect
+  # above, this isn't a choice between two valid resources -- there is only ever one App
+  # Service per cluster to find, so reusing it is simply correct, not a judgment call.
+  local list_resp existing_id existing_state existing_name
   list_resp=$(api_or_empty GET "/organizations/${org_id}/appservices")
   existing_id=$(echo "$list_resp" | jq -r \
-    --arg cid "$cluster_id" --arg n "$CB_APP_SERVICE_NAME" \
-    '.data[]? | select(.clusterId == $cid and .name == $n) | .id' | head -1)
+    --arg cid "$cluster_id" \
+    '.data[]? | select(.clusterId == $cid) | .id' | head -1)
 
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
+    existing_name=$(echo "$list_resp" | jq -r \
+      --arg cid "$cluster_id" \
+      '.data[]? | select(.clusterId == $cid) | .name' | head -1)
     existing_state=$(echo "$list_resp" | jq -r \
-      --arg cid "$cluster_id" --arg n "$CB_APP_SERVICE_NAME" \
-      '.data[]? | select(.clusterId == $cid and .name == $n) | .currentState' | head -1)
-    log "   ♻️  Found existing App Service (state: $existing_state): $existing_id"
+      --arg cid "$cluster_id" \
+      '.data[]? | select(.clusterId == $cid) | .currentState' | head -1)
+    if [[ "$existing_name" == "$CB_APP_SERVICE_NAME" ]]; then
+      log "   ♻️  Found existing App Service (state: $existing_state): $existing_id"
+    else
+      log "   ♻️  This cluster already has an App Service, '$existing_name' (state: $existing_state,"
+      log "      id: $existing_id). Capella allows only one App Service per cluster, so reusing it --"
+      log "      this app's data stays isolated via its own App Endpoint ('$CB_ENDPOINT_NAME'), created next."
+    fi
     echo "$existing_id"
     return
   fi
@@ -824,9 +982,14 @@ setup_allowed_cidr() {
 #    Flat top-level admin_channels is old Sync Gateway pre-collections syntax — silently ignored.
 #    Even when the API returns 201, channels never appear in the UI and never take effect.
 #
-# 3. Admin channel access belongs on the App ROLE, not in the ACF.
-#    Every user with admin_roles:["admin"] automatically inherits the role's collection_access.
-#    DO NOT call access("role:admin", ...) in the ACF — role: prefix is invalid in App Services.
+# 3. Admin channel access belongs on the App ROLE, not in the ACF -- this is a design choice
+#    (a one-time grant at role-creation, not re-issued per write), NOT a proven platform
+#    limitation. Couchbase's access() docs document a "role:" prefix for granting a whole role
+#    (access(["role:admin"], channel)), same engine version App Services runs, no Capella-specific
+#    exception noted -- so it likely works here too, just not independently verified live. See
+#    couchbase-mobile-access-control-function's role-channel-rules.md Rule B for the full story.
+#    Every user with admin_roles:["admin"] automatically inherits the role's collection_access
+#    from this static grant either way.
 #
 # 4. POST→PUT-on-409 for all roles/users — POST-only silently leaves stale config on re-runs.
 # ---------------------------------------------------------------------------
@@ -982,6 +1145,68 @@ setup_app_users() {
 }
 
 # ---------------------------------------------------------------------------
+# Org-wide free-tier cluster discovery (FREE_TIER only, called from main() before project /
+# cluster resolution)
+#
+# Capella allows only ONE free-tier cluster per organization, and it can be in ANY project --
+# not necessarily the one CB_PROJECT_NAME names. Confirmed twice against a real account: once
+# where the existing cluster was in a different project than CB_PROJECT_NAME, and once where
+# the org had multiple projects sharing the exact same name and the free-tier cluster was in a
+# different one of those duplicates than get_or_create_project()'s name lookup would pick. A
+# per-project check, or a name-based check, misses both cases -- a target project (or a
+# same-named duplicate of it) can have zero clusters and still 422 on creation, because the
+# org's one free-tier slot is used somewhere name matching can't distinguish.
+#
+# Scans every project in the org; for each cluster found, confirms it's actually the free-tier
+# one via the real free-tier get-by-ID endpoint (GET .../clusters/freeTier/{clusterId} --
+# assumed to 404 for a non-free-tier cluster, by REST convention; not independently confirmed
+# against a real paid cluster in this org -- watch for this if the org ever mixes paid and
+# free-tier clusters). A paid cluster elsewhere does NOT count against the free-tier limit and
+# must not block a fresh free-tier creation, which is why this check exists rather than
+# treating "any cluster anywhere" as a conflict.
+#
+# Prints "<projectId>\t<projectName>\t<clusterId>\t<clusterName>\t<clusterState>" for the first
+# confirmed free-tier cluster found, or nothing if the org has none yet.
+# ---------------------------------------------------------------------------
+
+find_org_freetier_cluster() {
+  local org_id="$1"
+  log ""
+  log "🔍 Checking the whole organization for an existing free-tier cluster..."
+
+  local projects_resp proj_rows
+  projects_resp=$(api_or_empty GET "/organizations/${org_id}/projects")
+  proj_rows=$(echo "$projects_resp" | jq -r '.data[]? | [(.id//empty),(.name//empty)] | @tsv' 2>/dev/null)
+  if [[ -z "$proj_rows" ]]; then
+    log "   No projects found — nothing to check."
+    return 0
+  fi
+
+  local pid pname
+  while IFS=$'\t' read -r pid pname; do
+    [[ -z "$pid" ]] && continue
+    local clist crows
+    clist=$(api_or_empty GET "/organizations/${org_id}/projects/${pid}/clusters")
+    crows=$(_cluster_rows "$clist")
+    [[ -z "$crows" ]] && continue
+    local cid cname cstate
+    while IFS=$'\t' read -r cid cname cstate; do
+      [[ -z "$cid" ]] && continue
+      local ft_check
+      ft_check=$(api_or_empty GET "/organizations/${org_id}/projects/${pid}/clusters/freeTier/${cid}")
+      if [[ -n "$ft_check" ]]; then
+        log "   Found free-tier cluster '$cname' in project '$pname' ($pid)."
+        printf '%s\t%s\t%s\t%s\t%s\n' "$pid" "$pname" "$cid" "$cname" "$cstate"
+        return 0
+      fi
+    done <<< "$crows"
+  done <<< "$proj_rows"
+
+  log "   No existing free-tier cluster found in this organization."
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
 
@@ -1010,14 +1235,74 @@ main() {
     echo "❌ Could not resolve org ID."; exit 1
   fi
 
-  project_id=$(get_or_create_project "$org_id")
-  if [[ -z "$project_id" || "$project_id" == "null" ]]; then
-    echo "❌ Could not get project ID."; exit 1
+  # Free-tier only: resolve project+cluster via an org-wide scan FIRST. Capella's
+  # 1-free-tier-cluster-per-org limit can be sitting in a project other than CB_PROJECT_NAME
+  # names, or in a different, same-named, duplicate project if the org has more than one
+  # project sharing that name -- both confirmed real scenarios. When a match is found, its
+  # concrete project/cluster IDs are used directly (never re-derived by name), which is what
+  # keeps this safe even with duplicate project names. Falls through to the normal name-based
+  # get_or_create_project / get_or_create_cluster flow only when nothing is found.
+  if [[ "$FREE_TIER" == "true" ]]; then
+    local org_match
+    org_match=$(find_org_freetier_cluster "$org_id")
+    if [[ -n "$org_match" ]]; then
+      local m_pid m_pname m_cid m_cname m_cstate
+      IFS=$'	' read -r m_pid m_pname m_cid m_cname m_cstate <<< "$org_match"
+      if [[ "$m_pname" == "$CB_PROJECT_NAME" && "$m_cname" == "$CB_CLUSTER_NAME" ]]; then
+        log "   ♻️  This matches '$CB_PROJECT_NAME' / '$CB_CLUSTER_NAME' — proceeding normally."
+        project_id="$m_pid"
+        cluster_id="$m_cid"
+      else
+        local existing_bucket_id
+        existing_bucket_id=$(bucket_exists_in_cluster "$org_id" "$m_pid" "$m_cid" "$CB_BUCKET_NAME")
+        if [[ -n "$existing_bucket_id" && "$existing_bucket_id" != "null" ]]; then
+          # Already redirected here on a previous run -- this app's bucket is already in
+          # place, so nothing new would be created. No need to ask again every time; just
+          # say where we ended up.
+          log ""
+          log "   ♻️  Using cluster '$m_cname' in project '$m_pname' — bucket '$CB_BUCKET_NAME' is"
+          log "   already there from a previous run."
+          project_id="$m_pid"
+          cluster_id="$m_cid"
+        else
+          log ""
+          log "   ⚠️  This organization's one free-tier cluster is '$m_cname' (state: $m_cstate),"
+          log "   in project '$m_pname' — not '$CB_PROJECT_NAME' / '$CB_CLUSTER_NAME'. Capella"
+          log "   allows only 1 free-tier cluster per organization, so creating a new one here"
+          log "   would fail."
+          read -r -p "   OK to create this app's bucket inside '$m_cname' in project '$m_pname' instead? [y/N] " ans
+          if [[ "$ans" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            project_id="$m_pid"
+            cluster_id="$m_cid"
+            log "   ♻️  Using existing cluster '$m_cname' in project '$m_pname': $m_cid"
+          else
+            log ""
+            log "❌ Not proceeding. To start fresh, delete cluster '$m_cname' in project '$m_pname'"
+            log "   via the Capella console, or the Management API, then re-run this script."
+            exit 1
+          fi
+        fi
+      fi
+      if [[ "$m_cstate" == "turnedOff" ]]; then
+        log "   Cluster is off — turning it on..."
+        api POST "/organizations/${org_id}/projects/${m_pid}/clusters/freeTier/${m_cid}/activationState" "" > /dev/null
+        log "   Cluster wake requested. Waiting for healthy..."
+      fi
+    fi
   fi
 
-  cluster_id=$(get_or_create_cluster "$org_id" "$project_id")
-  if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
-    echo "❌ Could not get cluster ID."; exit 1
+  if [[ -z "${project_id:-}" ]]; then
+    project_id=$(get_or_create_project "$org_id")
+    if [[ -z "$project_id" || "$project_id" == "null" ]]; then
+      echo "❌ Could not get project ID."; exit 1
+    fi
+  fi
+
+  if [[ -z "${cluster_id:-}" ]]; then
+    cluster_id=$(get_or_create_cluster "$org_id" "$project_id")
+    if [[ -z "$cluster_id" || "$cluster_id" == "null" ]]; then
+      echo "❌ Could not get cluster ID."; exit 1
+    fi
   fi
   cluster_id=$(wait_for_cluster "$org_id" "$project_id" "$cluster_id")
 
@@ -1214,12 +1499,11 @@ main() {
   echo "     -H 'Content-Type: application/json' \\"
   echo "     -d '${_alice_body}'"
   echo ""
-  echo " To add an App User with admin role, like the manager user above (e.g. carol):"
-  echo "   curl -X POST \"${admin_url}/_user/\" \\"
-  echo '     -u "$APPSVC_ADMIN_USER:$APPSVC_ADMIN_PASS" \'
-  echo "     -H 'Content-Type: application/json' \\"
-  echo "     -d '{\"name\":\"carol\",\"password\":\"CHANGE-ME\",\"admin_roles\":[\"admin\"]}'"
-  echo "   (admin_roles:[\"admin\"] — inherits admin channel from the role)"
+  echo " The app only recognizes one App User as admin — that's hardcoded client-side, not"
+  echo " derived from App Services roles/channels. Creating another App User with"
+  echo " admin_roles:[\"admin\"] grants the role on the backend, but the app has no way to"
+  echo " reflect it, so it would just be confusing. Regular App Users (like alice above) are"
+  echo " the right way to add more test accounts."
   echo ""
   echo "=================================================="
 }

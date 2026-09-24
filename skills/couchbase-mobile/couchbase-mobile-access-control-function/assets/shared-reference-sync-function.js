@@ -3,7 +3,7 @@
  * Access Control Function (a.k.a. sync function) — SHARED READ-ONLY pattern.
  *
  * Deployment: Capella App Services (NOT self-managed Sync Gateway).
- *   App Services does NOT support the "role:" prefix — use bare role names.
+ *   Role references do NOT take a "role:" prefix here (unlike self-managed Sync Gateway).
  *
  * Model:
  *   - Documents are routed to the public channel "!", which every authenticated
@@ -20,9 +20,14 @@ function (doc, oldDoc) {
 
   if (doc.type == DOC_TYPE || (doc._deleted && oldDoc && oldDoc.type == DOC_TYPE)) {
 
-    // Deletes: admin only. Tombstone inherits the public channel automatically.
+    // Only admins may create, edit, or delete — checked first, before any
+    // validation, so a non-admin is rejected immediately without exposing
+    // required-field/immutable-field validation behavior.
+    requireRole("admin");
+
+    // Deletes: tombstones don't need field validation and inherit the public
+    // channel automatically.
     if (doc._deleted) {
-      requireRole("admin");
       return;
     }
 
@@ -33,9 +38,6 @@ function (doc, oldDoc) {
     if (oldDoc && !oldDoc._deleted) {
       if (doc.type !== oldDoc.type) throw ({ forbidden: "type cannot be changed" });
     }
-
-    // Only admins may create or edit.
-    requireRole("admin");
 
     // Route to the public channel — all authenticated users receive it (read-only).
     channel("!");

@@ -6,7 +6,20 @@ The entire backend — cluster, bucket, App Service, App Endpoint, Access Contro
 
 > **When copying or writing `setup-capella.sh`**: always run `chmod +x setup-capella.sh` immediately after creating the file so it is executable. Do this automatically — never make the user do it manually.
 
-> ⏱ Free-tier provisioning takes 20–45 minutes total. The script polls and waits automatically.
+> ⚠️ **Capella allows only 1 free-tier cluster per organization.** Before creating anything, the script
+> scans **every project in the org** (not just the target one) for an existing free-tier cluster —
+> confirmed necessary against a real account twice: once where the existing cluster was in a different
+> project than `CB_PROJECT_NAME`, and once where the org had **multiple projects sharing the exact same
+> name** and the free-tier cluster was in a different one of those duplicates than a name lookup alone
+> would have picked. If a match is found anywhere and it doesn't already match `CB_PROJECT_NAME` /
+> `CB_CLUSTER_NAME`, the script asks whether to create this app's bucket inside that existing cluster
+> (redirecting entirely into its project) or stop so the user can delete it first — it will not silently
+> 422 partway through. **Tell the user this up front**, especially if they've used Capella free tier
+> before, might share an org with another project, or have duplicate-named projects lying around.
+
+> ⏱ Free-tier provisioning takes 20–45 minutes total. The script polls and waits automatically — except for up to three brief conflict checks (org-wide existing free-tier cluster, existing project, existing cluster within the chosen project), which pause for a yes/no answer if and only if something ambiguous is found. A clean org with no prior Capella usage never sees these prompts.
+
+> ⚠️ **Duplicate-named projects are hardened for paid (non-free-tier) clusters too, not just the free-tier org-wide scan above.** `get_or_create_project`'s ordinary name-based reuse (used whenever the org-wide free-tier scan doesn't apply or finds nothing) checks every project sharing `CB_PROJECT_NAME` for one that already has `CB_CLUSTER_NAME`, and prefers that one, instead of picking the first name-match. This matters more here than in the free-tier case: a paid cluster has no "1 per org" limit, so picking the wrong duplicate doesn't 422 — it silently provisions a second real cluster in the wrong project and starts billing for it.
 
 ### Prerequisites
 

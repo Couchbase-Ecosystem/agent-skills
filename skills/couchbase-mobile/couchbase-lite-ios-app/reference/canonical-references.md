@@ -25,7 +25,7 @@ https://docs.couchbase.com/couchbase-lite/current/swift/gs-install.html   ← in
 https://docs.couchbase.com/couchbase-lite/current/swift/                   ← full Swift SDK docs
 ```
 
-Always check the current CBL version before setting the SPM requirement — and **match it to the user's Xcode** (4.x needs Xcode 26.2+; use 3.2.x on Xcode 16.x). See `installation-and-plist.md`. The version in training data may be stale.
+Always check the current CBL version before setting the SPM requirement — and **match it to the user's Xcode**: 4.x runs on Xcode 16.0+ (4.0.x on 16.0-16.2, 4.1.x/latest on 16.3+) — there is no need to drop to the 3.x line on Xcode 16.x. See `installation-and-plist.md` for the full Xcode-to-version table. The version in training data may be stale.
 
 **Verify every CBL API against these docs + the reference app before using it, and never emit a deprecated/removed 3.x API** (e.g. the removed `Database.log.console` logging accessor). Training data lags the SDK — when in doubt, fetch the docs. See Rule 0 in `xcode-project-generation.md`.
 

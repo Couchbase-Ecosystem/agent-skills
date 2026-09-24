@@ -12,6 +12,8 @@ The Capella resources have hard dependencies. The script MUST follow this order 
 7. Create App Endpoint  ← only possible after App Service is healthy
 ```
 
+**Steps 2 and 3 are not silent-only.** Capella allows just 1 free-tier cluster per organization (confirmed on Couchbase's docs). Before touching a project or cluster at all, `find_org_freetier_cluster` scans **every project in the org** for an existing free-tier cluster (not just the target project, and not by name — it uses whatever concrete project/cluster IDs it finds, which is what keeps it correct even when the org has multiple projects sharing the same name). If it finds one that doesn't already match `CB_PROJECT_NAME`/`CB_CLUSTER_NAME`, it prompts to redirect into that existing project/cluster or stop. Only when nothing is found org-wide does control fall through to `get_or_create_project`/`get_or_create_cluster`, which handle the ordinary "multiple unrelated projects, none with a cluster yet" case -- and `get_or_create_project` itself is duplicate-safe too: if more than one project shares `CB_PROJECT_NAME`, it checks each one for `CB_CLUSTER_NAME` before falling back to picking the first, so a paid (non-free-tier) run doesn't silently land in the wrong same-named duplicate and provision a redundant billed cluster. See the free-tier-cluster-limit note in `free-tier-api.md`. This only prompts when there's ambiguity — a normal re-run against resources that already match `CB_PROJECT_NAME`/`CB_CLUSTER_NAME`, or a genuinely clean org, stays fully silent.
+
 App Services takes 15–25 min and will not accept an App Endpoint until it is fully healthy. The `wait_for_app_service` call before `create_app_endpoint` is **not optional**.
 
 28. **Access Control Function update is a separate step from endpoint creation.** Always call `update_access_control_functions` after `get_or_create_app_endpoint` — even when the endpoint already exists. This ensures the correct function is always deployed on re-runs.
@@ -37,9 +39,9 @@ App Services takes 15–25 min and will not accept an App Endpoint until it is f
     ```
     The Access Control Function is loaded from `${SYNC_FUNCTIONS_DIR}/<collection>-sync-function.js`. It must restrict creates to admin App Role only (regular App Users must not be able to create documents):
     ```javascript
-    if (!oldDoc) { requireRole("admin"); }   // "admin" = App Role name, not a username
+    if (!oldDoc) { requireRole("admin"); }   // bare role name -- no "role:" prefix on App Services
     ```
-    Note: `requireRole("admin")` refers to the App Role named `"admin"` — not the App Services Admin Credential. The App User named `manager` holds the `admin` App Role, which is why they can create.
+    Note: `requireRole("admin")` refers to the App Role named `"admin"` — not the App Services Admin Credential. **No `role:` prefix** — that form is self-managed-Sync-Gateway-only and is silently never matched on Capella App Services (see `couchbase-mobile-access-control-function`'s `role-channel-rules.md`). The App User named `manager` holds the `admin` App Role, which is why they can create.
 
 29. **App Services Admin Credential is created via the Capella Management API — no UI step needed.**
     Use `POST .../appservices/{id}/adminUsers` with body:
@@ -84,6 +86,8 @@ The script must be **safe to re-run**. Every creation step must check if the res
 Use `api_or_empty()` (returns empty string on 4xx instead of exiting) for existence checks. Use `api()` (exits on error) for actual creates.
 
 Also handle the free-tier cluster **turnedOff** state — see the turnedOff rule (Rule 26) in `role-channel-rules.md` (couchbase-mobile-access-control-function skill).
+
+**Free-tier org conflict guard.** Capella allows only 1 free-tier cluster per org — `find_org_freetier_cluster` (called from `main` before project/cluster resolution) scans every project in the org and, if it finds an existing free-tier cluster that doesn't match `CB_PROJECT_NAME`/`CB_CLUSTER_NAME`, prompts before proceeding -- unless this app's own bucket already exists in that cluster from an earlier run, in which case nothing new is being created and it reuses silently without re-prompting -- rather than creating a project that then fails to get a cluster (which used to leave an orphaned empty project behind, and — before the org-wide scan was added — could still 422 even in a genuinely empty target project if the org's cluster was elsewhere or in a same-named duplicate project). Never remove this check when modifying these functions.
 
 ### What the script does (and does NOT do)
 

@@ -15,22 +15,63 @@
 
 **MANDATORY CODE GENERATION RULES — apply to every Swift file you write:**
 
-0. **Use current Couchbase Lite 4.x APIs — NEVER a deprecated or removed one.** Before emitting any CBL call, confirm it against (a) the **reference app** (couchbase-examples/couchbase-lite-retail-demo `/iOS` — targets CBL 4.1.0 and is the ground truth for how the current API is actually used) and (b) the **official API docs** at https://docs.couchbase.com/couchbase-lite/current/swift/ (and the versioned API reference at https://docs.couchbase.com/mobile/4.1.0/couchbase-lite-swift/). When in doubt, fetch the docs — do NOT emit an API from memory. **Compatibility floor:** generated code must COMPILE across the full supported CBL range — currently **3.3.x through 4.x** — so never use an API introduced after the floor. **Logging:** use `LogSinks.console = ConsoleLogSink(level: .verbose, domains: .all)` — the `LogSinks` API spans **3.3.x through 4.x**; do NOT use the old `Database.log.console` (removed in 4.0). CRUD is collection-based (`collection.document(id:)`, `collection.save(...)`). **Replication:** `ReplicatorConfiguration(collections: [CollectionConfiguration(collection: c1), …], target: target)` then set `replicatorType`/`continuous`/`authenticator` — the `ReplicatorConfiguration(target:)` + `config.addCollection(...)` forms were REMOVED in 4.0 (verified against the reference `/iOS` app). If a snippet in this skill ever fails to compile against 4.x, treat it as a skill bug: fix it against the docs + reference app.
+0. **Use current Couchbase Lite 4.x APIs — NEVER a deprecated or removed one.** Before emitting any CBL call, confirm it against (a) the **reference app** (couchbase-examples/couchbase-lite-retail-demo `/iOS` — targets CBL 4.1.0 and is the ground truth for how the current API is actually used) and (b) the **official API docs** at https://docs.couchbase.com/couchbase-lite/current/swift/ (and the versioned API reference at https://docs.couchbase.com/mobile/4.1.0/couchbase-lite-swift/). When in doubt, fetch the docs — do NOT emit an API from memory. **Compatibility floor:** generated code must COMPILE across the full supported CBL range — currently **3.3.x through 4.x** — so never use an API introduced after the floor. **Logging:** use `LogSinks.console = ConsoleLogSink(level: .verbose, domains: .all)` — the `LogSinks` API spans **3.3.x through 4.x**; do NOT use the old `Database.log.console` (removed in 4.0). CRUD is collection-based (`collection.document(id:)`, `collection.save(...)`). **Replication:** `ReplicatorConfiguration(collections: [CollectionConfiguration(collection: c1), …], target: target)` then set `replicatorType`/`continuous`/`authenticator` — the `ReplicatorConfiguration(target:)` + `config.addCollection(...)` forms were REMOVED in 4.0 (verified against the reference `/iOS` app). **Status type:** a replicator change-listener's status parameter is the nested `Replicator.Status`, never a top-level `ReplicatorStatus` — that type name doesn't exist and has never existed at any CBL version checked (verified against the current docs and the 3.2.0 versioned reference); see the Replicator Status snippet in `cbl-swift-apis.md`. If a snippet in this skill ever fails to compile against 4.x, treat it as a skill bug: fix it against the docs + reference app.
 
 
-1. **Toolbar: always declare exactly TWO `ToolbarItem`s.** A single `ToolbarItem` in `.toolbar {}` always causes `Ambiguous use of 'toolbar(content:)'`. No exceptions.
+1. **Toolbar: always declare exactly TWO `ToolbarItem`s.** A single `ToolbarItem` in `.toolbar {}` always causes `Ambiguous use of 'toolbar(content:)'`. No exceptions. That alone is not sufficient, though: a documented Swift type-checker limitation (https://developer.apple.com/forums/thread/777868) can still report the identical error when the surrounding `body` has enough combined complexity, even with two `ToolbarItem`s present — precomputing ternaries inline does NOT reliably fix this (verified against a real build failure). The verified fix: always extract multi-item toolbar content to its own `@ToolbarContentBuilder` computed property rather than an inline closure. See `ios-best-practices.md`.
    - List views: `ToolbarItem(.topBarLeading)` + `ToolbarItem(.topBarTrailing)`
    - Modal sheets (detail, settings, any sheet): `ToolbarItem(.topBarLeading)` + `ToolbarItem(.topBarTrailing)`
    - Use `if condition { ToolbarItem(...) }` for a conditional second item — the conditional still resolves the type
 
-2. **`onChange` — use iOS 16-compatible single-parameter form.** The two-parameter `{ _, newValue in }` form is iOS 17+ only. On iOS 16 target it causes a cascading compile error that often surfaces as a confusing toolbar ambiguity on a different line.
-   ```swift
-   // ✅ iOS 16+ compatible
-   .onChange(of: value) { newValue in ... }
-   // ❌ iOS 17+ only — causes cascade errors on iOS 16 target
-   .onChange(of: value) { _, newValue in ... }
-   ```
-   **For toggle actions that need to call manager methods, prefer `Binding(get:set:)` over `.onChange`** — cleaner and avoids the deprecated API entirely (see Rule 8 below).
+2. **Never use an iOS 17+-only API on this skill's iOS 16.0 deployment target.** This is a
+   recurring failure class: the compiler error it produces does NOT point at the real
+   problem — it surfaces as a cascading availability error that often shows up as a
+   confusing, unrelated `Ambiguous use of 'toolbar(content:)'` on a completely different
+   line in the same file. Two confirmed instances so far — treat any third occurrence of
+   this symptom as "check for an iOS 17+ API first," not as a toolbar bug:
+
+   - **`onChange`** — use the iOS 16-compatible single-parameter form, never the
+     two-parameter `{ _, newValue in }` form (iOS 17+ only):
+     ```swift
+     // ✅ iOS 16+ compatible
+     .onChange(of: value) { newValue in ... }
+     // ❌ iOS 17+ only — causes cascade errors on iOS 16 target
+     .onChange(of: value) { _, newValue in ... }
+     ```
+     For toggle actions that need to call manager methods, prefer `Binding(get:set:)` over
+     `.onChange` — cleaner and avoids the deprecated API entirely (see Rule 8 below).
+
+   - **`ContentUnavailableView`** — iOS 17+ only. NEVER use it on this iOS 16.0 target.
+     Verified against a real Xcode build: a generated app used `ContentUnavailableView`
+     for an empty-state list, and the actual compile failure surfaced as
+     `Ambiguous use of 'toolbar(content:)'` on that same view's `.toolbar {}` — nothing
+     about the diagnostic pointed at the real cause. Use a hand-rolled iOS-16-safe
+     replacement instead, defined once per app (internal, not private, so every list view
+     in the app can share it) and reused everywhere an empty state is needed:
+     ```swift
+     struct ContentUnavailableCompat: View {
+         let title: String
+         let systemImage: String
+         let message: String
+
+         var body: some View {
+             VStack(spacing: 12) {
+                 Image(systemName: systemImage)
+                     .font(.system(size: 48))
+                     .foregroundStyle(.secondary)
+                 Text(title).font(.title3).bold()
+                 Text(message)
+                     .font(.subheadline)
+                     .foregroundStyle(.secondary)
+                     .multilineTextAlignment(.center)
+             }
+             .padding()
+             .frame(maxWidth: .infinity, maxHeight: .infinity)
+         }
+     }
+     // Call as: ContentUnavailableCompat(title: "...", systemImage: "...", message: "...")
+     // NOT: ContentUnavailableView(title, systemImage: "...", description: Text("..."))
+     ```
 
 3. **CBL console logging — enable in DEBUG in the App entry point** so sync failures are visible. Add to the `App` struct's `init()`:
    ```swift
@@ -215,7 +256,7 @@ Model the `project.pbxproj` on the public Couchbase Retail Demo `/iOS` project (
 - `SWIFT_VERSION = 5.0`
 - `PRODUCT_BUNDLE_IDENTIFIER = "com.couchbase.<AppName>"`
 - `GENERATE_INFOPLIST_FILE = NO` + `INFOPLIST_FILE = <AppName>/Info.plist`
-- Include `XCRemoteSwiftPackageReference` for Couchbase Lite **matched to the user's Xcode** (see `installation-and-plist.md`): Xcode 26.2+ → `https://github.com/couchbase/couchbase-lite-swift-ee` (4.x, `upToNextMajor`); Xcode 16.x → `https://github.com/couchbase/couchbase-lite-ios-ee` (newest 3.x — **3.3.0**, `upToNextMinorVersion` `3.3.0`; 3.2.4 fallback). Do **not** pin `from 4.0.3` for an Xcode-16 user — `upToNextMajor` resolves to 4.1 and fails to load. Confirm the current version at https://docs.couchbase.com/couchbase-lite/current/swift/gs-install.html
+- Include `XCRemoteSwiftPackageReference` for Couchbase Lite **matched to the user's Xcode** (see `installation-and-plist.md`) — repo is always `https://github.com/couchbase/couchbase-lite-swift-ee.git` (there is no separate `-ios-ee` repo): Xcode 26.2+ or 16.3–16.4 → 4.x latest (currently **4.1.0**, `upToNextMajorVersion`); Xcode 16.0–16.2 → **4.0.x** (currently **4.0.4**, `upToNextMinorVersion` — 4.1.x needs Swift 6.1+ and won't load). Do **not** pin `upToNextMajorVersion` from a 4.0.x on Xcode 16.0–16.2 — it resolves to 4.1 and fails to load. Confirm current versions at https://docs.couchbase.com/couchbase-lite/current/swift/gs-install.html (4.x) and https://docs.couchbase.com/couchbase-lite/4.0/swift/gs-install.html (4.0.x)
 - Include `XCSwiftPackageProductDependency` for `CouchbaseLiteSwift`
 - Include `PBXBuildFile` for `CouchbaseLiteSwift in Frameworks`
 - Add `ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES` to **both Debug and Release** target build configurations

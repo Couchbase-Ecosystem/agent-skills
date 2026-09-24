@@ -7,7 +7,7 @@ description: "Build the Android (Kotlin/Jetpack Compose) client of a Couchbase M
 
 Generate and wire up the Android/Kotlin app for an offline-first Couchbase Mobile app using the Couchbase Lite Android SDK. The goal is a project the user can open in Android Studio and build immediately — never ask them to create the Gradle project manually.
 
-> **⛔ SCOPE GUARD — read first.** The only Couchbase Mobile app buildable with these skills today is **cloud-edge sync** (to Capella App Services). **Peer-to-peer and Edge Server are NOT built.** Do not offer them, do not ask "which sync topology," and never generate P2P/Edge-Server code. If a user wants to *build* an app, that flow lives in the **`couchbase-mobile-cloud-edge-sync-app`** recipe — this skill is a capability that recipe calls, not an entry point; if you're here without the recipe, load it and follow it.
+> **⛔ SCOPE GUARD — read first.** The only Couchbase Mobile app buildable with these skills today is **cloud-edge sync on Android**. **Peer-to-peer and Edge Server are NOT built.** Do not offer them, do not ask "which sync topology," and never generate P2P/Edge-Server code. If a user wants to *build* an app, that flow lives in the **`couchbase-mobile-cloud-edge-sync-app`** recipe — this skill is a capability that recipe calls, not an entry point; if you're here without the recipe, load it and follow it.
 
 ## Replicator: cloud-edge only today (topology-neutral by design)
 

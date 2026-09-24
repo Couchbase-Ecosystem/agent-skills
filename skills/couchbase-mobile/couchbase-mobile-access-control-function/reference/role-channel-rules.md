@@ -2,34 +2,36 @@
 
 These rules apply whenever generating BOTH the ACF file AND the `setup-capella.sh` script. They are listed here because the ACF and the script role setup are tightly coupled — getting one right while getting the other wrong causes silent sync failures that are hard to debug.
 
-**Rule A — NO `role:` prefix anywhere in App Services ACFs.**
+**Rule A — the `role:` prefix does NOT work in App Services ACFs, unlike self-managed Sync Gateway.**
 
-> **Deployment-dependent — this is the key gotcha.** The `role:` prefix is **valid on self-managed Sync Gateway (on-prem)**, where `requireRole("role:admin")` and `access("role:admin", ...)` work as intended. It is **NOT supported on Capella App Services**, where the same code silently misbehaves (matches nothing / grants a fictional user). So a sync function copied from an on-prem deployment can look correct and still fail on App Services. Since this skill targets App Services, **drop the `role:` prefix**. If you later deploy the identical function to on-prem Sync Gateway, the prefix is permitted there — but the bare form below also works on both, so prefer it for portability.
-
-On App Services specifically, the `role:` prefix does not exist in ACFs:
+> **Reverted 2026-09-24 — the 2026-09-22 "correction" below was itself wrong.** That edit claimed the prefix IS required on App Services, based on manual testing that turned out to be a false positive -- the exact same kind of coincidence it accused the original guidance of (masked because the test happened to still pass for an unrelated reason). Re-verified now against Couchbase's own `requireRole()` reference docs (its own usage examples show `requireRole("admin")`, no prefix) and against a live failure on Capella App Services: `requireRole("role:admin")` rejected a write from a user who genuinely holds the `admin` role, with `sg missing role` -- because `"role:admin"` isn't a role name App Services recognizes, so the check fails for everyone, prefixed form or not. Dropping the prefix fixed it. The `role:` prefix **is** valid on self-managed Sync Gateway; it is **not** supported on Capella App Services, where it silently matches nothing. Always use the bare role name in `requireRole()` on App Services. (`access()` is a separate function with its own, likely-different role-prefix behavior -- see Rule B below, which was itself corrected -- don't conflate the two.)
 
 ```javascript
-// WRONG — will never match, silently allows or blocks everything:
-requireRole("role:admin")           // ❌ never matches — "role:admin" is not a valid role name
-access("role:admin", "admin")       // ❌ grants a user literally named "role:admin" (doesn't exist)
+// WRONG on App Services — role: prefix on requireRole() matches nothing (silently fails, not a syntax error):
+requireRole("role:admin")           // ❌ no role is ever named "role:admin" — never matches
 
-// CORRECT — bare role name, no prefix:
-requireRole("admin")                // ✅ matches App Role named "admin"
-access(assignee, assignee)          // ✅ grants a real username access to their channel
-// DO NOT call access() for roles at all — use admin_channels on the role instead (see Rule B)
+// CORRECT on App Services:
+requireRole("admin")                // ✅ matches the App Role named "admin"
+access(assignee, assignee)          // ✅ syntax only -- a username never takes a prefix. Don't actually
+                                     //    call this in an ACF: it's redundant with the static grant made
+                                     //    at user creation and a potential anti-pattern -- see Rule B /
+                                     //    admin-access-patterns.md's "Performance rule".
+// access(["role:admin"], "admin")  -- granting a ROLE is a different case, see Rule B below (corrected)
 ```
 
-**Rule B — Admin channel access belongs on the App Role, not in the ACF.**
-The ACF has no mechanism to grant channel access to a role. `access()` only works with usernames. The correct place to give admin users access to the "admin" channel is `admin_channels` on the App Role itself:
+**Rule B — This skill grants admin channel access statically on the App Role, not via `access()` in the ACF -- as a design choice, not a proven platform limitation.**
+
+> **Corrected -- the earlier claim that `access()` has no role-principal form on App Services "at all" was an unverified assumption, not a confirmed platform limitation** (flagged correctly by @adamcfraser in PR review: "In SGW the role: prefix is the way to identify roles when issuing an access() call. Are we somehow preventing dynamic grants of channels to roles in App Services?"). Couchbase's own `access()` reference docs (https://docs.couchbase.com/sync-gateway/current/sync-function-api-access-cmd.html, current/4.1 -- the engine version App Services runs) explicitly document the `role:` prefix: "Prefix the username argument value with role: to apply this function to a role rather than a user," with the example `access(["snej", "jchris", "role:admin"], "vh1")`. Nothing on that page, or anywhere else checked, carves out Capella App Services as an exception. So `access(["role:admin"], "admin")` is very likely valid there too -- **this has not been independently live-tested** (only `requireRole()`'s bare-name behavior has been, this week -- a different function, see Rule A), so treat it as unconfirmed rather than broken.
+
+This skill still grants admin channel access statically, once, on the App Role itself via the Admin REST API -- not because `access()` can't do it, but because a one-time grant at role-creation is simpler than re-issuing it from inside the ACF on every write:
 
 ```bash
-# WRONG — access() in ACF with role: prefix does nothing useful:
-access("role:admin", "admin")   # ❌ grants fictional user "role:admin", not the role
-
-# CORRECT — set admin_channels on the role via the Admin REST API:
+# What this skill does -- static grant, once, via the Admin REST API:
 POST /_role/  {"name":"admin","admin_channels":["admin"]}
-# Now every user with admin_roles:["admin"] automatically has access to "admin" channel
-# The ACF does NOT need an access() call for this — channel access is inherited from the role
+# Every user with admin_roles:["admin"] automatically has access to "admin" channel
+
+# What the ACF does NOT do (by design, not because it's confirmed broken):
+# access(["role:admin"], "admin")   -- see the correction above: likely valid, just unverified and unnecessary here
 ```
 
 **Rule C — The ACF and the role's `admin_channels` must be consistent.**
@@ -44,28 +46,7 @@ User:   admin_roles: ["admin"]        ← user inherits admin_channels from the 
 
 If any of these four is missing or wrong, manager cannot see documents. **Always generate all four together.**
 
-**Rule D — Generated ACF template (use verbatim for admin-assigns pattern):**
-```javascript
-function(doc, oldDoc) {
-  if (doc.type == "YOUR_TYPE" || (doc._deleted && oldDoc && oldDoc.type == "YOUR_TYPE")) {
-    var assignee = oldDoc ? oldDoc.assignee : doc.assignee;
-    if (!assignee) throw({forbidden: "assignee is required"});
-
-    if (!oldDoc)    { requireRole("admin"); }   // create: admin only. NO role: prefix.
-    if (doc._deleted) { requireRole("admin"); return; }  // delete: admin only. NO role: prefix.
-
-    // field validation here...
-
-    channel(assignee);   // route to assignee's channel
-    channel("admin");    // route to admin channel (Pattern A — matches role admin_channels:["admin"])
-
-    access(assignee, assignee);  // grant assignee their channel dynamically
-    // DO NOT add access("role:admin", ...) — admin channel access comes from the role, not here
-
-    requireAccess([assignee, "admin"]);  // passes: assignee has their channel; manager has "admin" via role
-  }
-}
-```
+**Rule D — Generated ACF template.** Use `assets/admin-assigns-sync-function.js` (or access-control-function-templates.md's Pattern A) as the template rather than writing one from scratch here — it already follows Rules A-C above: `requireRole("admin")` (no prefix — Rule A) for creates, deletes, reassigns and locked-doc edits; `channel(assignee)` + `channel("admin")` for routing; no per-write `access()` call for either grant (Rule B); and `requireAccess([assignee, "admin"])` as the gate.
 
 **Rule E — `collection_access` format is REQUIRED for App Services with named scopes.**
 The flat `admin_channels: [...]` top-level field is **Sync Gateway pre-collections syntax and is silently ignored by App Services**. Even if the API returns 201/200, the channels will NOT appear in the UI and will NOT take effect. Always use `collection_access` keyed by scope → collection.
@@ -110,7 +91,7 @@ Always use POST→PUT-on-409 (see Rule 19). Never POST-only.
 POST /_role/  {"name":"admin","collection_access":{"todo":{"todos":{"admin_channels":["*"]}}}}
 ```
 
-Reminder on the two grant mechanisms: `access(user, channel)` **inside the function** is dynamic and per-user (use for `access(assignee, assignee)`); `admin_channels` (in `collection_access`) **at role/user creation** is static and the correct place for role-level and `*` grants. Do not try to grant `*` to a role via `access()` in the function — role grants via `access()` are unreliable on App Services (Rule A/B).
+Reminder on the two grant mechanisms: `access(user, channel)` **inside the function** is dynamic and per-write — genuinely useful when the grant is decided by document data at write time (e.g. granting a reviewer access based on a field in the doc). It also has a documented `role:`-prefixed form for granting a whole role (`access(["role:admin"], channel)`), which Couchbase's docs don't carve out as unsupported on App Services -- though this skill hasn't independently verified that live (see Rule B). `admin_channels` (in `collection_access`) **at role/user creation** is static, and is what this skill uses for every fixed grant, including each user's own private channel and role-level/`*` grants -- a design choice for a one-time grant, not because `access()` is assumed incapable of doing it.
 
 19. **Check for existence before creating every resource — the script must be safe to re-run.** Never blindly POST. For each resource: list first, filter by name, reuse if found, create only if missing. Use `get_or_create_*` functions for every step.
 

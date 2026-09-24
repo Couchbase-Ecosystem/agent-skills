@@ -21,7 +21,7 @@ class DatabaseManager: ObservableObject {
 }
 ```
 
-For iOS 17+ projects, prefer `@Observable` macro over `ObservableObject` + `@Published`. For iOS 16 target (this skill), use `ObservableObject`.
+For iOS 17+ projects, prefer `@Observable` macro over `ObservableObject` + `@Published`. For iOS 16 target (this skill), use `ObservableObject`. Same applies to `ContentUnavailableView` — it's iOS 17+ only; never use it on this skill's iOS 16.0 target. Its failure mode is unusually misleading: it doesn't error where you'd expect, it surfaces as `Ambiguous use of 'toolbar(content:)'` on that view's toolbar. See Rule 2 in `xcode-project-generation.md` for the verified `ContentUnavailableCompat` replacement.
 
 **Ownership rules** (📖 [State and data flow](https://developer.apple.com/documentation/swiftui/state-and-data-flow)):**
 - `@StateObject` — view *owns* the object (creates it, survives re-render). Use at the root.
@@ -158,6 +158,71 @@ Use semantic placements — `.cancellationAction` (leading) and `.confirmationAc
 }
 ```
 
+**Second, separate trap — same error message, different cause:** having two (or more)
+`ToolbarItem`s is necessary but **not sufficient**. This is a documented Swift
+type-checker limitation, not specific to this skill's code — see
+https://developer.apple.com/forums/thread/777868. When the enclosing view's `body` has
+enough combined complexity (multiple ViewBuilders, nested conditionals, chained
+modifiers — the *whole* `body`, not just the toolbar content itself), the compiler can
+fail to resolve the `toolbar(content:)` generic and reports the same misleading
+`Ambiguous use of 'toolbar(content:)'` diagnostic, pointing at the `.toolbar {` line
+regardless of where the real complexity is. **Precomputing ternaries as local `let`s
+inside the `ToolbarItem` content is NOT a reliable fix** — verified against an actual
+build that still failed after doing exactly that, with two `ToolbarItem`s present. The
+verified, working fix (per the forum thread and confirmed against a real Xcode build
+here) is to extract the toolbar content into its own explicitly-typed
+`@ToolbarContentBuilder` computed property. Pinning the generic type explicitly, outside
+the `body` expression, is what actually resolves the ambiguity — reducing complexity
+*inside* the toolbar closure alone does not:
+
+```swift
+// ❌ Two ToolbarItems present, still ambiguous, even after precomputing the ternaries —
+// the complexity causing the failure is the size of `body` as a whole, not this closure
+var body: some View {
+    NavigationStack {
+        List { ... }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { SyncStatusView() }
+            ToolbarItem(placement: .topBarTrailing) { /* ... */ }
+        }
+    }
+}
+
+// ✅ Extract to an explicitly-typed @ToolbarContentBuilder property — verified fix
+var body: some View {
+    NavigationStack {
+        List { ... }
+        .toolbar { toolbarContent }
+    }
+}
+
+@ToolbarContentBuilder
+private var toolbarContent: some ToolbarContent {
+    ToolbarItem(placement: .topBarLeading) {
+        SyncStatusView()
+    }
+    ToolbarItem(placement: .topBarTrailing) {
+        HStack(spacing: 16) {
+            if authState.isAdmin {
+                Button { showingNewTransaction = true } label: { Image(systemName: "plus") }
+            }
+            Button { showingSettings = true } label: {
+                let hasSyncError = replication.syncStatus.isError
+                let settingsIcon = hasSyncError ? "exclamationmark.icloud" : "gearshape"
+                let settingsTint: Color = hasSyncError ? .red : .primary
+                Image(systemName: settingsIcon)
+                    .foregroundStyle(settingsTint)
+            }
+        }
+    }
+}
+```
+
+**Rule of thumb: any `.toolbar {}` with more than a single trivial `ToolbarItem` should
+be extracted to a `@ToolbarContentBuilder` property from the start**, not added
+reactively after hitting this error — it's cheap, always valid, and sidesteps the
+type-checker limitation entirely regardless of how complex the rest of `body` becomes.
+
 ### [weak self] in CBL callbacks
 
 Always capture `[weak self]` in live query and replicator listeners to avoid retain cycles:
@@ -238,11 +303,11 @@ Store endpoint URLs and non-secret config in `Info.plist`. Read at runtime via `
 
 ## iOS Requirements
 
-- Xcode: **26.2+ recommended** (gets Couchbase Lite 4.x, the recommended line); **16.x supported** but pins CBL to the 3.x line (newest — 3.3.0)
+- Xcode: **26.2+ recommended** (gets Couchbase Lite 4.x, the recommended line); **16.x supported** — 16.3+ gets 4.x; 16.0–16.2 pins CBL to 4.0.x
 - **At least two iOS Simulators** installed (the offline-sync test runs the app on two side by side) — add via Xcode → Window → Devices and Simulators → Simulators → +
 - iOS **16+** — this skill's deployment target. (Couchbase Lite itself supports **iOS 15+**; we target 16 for the SwiftUI APIs used here — `ObservableObject` and the iOS-16 single-parameter `onChange` form.)
 - Swift 5.9+
-- **Couchbase Lite Swift SDK — matched to Xcode (use the newest compatible):** 4.x on Xcode 26.2+ (`couchbase-lite-swift-ee.git`), or newest 3.x — currently **3.3.0** — on Xcode 16.x (`couchbase-lite-ios-ee.git`, pin `upToNextMinor 3.3.0`; fall back to 3.2.4 only if needed). See `installation-and-plist.md`. Never use `from 4.0.3` on Xcode 16.x.
+- **Couchbase Lite Swift SDK — matched to Xcode (use the newest compatible):** 4.x on Xcode 16.3+ and 26.x (`upToNextMajor 4.1.0`), or 4.0.x on Xcode 16.0–16.2 (`upToNextMinor 4.0.4`) — both from `couchbase-lite-swift-ee.git`. See `installation-and-plist.md`. Never use `upToNextMajor` from a 4.0.x on Xcode 16.0–16.2 — it slides to 4.1.x, which needs Swift 6.1+.
 - SwiftUI
 - Swift Package Manager for CBL dependency
 

@@ -4,9 +4,9 @@ A self-contained reference for the **full users + roles + channels** access mode
 
 > The patterns here were distilled from an internal example app (FieldTaskTracker) that is **not** bundled or published. This doc is self-contained — you do not need that app.
 
-> This captures the *model* so the skill does not depend on the app source being reachable once published. The access control functions below are written in the **App Services idiom** (see `role-channel-rules.md`): no `role:` prefix inside the function, and admin access granted via `admin_channels` on the role — **not** via `access("role:admin", …)`.
+> This captures the *model* so the skill does not depend on the app source being reachable once published. The access control functions below use `requireRole("admin")` — no `role:` prefix, unlike self-managed Sync Gateway (see `role-channel-rules.md` Rule A, confirmed via docs and a live test). Admin channel access is granted via `admin_channels` on the role rather than a per-document `access()` call -- a design choice for a one-time grant, not a proven platform limitation of `access()` (see Rule B: the earlier claim that `access()` has no role-principal form on App Services at all was never actually verified and isn't supported by Couchbase's own `access()` docs).
 >
-> **Why FieldTaskTracker's bundled `.js` differ:** they use `requireRole("role:admin")` / `access("role:admin", …)`, which is **valid on self-managed Sync Gateway (on-prem)** but **not on App Services**. It's a deployment difference, not a plain bug — but since this skill targets App Services, use the prefix-free form here (it also works on-prem, so it's the portable choice).
+> **FieldTaskTracker's bundled `.js`** used `requireRole("role:admin")` / `access(["role:admin"], …)` — that code is Sync Gateway-only and does not work on App Services, where the prefixed role form matches nothing. (A 2026-09-22 edit to this doc claimed otherwise and rewrote the examples to add the prefix back; that edit was itself wrong and has been reverted -- see `role-channel-rules.md` Rule A for the verification.)
 
 ### The model in one paragraph
 
@@ -53,8 +53,9 @@ function(doc, oldDoc) {
 
     channel(assignee);          // per-user channel
     channel("admin");           // admin channel (admins receive via role admin_channels)
-    access(assignee, assignee); // grant the worker their own channel
-    // NOTE: no access("role:admin", ...) — admin access comes from admin_channels on the role
+    // No access(assignee, assignee) here — the worker already has access to their own channel
+    // from user creation (admin_channels/collection_access set to their username). Admin access
+    // likewise comes from admin_channels on the role, set once, not re-issued per write.
     requireAccess([assignee, "admin"]);
   }
 }
@@ -79,7 +80,7 @@ function(doc, oldDoc) {
 
 Channel access can be granted **dynamically** or **statically** — both are valid, and admins can use either:
 
-1. **Dynamically, inside the function** via `access(principal, channel)` — evaluated per document as data flows. Best for data-driven, per-user grants: `access(assignee, assignee)` gives each worker their own channel. (On App Services, granting a *role* this way is unreliable because the `role:` prefix isn't supported — use it for per-user grants, not role grants.)
+1. **Dynamically, inside the function** via `access(principal, channel)` — evaluated per document as data flows. In this skill's patterns a worker's private channel is always named after their username, so `admin_channels`/`collection_access` set at user creation already grants it — an `access(assignee, assignee)` call in the function is redundant. Granting a *role* this way (`access(["role:admin"], channel)`) is documented as valid by Couchbase for the same engine App Services runs, with no stated Capella-specific carve-out -- but this skill has not independently verified it live, and uses a static role grant (below) regardless, since that only needs to happen once rather than per write.
 2. **Statically, at principal creation** via the Admin REST API — set `admin_channels` on a User or Role. For **named scopes this goes inside `collection_access`** per scope/collection (flat `admin_channels` is ignored — see `role-channel-rules.md`).
 
 ### The `*` (star) channel — "all channels"

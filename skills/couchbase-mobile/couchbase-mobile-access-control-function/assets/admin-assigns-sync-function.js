@@ -3,9 +3,10 @@
  * Access Control Function (a.k.a. sync function) — ADMIN-ASSIGNS pattern.
  *
  * Deployment: Capella App Services (NOT self-managed Sync Gateway).
- *   App Services does NOT support the "role:" prefix — use bare role names.
- *   (On self-managed Sync Gateway the "role:" prefix is valid; the bare form
- *    below works on both, so it is the portable choice.)
+ *   Role references do NOT take a "role:" prefix here (unlike self-managed Sync Gateway).
+ *   (Reverted 2026-09-24: a 2026-09-22 edit claimed App Services required the prefix.
+ *    That was itself wrong -- verified again via Couchbase's requireRole() docs and a
+ *    live App Services failure with the prefixed form.)
  *
  * Model:
  *   - Each document is routed to the assignee's private channel (their username).
@@ -40,16 +41,16 @@
 function (doc, oldDoc) {
   // ADAPT: document type, and the two independent "admin" identifiers
   var DOC_TYPE      = "task";
-  var ADMIN_ROLE    = "admin";   // principal: who may create/reassign/delete
+  var ADMIN_ROLE    = "admin";   // principal: who may create/reassign/delete (no role: prefix on App Services)
   var ADMIN_CHANNEL = "admin";   // channel: where docs are routed for admins (design A only)
 
   if (doc.type == DOC_TYPE || (doc._deleted && oldDoc && oldDoc.type == DOC_TYPE)) {
 
-    // Read stable identity from oldDoc on update/delete — never trust doc for these
+    // Read stable identity from oldDoc on update/delete — never trust doc for these.
+    // Existence is enforced below in required-field validation (checks doc.assignee,
+    // the NEW value) — checking oldDoc.assignee here would not catch an update that
+    // clears the field.
     var assignee = oldDoc ? oldDoc.assignee : doc.assignee;
-    if (!assignee) {
-      throw ({ forbidden: "assignee is required" });
-    }
 
     // Deletes: admin only. Tombstone inherits channels from the previous revision.
     if (doc._deleted) {
@@ -63,8 +64,9 @@ function (doc, oldDoc) {
     }
 
     // Required-field validation (ADAPT to your schema)
-    if (!doc.title)  throw ({ forbidden: "title is required" });
-    if (!doc.status) throw ({ forbidden: "status is required" });
+    if (!doc.title)     throw ({ forbidden: "title is required" });
+    if (!doc.status)    throw ({ forbidden: "status is required" });
+    if (!doc.assignee)  throw ({ forbidden: "assignee is required" });
 
     // Immutable fields + state checks on update
     if (oldDoc && !oldDoc._deleted) {
@@ -80,10 +82,12 @@ function (doc, oldDoc) {
     // Design B (star "*"): DELETE the next line — admins get all channels via "*".
     channel(ADMIN_CHANNEL);
 
-    // Dynamic, per-user grant — the one correct use of access() here.
-    // Do NOT grant the admin role/channel with access() — grant it statically on
-    // the role via REST (design A: admin_channels:[ADMIN_CHANNEL]; design B: ["*"]).
-    access(assignee, assignee);
+    // NOTE: no access(assignee, assignee) call here. The assignee's own channel
+    // grant comes from user creation (Admin REST API: admin_channels/collection_access
+    // set to their username — see backend-setup.md), so a per-document access() call
+    // would be redundant on every write. Do NOT grant the admin role/channel with
+    // access() either — grant it statically on the role via REST (design A:
+    // admin_channels:[ADMIN_CHANNEL]; design B: ["*"]).
 
     // Read/write gate.
     // Design A (shown): assignee OR the named admin channel — admin has ADMIN_CHANNEL

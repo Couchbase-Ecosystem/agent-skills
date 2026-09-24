@@ -1,6 +1,6 @@
 ## CBL Android/Kotlin SDK — Key APIs
 
-The Android SDK exposes the same Collection/Scope/Query/Replicator model as the Swift SDK; the idioms differ (Kotlin Flow for live queries, `CharArray` passwords, a mandatory `init` step). Snippets below target the **4.x line** (Enterprise Edition `couchbase-lite-android-ee-ktx`); the same surface exists on 3.4.x.
+The Android SDK exposes the same Collection/Scope/Query/Replicator model as the Swift SDK; the idioms differ (Kotlin Flow for live queries, `CharArray` passwords, a mandatory `init` step). Snippets below target the **4.x line** (Enterprise Edition `couchbase-lite-android-ee-ktx`); the same surface exists on 3.3.x/3.4.x. **Exception: the Replicator/CollectionConfiguration wiring** — CBL **3.2.4** (the only release with **minSdk 22** — see `installation-and-config.md`) uses an older, different form; see the fallback snippet at the end of the Replicator Setup section below.
 
 ### Initialize the SDK (mandatory on Android — no Swift equivalent)
 
@@ -12,7 +12,7 @@ class WarehouseApplication : Application() {
         super.onCreate()
         CouchbaseLite.init(this)
         // Verbose console logging in debug — filter Logcat by "CouchbaseLite" to watch sync/auth/replication.
-        // Uses the LogSinks API, present from 3.3.x through 4.x (the old Database.log.console was removed in 4.0).
+        // Uses the LogSinks API, present from 3.2.2 through 4.x -- including the 3.2.4 minSdk-22 fallback (the old Database.log.console was removed in 4.0).
         // IMPORTANT — package: LogSinks + ConsoleLogSink live in `com.couchbase.lite.logging`
         //   (LogLevel/LogDomain are in `com.couchbase.lite`). Importing LogSinks from the wrong package is the
         //   usual cause of "unresolved reference 'LogSinks'". Required imports:
@@ -26,7 +26,7 @@ class WarehouseApplication : Application() {
 }
 ```
 
-> ⚠️ **Logging API — use `LogSinks` (it is cross-version, 3.3.x → 4.x).** The old `Database.log` / `Database.log.console` accessor was **removed in 4.0** (→ "unresolved reference 'log'") — never use it. `LogSinks`/`ConsoleLogSink` have existed since **3.3.x** (verified in the 3.3.0, 3.4.0 and 4.1.0 API refs), so they compile across the whole supported range. **Package matters:** `LogSinks` and `ConsoleLogSink` are in `com.couchbase.lite.logging`; `LogLevel`/`LogDomain` are in `com.couchbase.lite`. Importing `com.couchbase.lite.LogSinks` (wrong package) is what produces "unresolved reference 'LogSinks'". Set it with `LogSinks.get().setConsole(ConsoleLogSink(LogLevel.VERBOSE))`. Ref: https://docs.couchbase.com/mobile/4.1.0/couchbase-lite-android/com/couchbase/lite/logging/package-summary.html
+> ⚠️ **Logging API — use `LogSinks` (it is cross-version, 3.2.2 → 4.x).** The old `Database.log` / `Database.log.console` accessor was **removed in 4.0** (→ "unresolved reference 'log'") — never use it. `LogSinks`/`ConsoleLogSink` have existed since **3.2.2** (verified in the 3.2.4, 3.3.0, 3.4.0 and 4.1.0 API refs), so they compile across the whole supported range -- including the 3.2.4 minSdk-22 fallback. **Package matters:** `LogSinks` and `ConsoleLogSink` are in `com.couchbase.lite.logging`; `LogLevel`/`LogDomain` are in `com.couchbase.lite`. Importing `com.couchbase.lite.LogSinks` (wrong package) is what produces "unresolved reference 'LogSinks'". Set it with `LogSinks.get().setConsole(ConsoleLogSink(LogLevel.VERBOSE))`. Ref: https://docs.couchbase.com/mobile/4.1.0/couchbase-lite-android/com/couchbase/lite/logging/package-summary.html
 
 Register it in the manifest: `<application android:name=".WarehouseApplication" …>`.
 
@@ -146,7 +146,38 @@ val token = replicator.addChangeListener { change ->
 replicator.start()
 ```
 
+> ⚠️ **Status type — platform difference, don't guess by analogy.** `change.status` is
+> `ReplicatorStatus`, a **standalone top-level class** — verified against
+> https://docs.couchbase.com/couchbase-lite/current/android/replication.html. If you ever
+> need an explicit type annotation (e.g. extracting the listener into a named function),
+> write `fun handle(status: ReplicatorStatus)`. This is the OPPOSITE of the iOS/Swift SDK,
+> where the equivalent type is **nested**: `Replicator.Status`, and a bare `ReplicatorStatus`
+> is a compile error there (see `couchbase-lite-ios-app/reference/cbl-swift-apis.md`). Don't
+> port a type name across platforms by analogy — each platform's naming was checked
+> independently against its own current docs.
+
 > Password is a `CharArray` (Swift takes a `String`). Wrap **every** collection you sync in its own `CollectionConfiguration(collection)` and put it in the `collConfigs` set. The `ReplicatorConfiguration(Collection<CollectionConfiguration>, Endpoint)` constructor + `CollectionConfiguration(collection)` exist in **both 3.3.x and 4.1.x** (verified in both API refs); the 3.x `ReplicatorConfiguration(endpoint)` + `addCollection` form was removed in 4.1. Per-collection channels/filters: `CollectionConfiguration(collection).apply { channels = listOf("…") }`.
+
+### Replicator Setup — CBL 3.2.4 fallback (minSdk 22 only)
+
+Only use this form when the app was generated against the **CBL 3.2.4 / minSdk 22 fallback** (see `installation-and-config.md`) — never mix it with the 4.x-targeted setup above. **3.2.4 does not have** the `ReplicatorConfiguration(Collection<CollectionConfiguration>, Endpoint)` constructor or the `CollectionConfiguration(collection)` constructor — verified directly against the versioned 3.2.4 API reference (https://docs.couchbase.com/mobile/3.2.4/couchbase-lite-android/com/couchbase/lite/ReplicatorConfiguration.html and .../CollectionConfiguration.html). Build the config from the endpoint, then attach each collection with `addCollection`:
+
+```kotlin
+val endpoint = URLEndpoint(URI(AppConfig.appServicesEndpointURL))
+val config = ReplicatorConfiguration(endpoint).apply {
+    type = ReplicatorType.PUSH_AND_PULL
+    isContinuous = true
+    authenticator = BasicAuthenticator(username, password.toCharArray())  // CharArray, not String
+}
+// No CollectionConfiguration(collection) constructor on 3.2.4 -- use the no-arg constructor
+// (or the 5-arg one: channels, documentIDs, pullFilter, pushFilter, conflictResolver) + setters,
+// then attach each collection with addCollection(collection, config).
+config.addCollection(movements, CollectionConfiguration().apply { channels = listOf(/* ... */) })
+config.addCollection(stock, CollectionConfiguration())
+val replicator = Replicator(config)
+```
+
+Everything else on this page — collection-based CRUD, Live Query, `LogSinks`, Full-Text Search — is unchanged on 3.2.4; the Replicator/CollectionConfiguration wiring above is the one API surface that differs.
 
 ### Full-Text Search
 

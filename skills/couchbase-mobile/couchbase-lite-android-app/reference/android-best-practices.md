@@ -130,9 +130,9 @@ This is UX only — the server enforces `requireRole("admin")`. For **how `isAdm
 ## Android Requirements
 
 - **Android Studio** (JDK 17 bundled) with **AGP 8.x / Gradle 8.x / Kotlin 2.0+**
-- **minSdk 24** (CBL 4.x `-ktx` AAR floor — the merger rejects anything lower; the 3.4.x line allows 22), compileSdk/targetSdk **35**
+- **minSdk 24** by default (CBL 4.x `-ktx` AAR floor — the merger rejects anything lower; every AAR from 3.3.3 up, including 3.4.x, enforces the same floor). **Falls back to minSdk 22 via CBL 3.2.4** for apps that must reach Android 5.1/6.0 devices — a real option with a different (older) Replicator wiring, see `installation-and-config.md` and `cbl-kotlin-apis.md`. compileSdk/targetSdk **35**
 - **At least two emulators** installed (the offline-sync test runs the app on two side by side) — Device Manager → add a second AVD
-- **Couchbase Lite Android — Enterprise Edition** `couchbase-lite-android-ee-ktx:4.1.0` (custom Couchbase Maven repo); newest **3.4.0** only for older toolchains — see `installation-and-config.md`
+- **Couchbase Lite Android — Enterprise Edition** `couchbase-lite-android-ee-ktx:4.1.0` (custom Couchbase Maven repo) by default — no older-toolchain fallback exists (3.4.0/3.3.3 need the same AGP 8 / JDK 17 / minSdk 24); the real fallback is **3.2.4** (minSdk 22, older Replicator API) for apps that need it — see `installation-and-config.md`
 - **Jetpack Compose** + Material 3 for UI
 
 No code signing is needed to run on an emulator (a debug keystore is auto-generated). A release build for the Play Store needs a signing config, which is outside this default flow.

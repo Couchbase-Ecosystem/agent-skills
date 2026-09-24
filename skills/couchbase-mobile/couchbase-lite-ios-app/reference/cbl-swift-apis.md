@@ -95,6 +95,37 @@ let replicator = Replicator(config: config)
 replicator.start()
 ```
 
+### Replicator Status (change listener)
+
+> ⚠️ The status type is the **nested** `Replicator.Status` — there is no top-level
+> `ReplicatorStatus` type. Verified against the current Swift API docs
+> (https://docs.couchbase.com/couchbase-lite/current/swift/replication.html) and the
+> reference app. Using a bare `ReplicatorStatus` annotation is a compile error
+> ("Cannot find type 'ReplicatorStatus' in scope") even though most other CBL types
+> resolve fine — don't guess this one from memory.
+
+```swift
+statusToken = replicator.addChangeListener { [weak self] change in
+    guard let self else { return }
+    self.handle(status: change.status)
+}
+
+private func handle(status: Replicator.Status) {
+    if let error = status.error {
+        // surface error.localizedDescription
+        return
+    }
+    switch status.activity {
+    case .connecting: break
+    case .busy: break
+    case .idle: break
+    case .offline: break
+    case .stopped: break
+    @unknown default: break
+    }
+}
+```
+
 ### Full-Text Search
 ```swift
 // Create index once

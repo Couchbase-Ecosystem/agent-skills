@@ -6,9 +6,9 @@ Two independent choices run through all of these:
 - **Principal type:** an App **Role** named `admin` (recommended — every user with the role inherits the access) vs. a single App **User** named `admin` (fine for exactly one admin, but a role is conceptually cleaner and scales).
 - **Grant mechanism:** **static** via the Admin REST API at role/user creation (`admin_channels`, inside `collection_access` for named scopes) vs. **dynamic** via `access(principal, channel)` inside the Access Control Function.
 
-> **Performance rule (important):** the Access Control Function runs on **every document write**. A channel grant that never changes (like an admin's access) should be set **once, statically via REST** — not re-issued through `access()` on every function run, which is redundant and expensive. Use `access()` only for grants that are genuinely data-driven and per-user (e.g. granting each user their own channel).
+> **Performance rule (important):** the Access Control Function runs on **every document write**. A channel grant that never changes should be set **once, statically via REST** — not re-issued through `access()` on every function run, which is redundant and expensive. This includes each user's own private channel: since this skill always names a user's private channel after their username, the Admin REST API user-creation call (`admin_channels`/`collection_access` set to the username) already grants it — the ACF does not need an `access(assignee, assignee)` call for it. Reach for `access()` only for a grant that is genuinely decided by document data at write time and isn't already covered by a static grant.
 >
-> On App Services, granting a **role** via `access()` is also unreliable (no `role:` prefix — see `role-channel-rules.md`), which is a second reason to grant role/admin access statically.
+> This skill grants role/admin channel access statically via `admin_channels` on the role (Admin REST API), not via a per-write `access()` call in the ACF -- a design choice for a one-time grant, not a proven platform limitation. An earlier version of this note claimed `access()` can't take a role principal (`access(["role:admin"], channel)`) on App Services at all; that was never actually verified against a live endpoint and isn't backed by Couchbase's `access()` docs, which document the `role:` prefix without a Capella-specific carve-out (see `role-channel-rules.md` Rule B). Treat that specific claim as unconfirmed, not settled, either way.
 
 > **"admin" is two independent names.** A role/user named `admin` and a channel named `admin` are separate identifiers that share a string only by convention — the principal (who) and the channel (which documents) are unrelated. Rename either freely (role `managers`, channel `all-tasks`). Also note the `channel("admin")` routing line in the function belongs **only to the named-channel design (Option 3)**. With the `*` design (Option 1), the admin already receives every channel, so you **omit `channel("admin")`** entirely. But note `*` does **not** satisfy `requireAccess()` on a named channel (Rule 9), so authorize the admin write-path with `requireRole()` — e.g. `try { requireAccess([assignee]); } catch (e) { requireRole("admin"); }` — not `requireAccess([assignee, "admin"])`.
 
@@ -42,7 +42,8 @@ The function routes each document to both the user's private channel **and** a s
 // in the function
 channel(assignee);   // per-user private channel
 channel("admin");    // shared admin channel
-access(assignee, assignee);          // dynamic, per-user — correct use of access()
+// no access(assignee, assignee) here — the user already has access to their own channel from
+// creation (admin_channels/collection_access set to their username)
 // do NOT grant the admin channel here every run — grant it once via REST (below)
 requireAccess([assignee, "admin"]);
 ```
@@ -59,7 +60,8 @@ The function routes documents **only** to per-user private channels (no shared a
 
 ```javascript
 channel(assignee);                 // only the user's private channel
-access(assignee, assignee);        // user sees their own docs
+// no access(assignee, assignee) here — the user already has access to their own channel from
+// creation (admin_channels/collection_access set to their username)
 // admin access granted out-of-band (REST) or, if data-driven, via access() to chosen channels
 ```
 

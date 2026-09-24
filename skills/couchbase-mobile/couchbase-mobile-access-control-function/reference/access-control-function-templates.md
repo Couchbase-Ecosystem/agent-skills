@@ -12,53 +12,7 @@ Use this for every document collection. The `manager` App User (with `admin` App
 
 **Pattern A — explicit "admin" channel (DEFAULT — use this unless told otherwise):**
 
-```javascript
-function(doc, oldDoc) {
-  if (doc.type == "YOUR_TYPE" || (doc._deleted && oldDoc && oldDoc.type == "YOUR_TYPE")) {
-
-    // Read stable fields from oldDoc — never trust doc on update
-    var assignee = oldDoc ? oldDoc.assignee : doc.assignee;
-
-    if (!assignee) throw({forbidden: "assignee is required"});
-
-    // Creates: manager (admin App Role) only — regular App Users cannot create
-    if (!oldDoc) {
-      requireRole("admin");   // NO role: prefix — App Services ACF uses bare role name
-    }
-
-    // Deletes: admin only
-    if (doc._deleted) {
-      requireRole("admin");
-      return;
-    }
-
-    // Required fields
-    if (!doc.title)  throw({forbidden: "title is required"});
-    if (!doc.status) throw({forbidden: "status is required"});
-
-    // Immutable fields on update
-    if (oldDoc && !oldDoc._deleted) {
-      if (doc.type     !== oldDoc.type)     throw({forbidden: "type cannot be changed"});
-      if (doc.assignee !== oldDoc.assignee) requireRole("admin");
-      if (doc.createdAt && oldDoc.createdAt && doc.createdAt !== oldDoc.createdAt)
-        throw({forbidden: "createdAt cannot be changed"});
-    }
-
-    // Route doc to assignee's channel AND admin channel
-    channel(assignee);
-    channel("admin");
-
-    // Dynamically grant assignee access to their personal channel.
-    // DO NOT call access("role:admin", ...) — role: prefix is invalid in App Services ACFs.
-    // Admin gets "admin" channel access from the role's admin_channels — set at role creation, not here.
-    access(assignee, assignee);
-
-    // Gate: only the assignee or a user with access to "admin" channel can read/write.
-    // Manager passes because the admin App Role has admin_channels: ["admin"].
-    requireAccess([assignee, "admin"]);
-  }
-}
-```
+The complete, fully-annotated template is `assets/admin-assigns-sync-function.js` — copy it and follow its `ADAPT:` comments (replace `"task"` with your document type, `assignee` with your ownership field if different, and add your schema's required/immutable-field checks). In outline: creates and deletes require `requireRole("admin")` (no `role:` prefix on App Services — Rule A); reassigning the `assignee` field or editing a locked/`closed` doc also requires it; the doc is routed with `channel(assignee)` and `channel("admin")`; no `access(assignee, assignee)` call is needed — the assignee already has their own channel from user creation, and admin channel access likewise comes from the role's `admin_channels`, not from `access()` here (Rule B); the gate is `requireAccess([assignee, "admin"])`, which passes for either principal (Rule 7 — OR, not AND).
 
 **Corresponding role + user creation (MUST match Pattern A ACF — use `collection_access`, not flat `admin_channels`):**
 ```bash
@@ -72,6 +26,8 @@ POST /_user/  {"name":"alice","password":"...","collection_access":{"todo":{"tod
 ---
 
 **Pattern B — star channel (use when admin should see ALL documents without explicit routing):**
+
+> This is the only complete copy of the star-channel design in this skill — there is no matching `.js` asset for it (only Design A is shipped, as `assets/admin-assigns-sync-function.js`). If this pattern turns out to be used often enough to warrant one, add `assets/admin-assigns-star-sync-function.js` mirroring the code below rather than copying it to a third place.
 
 ```javascript
 function(doc, oldDoc) {
@@ -99,7 +55,9 @@ function(doc, oldDoc) {
     // Route only to assignee's channel — no channel("admin") needed.
     // Manager receives ALL docs via admin_channels: ["*"] on the role (read/replication).
     channel(assignee);
-    access(assignee, assignee);
+    // NOTE: no access(assignee, assignee) call here — the assignee's own channel grant
+    // comes from user creation (admin_channels/collection_access set to their username —
+    // see below), so a per-document access() call would be redundant on every write.
 
     // IMPORTANT: a "*" grant does NOT satisfy requireAccess() on a named channel (Rule 9).
     // So the manager cannot pass requireAccess([assignee]) via "*". Authorize the two
@@ -124,31 +82,13 @@ POST /_user/  {"name":"alice","password":"...","collection_access":{"todo":{"tod
 
 ### Access Control Function Template — Shared Reference Documents
 
-For read-only reference data visible to all App Users (manuals, lookup tables, etc.).
-
-```javascript
-function(doc, oldDoc) {
-  if (doc.type == "REFERENCE_TYPE" || (doc._deleted && oldDoc && oldDoc.type == "REFERENCE_TYPE")) {
-
-    // Only admin App Role can write reference documents
-    requireRole("admin");
-
-    if (doc._deleted) { return; }
-
-    if (!doc.title) throw({forbidden: "title is required"});
-
-    if (oldDoc && !oldDoc._deleted) {
-      if (doc.type !== oldDoc.type) throw({forbidden: "type cannot be changed"});
-    }
-
-    channel("!");       // "!" = public channel — ALL authenticated App Users receive automatically
-    channel("admin");
-
-    // Admin_channels grants admin access to "admin" channel at user creation — no access() call needed.
-    // No requireAccess() needed — "!" channel covers all authenticated App Users
-  }
-}
-```
+For read-only reference data visible to all App Users (manuals, lookup tables, etc.). The complete,
+fully-annotated template is `assets/shared-reference-sync-function.js` — copy it and follow its
+`ADAPT:` comments (replace `"resource"` with your document type, add your schema's field validation).
+In outline: only `requireRole("admin")` gates create/edit/delete; deletes return immediately
+(tombstones need no field validation); documents route only to the public `channel("!")`, which every
+authenticated App User already receives — there is no `channel("admin")` and no `requireAccess()` call
+in this pattern, since nothing here needs gating beyond the create/edit/delete check above.
 
 ---
 

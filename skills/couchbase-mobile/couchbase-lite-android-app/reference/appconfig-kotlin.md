@@ -1,5 +1,18 @@
 ### Generated `AppConfig.kt` — required constants
 
+> **Kotlin doc-comment gotcha — never put a literal `/*` inside a `/** */` block.** Unlike
+> Java/C, Kotlin block comments nest. If a KDoc header explains a filename convention using a
+> glob (e.g. "matches the `sync-functions/*.js` files"), that embedded `/*` opens a *second*,
+> nested comment — and the next `*/` only closes that inner one, leaving the outer `/**`
+> unclosed. Everything after it, including the entire `object AppConfig { ... }` below, silently
+> becomes comment text: the compiler reports "Unclosed comment" at EOF, and every file that
+> references `AppConfig` fails with "Unresolved reference" (it was never actually declared).
+> This is a real failure hit generating a companion app from this skill. If a doc comment needs
+> to mention a wildcard filename pattern, write around the `/*` sequence — e.g. "the `.js` files
+> under `sync-functions/`" or "`sync-functions` (`*.js`)" with a space before the asterisk —
+> never `sync-functions/*.js` inside a `/** */` block. Applies to any KDoc in any generated file,
+> not just this one.
+
 ```kotlin
 object AppConfig {
     const val databaseName = "WarehouseDB"
