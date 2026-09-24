@@ -5,12 +5,8 @@ with app data, users, and access-control functions — then generates a runnable
 the Couchbase Lite SDK with bidirectional **cloud-to-edge** data sync: the app keeps working through
 a network drop and reconciles when it reconnects.
 
-**iOS (Swift) is the stable path. Android (Kotlin / Jetpack Compose) is newly added and _experimental_.**
+**Both iOS (Swift) and Android (Kotlin / Jetpack Compose) are supported, stable client platforms.**
 Other platforms are coming.
-
-> ⚠️ **Android support is experimental.** The iOS path is well-tested end to end; Android was
-> added recently and is still being hardened — expect the occasional rough edge, and please file
-> issues for anything you hit. For the smoothest first run, start with iOS.
 
 > These are **skills**, used directly — no plugin required. (A one-command plugin install is planned
 > once testing wraps; see the end.)
@@ -24,11 +20,11 @@ Other platforms are coming.
 | `couchbase-mobile-access-control-function` | The App Services access-control (sync) function |
 | `couchbase-appservices-provisioning` | Provisioning the Capella / App Services backend (`setup-capella.sh`) |
 | `couchbase-lite-ios-app` | iOS (Swift) client capability |
-| `couchbase-lite-android-app` | Android (Kotlin / Compose) client capability — **experimental** |
+| `couchbase-lite-android-app` | Android (Kotlin / Compose) client capability |
 
-You interact with **one** skill — the recipe. It now supports **both iOS and Android**: it asks which
-platform you want up front, then pulls in the others as needed and selects the matching client skill
-(iOS is stable; Android is experimental). Don't invoke the capability skills directly.
+You interact with **one** skill — the recipe. It supports **both iOS and Android**: it asks which
+platform you want up front, then pulls in the others as needed and selects the matching client skill.
+Don't invoke the capability skills directly.
 
 ## Prerequisites
 
@@ -39,7 +35,7 @@ For **iOS**:
 - **macOS + Xcode** (the recipe checks your Xcode version and matches the Couchbase Lite SDK to it).
 - At least **two iOS Simulators** (for the offline-sync test).
 
-For **Android** _(experimental)_:
+For **Android**:
 - **Android Studio** (a recent release) with the **Android SDK, API 35** installed.
 - At least **two emulators** — two *separate* AVDs (for the offline-sync test).
 
@@ -125,6 +121,24 @@ Cowork doesn't read your local `~/.claude/skills/` — it loads the skills enabl
    Couchbase Mobile app."** The recipe drives it from there.
 
 > Manage or remove uploaded skills anytime under **Customize → Skills** (or on claude.ai).
+
+---
+
+## Cleaning up — tearing down the backend
+
+Done with a demo or test build? `teardown-capella.sh` (in `couchbase-appservices-provisioning/assets/`,
+copied into your project alongside `setup-capella.sh`) deletes the Capella backend resources that
+`setup-capella.sh` actually created — nothing more:
+
+```bash
+source provision.env && ./teardown-capella.sh
+```
+
+It prints the exact plan — what will be deleted, what will be left alone and why — and asks for one
+confirmation before touching anything. It's safe to run even if you've reused a Project, Cluster, or
+App Service across multiple test apps on the same free-tier account: teardown only ever deletes a
+resource `setup-capella.sh` itself created (tracked automatically in `provision.env`); anything it
+found already existing — and so might be shared with another app — is left completely alone.
 
 ---
 

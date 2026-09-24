@@ -89,3 +89,6 @@ If you prefer the UI or the script doesn't work for your org configuration:
 
 ---
 
+### Tearing it down later
+
+If the user explicitly asks to tear down / delete everything this created for the demo, use `assets/teardown-capella.sh` — see `reference/teardown.md`. It only deletes what this script actually created for this run (tracked automatically in `provision.env`); a Project, Cluster, or App Service it found already existing is left alone. Don't run it unprompted, and don't reach for it just because a setup run failed partway — re-running `setup-capella.sh` is the right fix for that.

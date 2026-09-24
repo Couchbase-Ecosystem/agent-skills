@@ -8,6 +8,18 @@
 > - Android Keystore: https://developer.android.com/privacy-and-security/keystore
 > - App permissions: https://developer.android.com/guide/topics/permissions/overview
 
+### Compose scroll modifiers — import from `androidx.compose.foundation`, not `.layout`
+
+Real, repeated build failure (confirmed across two generated screens): `Modifier.horizontalScroll()` and `Modifier.verticalScroll()`, and `rememberScrollState()`, all live in the **`androidx.compose.foundation`** package -- *not* `androidx.compose.foundation.layout`, even though nearly everything else you'd reach for alongside them (`Column`, `Row`, `Arrangement`, `padding`, `fillMaxSize`, `height`, `imePadding`) *is* in `.layout`. That similarity is exactly what makes it an easy slip -- get this one wrong and Kotlin fails with "Unresolved reference" pointing at the import line, not the call site, so it's easy to "fix" the wrong thing. The correct imports:
+
+```kotlin
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+```
+
+If a generated screen fails to compile with `Unresolved reference 'horizontalScroll'` (or `verticalScroll`/`rememberScrollState`), check this first before looking anywhere else.
+
 ### State and data flow
 
 Use a unidirectional flow: `DatabaseManager`/`ReplicationManager` (singletons) expose **`StateFlow`**; a `ViewModel` maps them to UI state; Compose collects with `collectAsStateWithLifecycle()`.

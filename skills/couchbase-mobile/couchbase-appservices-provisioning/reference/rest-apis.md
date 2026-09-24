@@ -14,6 +14,14 @@ Provisioning and running a Couchbase Mobile backend touches **different** REST A
 - **The Management API is spec-driven.** Always consult its OpenAPI spec before writing a call — see `management-api.md`. Content-Type and body shape vary by endpoint (e.g. `PUT /accessControlFunction` needs `application/javascript`).
 - **The Public REST API is how documents get written on Capella, period -- there is no admin-level document write.** The cloud-edge iOS/Android app itself uses the Couchbase Lite replicator over WebSocket, not this REST surface, but *seed data and any other direct document write CLAUDE performs* must go through the Public API as an App User (see `SKILL.md`'s "Seed / test data" and `management-api.md` section 2 / `app-services-public-api.json`). Auth as the wrong kind of credential here isn't just unconventional, it fails outright: the Admin API returns no document endpoints on Capella, and `access()` never accepts the Admin Credential as a principal either way.
 
+### Network reachability — a pure cloud session may not reach ports 4984/4985 at all
+
+**Confirmed real case, both directions.** A cloud-only Claude session (no linked device) tried to call the Public REST API at `https://<host>.apps.cloud.couchbase.com:4984/...` and the connection opened, exchanged a few bytes, then dropped (abnormal close) after several seconds -- HTTPS on port 443 worked fine from the same session. This is the sandbox's own outbound egress proxy not carrying traffic on a non-standard port; it is **not** Capella refusing the connection (4984/4985 are normal public ports, nothing there is firewalled) and not a credentials or endpoint-URL problem, so don't debug it as either. Running the exact same `curl` from the user's own machine (a linked device, or the user's own terminal) worked immediately -- confirmed. So:
+
+- **If a device bridge is linked, do Admin/Public REST API calls there**, not from the cloud workspace -- that traffic follows the user's own machine's network, which has no reason to share the sandbox's port restriction.
+- **If no device is linked and a call to one of these two APIs hangs or drops without an HTTP error**, suspect this before anything else, say so plainly, and hand the user the exact command to run themselves (see `SKILL.md`'s "Seed / test data" for where the URL and credentials come from) rather than spending turns debugging the endpoint or the access control function.
+- This applies to **both** non-Management-API surfaces in the table above (Admin REST *and* Public REST) -- the Management API itself (`cloudapi.cloud.couchbase.com`, port 443) is unaffected.
+
 ### Documentation
 
 - Capella Management API reference: https://docs.couchbase.com/cloud/management-api-reference/index.html

@@ -49,6 +49,16 @@
 #   export CB_ENDPOINT_NAME='todosync'    # app-specific, e.g. todosync, fieldtracker
 #   export COLLECTIONS='todo/todos'       # space-separated scope/collection pairs
 #   export SYNC_FUNCTIONS_DIR='sync-functions'   # relative to THIS script's location (no project-name prefix)
+#   export FORCE_ADMIN_CRED_ROTATE='true' # force-rotate the App Services Admin Credential even when
+#                                          # the App Service was reused/shared, not created by this script
+#                                          # (default: false -- see Step 10 below for why)
+#
+# Provenance tracking (PROJECT_CREATED_BY_SCRIPT / CLUSTER_CREATED_BY_SCRIPT /
+# APP_SERVICE_CREATED_BY_SCRIPT, saved to provision.env): records whether each of these three
+# resources was actually created by this script, vs. found already existing (and therefore
+# possibly shared with something else). Sticky across re-runs -- never flips true back to
+# false. Used by this script's own Step 10 (see below) and by teardown-capella.sh, which
+# refuses to delete anything it didn't create.
 # =============================================================================
 
 set -euo pipefail
@@ -136,6 +146,48 @@ _persist_secret() {
   printf '%s\n' "${out[@]}" > "$_provision_env_file"
 }
 
+# Records "found existing, not created by this run" -- but ONLY the first time this script
+# ever sees the resource (i.e. nothing recorded yet). This is what makes provenance sticky:
+# once a resource is known to have been CREATED by this script (recorded true, elsewhere), a
+# later re-run that simply finds it already there must never flip that back to false.
+_mark_provenance_if_unset() {
+  local var="$1" val="$2"
+  if [[ -n "${!var:-}" ]]; then
+    return 0
+  fi
+  _persist_secret "$var" "$val"
+  export "$var=$val"
+}
+
+# Records "created by this run" -- unconditional, since creating it now makes "yes, ours"
+# true as of now regardless of anything recorded before (e.g. after a teardown + re-run).
+_mark_provenance_created() {
+  local var="$1"
+  _persist_secret "$var" "true"
+  export "$var=true"
+}
+
+# Re-reads one var's CURRENT persisted value straight from provision.env, bypassing this
+# shell's own (possibly stale) copy. Needed because provenance flags set inside
+# get_or_create_project/cluster/app_service are written to the file from within a
+# command-substitution subshell ($(...)) -- that subshell's own `export` never reaches back
+# out to this process, only the file write does. Falls back to the given default when the
+# var has no recorded line yet (or provision.env doesn't exist).
+_read_persisted() {
+  local var="$1" default="${2:-}"
+  if [[ -f "$_provision_env_file" ]]; then
+    local line
+    line=$(grep -m1 "^export ${var}=" "$_provision_env_file" 2>/dev/null || true)
+    if [[ -n "$line" ]]; then
+      line="${line#export ${var}=\'}"
+      line="${line%\'}"
+      printf '%s' "$line"
+      return
+    fi
+  fi
+  printf '%s' "$default"
+}
+
 # App Services Admin Credential — used to create and manage App Users and App Roles.
 # To use your own, put it directly on the APPSVC_ADMIN_PASS line in provision.env before
 # running (must meet: min 8 chars, uppercase + lowercase + number + special char; AVOID '=' and
@@ -146,7 +198,10 @@ _persist_secret() {
 # blank in the file (recommended) and the script generates a strong one and saves it back to
 # provision.env — it is never printed anywhere, including here.
 APPSVC_ADMIN_USER="${APPSVC_ADMIN_USER:-admin}"
-if [[ -z "${APPSVC_ADMIN_PASS:-}" ]]; then
+# Skipped when sourced by teardown-capella.sh (_SOURCED_FOR_TEARDOWN) -- teardown has no use
+# for an Admin Credential password and generating/persisting one as a side effect of just
+# sourcing this file for its helpers would be confusing.
+if [[ -z "${APPSVC_ADMIN_PASS:-}" && -z "${_SOURCED_FOR_TEARDOWN:-}" ]]; then
   APPSVC_ADMIN_PASS="$(_generate_password 20)"
   _persist_secret APPSVC_ADMIN_PASS "$APPSVC_ADMIN_PASS"
   echo "🔑 Generated APPSVC_ADMIN_PASS and saved it to provision.env (never printed)."
@@ -167,6 +222,14 @@ CB_CLUSTER_NAME="${CB_CLUSTER_NAME:-mobile-dev-cluster}"
 CB_BUCKET_NAME="${CB_BUCKET_NAME:-mobileapp}"
 CB_APP_SERVICE_NAME="${CB_APP_SERVICE_NAME:-mobile-app-service}"
 CB_ENDPOINT_NAME="${CB_ENDPOINT_NAME:-mobile-app}"
+
+# Provenance flags -- "" means "not yet recorded" (distinct from "false"), so a first
+# encounter with a pre-existing resource can be recorded once and never re-checked. See
+# _mark_provenance_if_unset / _mark_provenance_created below.
+PROJECT_CREATED_BY_SCRIPT="${PROJECT_CREATED_BY_SCRIPT:-}"
+CLUSTER_CREATED_BY_SCRIPT="${CLUSTER_CREATED_BY_SCRIPT:-}"
+APP_SERVICE_CREATED_BY_SCRIPT="${APP_SERVICE_CREATED_BY_SCRIPT:-}"
+FORCE_ADMIN_CRED_ROTATE="${FORCE_ADMIN_CRED_ROTATE:-false}"
 
 CLOUD_PROVIDER="${CLOUD_PROVIDER:-aws}"
 CLOUD_REGION="${CLOUD_REGION:-us-east-2}"
@@ -363,6 +426,7 @@ get_or_create_project() {
       dup_cid=$(printf '%s\n' "$dup_crows" | awk -F'\t' -v n="$CB_CLUSTER_NAME" '$2==n{print $1; exit}')
       if [[ -n "$dup_cid" ]]; then
         log "   ♻️  Project '$CB_PROJECT_NAME' ($dup_pid) has cluster '$CB_CLUSTER_NAME' -- using this one."
+        _mark_provenance_if_unset PROJECT_CREATED_BY_SCRIPT false
         echo "$dup_pid"
         return
       fi
@@ -375,6 +439,7 @@ get_or_create_project() {
 
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
     log "   ♻️  Reusing existing project: $existing_id"
+    _mark_provenance_if_unset PROJECT_CREATED_BY_SCRIPT false
     echo "$existing_id"
     return
   fi
@@ -411,6 +476,7 @@ get_or_create_project() {
         exit 1
       fi
       log "   ♻️  Using existing project '$chosen': $chosen_id"
+      _mark_provenance_if_unset PROJECT_CREATED_BY_SCRIPT false
       echo "$chosen_id"
       return
     fi
@@ -422,6 +488,7 @@ get_or_create_project() {
       '{"name":$n,"description":"Auto-created by setup-capella.sh"}')")
   id=$(echo "$resp" | jq -r '.id')
   log "   ✅ Project created: $id"
+  _mark_provenance_created PROJECT_CREATED_BY_SCRIPT
   echo "$id"
 }
 
@@ -477,6 +544,7 @@ get_or_create_cluster() {
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
     existing_state=$(printf '%s\n' "$rows" | awk -F'\t' -v n="$CB_CLUSTER_NAME" '$2==n{print $3; exit}')
     log "   ♻️  Found existing cluster (state: $existing_state): $existing_id"
+    _mark_provenance_if_unset CLUSTER_CREATED_BY_SCRIPT false
     # Free-tier clusters turn off after 72h inactivity — wake it up
     if [[ "$existing_state" == "turnedOff" ]]; then
       log "   Cluster is off — turning it on..."
@@ -502,6 +570,7 @@ get_or_create_cluster() {
     read -r -p "   OK to create the app's bucket inside the existing cluster '$any_name'? [y/N] " ans
     if [[ "$ans" =~ ^[Yy]([Ee][Ss])?$ ]]; then
       log "   ♻️  Using existing cluster '$any_name': $any_id"
+      _mark_provenance_if_unset CLUSTER_CREATED_BY_SCRIPT false
       if [[ "$any_state" == "turnedOff" ]]; then
         log "   Cluster is off — turning it on..."
         api POST "/organizations/${org_id}/projects/${project_id}/clusters/freeTier/${any_id}/activationState" "" > /dev/null
@@ -543,6 +612,7 @@ get_or_create_cluster() {
     log "❌ Cluster creation failed."; exit 1
   fi
   log "   ✅ Cluster created: $id"
+  _mark_provenance_created CLUSTER_CREATED_BY_SCRIPT
   echo "$id"
 }
 
@@ -716,6 +786,7 @@ get_or_create_app_service() {
       log "      id: $existing_id). Capella allows only one App Service per cluster, so reusing it --"
       log "      this app's data stays isolated via its own App Endpoint ('$CB_ENDPOINT_NAME'), created next."
     fi
+    _mark_provenance_if_unset APP_SERVICE_CREATED_BY_SCRIPT false
     echo "$existing_id"
     return
   fi
@@ -737,6 +808,7 @@ get_or_create_app_service() {
     log "❌ App Service creation failed."; exit 1
   fi
   log "   ✅ App Service created: $id"
+  _mark_provenance_created APP_SERVICE_CREATED_BY_SCRIPT
   echo "$id"
 }
 
@@ -920,22 +992,36 @@ update_access_control_functions() {
 
 create_admin_credential() {
   local org_id="$1" project_id="$2" cluster_id="$3" app_service_id="$4"
+  local app_service_created="${5:-false}"
   echo ""
   echo "🔐 Step 10: Creating App Services Admin Credential '${APPSVC_ADMIN_USER}'..."
 
   local path="/organizations/${org_id}/projects/${project_id}/clusters/${cluster_id}/appservices/${app_service_id}/adminUsers"
 
   # NOTE: an Admin Credential's password CANNOT be read back or updated via the API
-  # (PUT /adminUsers/{id} only changes endpoint access). So "skip if exists" would leave
-  # a stale password and every later Admin-REST call would fail with 401. To make re-runs
-  # idempotent AND ensure the credential's password matches APPSVC_ADMIN_PASS, we
-  # delete-and-recreate it. This is safe because APPSVC_ADMIN_USER is app-specific
-  # (must be unique per app) — it only touches this app's credential.
+  # (PUT /adminUsers/{id} only changes endpoint access). So "skip if exists" would normally
+  # leave a stale password and every later Admin-REST call would fail with 401 -- which is
+  # why re-runs delete-and-recreate by default. BUT when the App Service itself is reused
+  # (not created by this script -- e.g. shared with another app/demo on the same cluster),
+  # deleting-and-recreating this credential on every single re-run is needless churn on a
+  # resource this script doesn't fully own: same username, same password end up in place
+  # either way (APPSVC_ADMIN_PASS is itself persisted and stable across re-runs), so nothing
+  # is actually gained by rotating it, only a moment of invalidated credential. So: skip the
+  # delete+recreate whenever a credential with this name already exists AND the App Service
+  # was reused -- unless FORCE_ADMIN_CRED_ROTATE=true, e.g. because you edited
+  # APPSVC_ADMIN_PASS by hand in provision.env and need that new value pushed through.
   local list_resp existing_id
   list_resp=$(api_or_empty GET "$path")
   existing_id=$(echo "$list_resp" | jq -r --arg n "$APPSVC_ADMIN_USER" \
     '.data[]? | select(.name == $n) | .id' | head -1)
   if [[ -n "$existing_id" && "$existing_id" != "null" ]]; then
+    if [[ "$app_service_created" != "true" && "$FORCE_ADMIN_CRED_ROTATE" != "true" ]]; then
+      echo "   ♻️  Admin credential '${APPSVC_ADMIN_USER}' already exists on this (reused/shared) App Service — leaving it in place."
+      echo "      This App Service wasn't created by this script, so rotating its admin credential on every"
+      echo "      re-run risks disrupting anything else relying on it, for no benefit (same user/pass either way)."
+      echo "      Set FORCE_ADMIN_CRED_ROTATE=true to force a sync (e.g. after hand-editing APPSVC_ADMIN_PASS)."
+      return
+    fi
     echo "   ♻️  Admin credential '${APPSVC_ADMIN_USER}' exists — recreating so the current password applies (password is not updatable via API)."
     api_or_empty DELETE "${path}/${existing_id}" > /dev/null
   fi
@@ -1248,6 +1334,12 @@ main() {
     if [[ -n "$org_match" ]]; then
       local m_pid m_pname m_cid m_cname m_cstate
       IFS=$'	' read -r m_pid m_pname m_cid m_cname m_cstate <<< "$org_match"
+      # Every path through this block resolves to a project/cluster found via an org-wide
+      # scan, never one created by this run -- mark both not-ours-by-creation up front,
+      # before any of the branches below (sticky: a no-op if already recorded true from an
+      # earlier run that actually created them).
+      _mark_provenance_if_unset PROJECT_CREATED_BY_SCRIPT false
+      _mark_provenance_if_unset CLUSTER_CREATED_BY_SCRIPT false
       if [[ "$m_pname" == "$CB_PROJECT_NAME" && "$m_cname" == "$CB_CLUSTER_NAME" ]]; then
         log "   ♻️  This matches '$CB_PROJECT_NAME' / '$CB_CLUSTER_NAME' — proceeding normally."
         project_id="$m_pid"
@@ -1297,6 +1389,7 @@ main() {
       echo "❌ Could not get project ID."; exit 1
     fi
   fi
+  _persist_secret RESOLVED_PROJECT_ID "$project_id"
 
   if [[ -z "${cluster_id:-}" ]]; then
     cluster_id=$(get_or_create_cluster "$org_id" "$project_id")
@@ -1305,11 +1398,13 @@ main() {
     fi
   fi
   cluster_id=$(wait_for_cluster "$org_id" "$project_id" "$cluster_id")
+  _persist_secret RESOLVED_CLUSTER_ID "$cluster_id"
 
   bucket_id=$(get_or_create_bucket "$org_id" "$project_id" "$cluster_id")
   if [[ -z "$bucket_id" || "$bucket_id" == "null" ]]; then
     echo "❌ Could not get bucket UUID."; exit 1
   fi
+  _persist_secret RESOLVED_BUCKET_ID "$bucket_id"
 
   get_or_create_collections "$org_id" "$project_id" "$cluster_id" "$bucket_id"
 
@@ -1317,6 +1412,12 @@ main() {
   if [[ -z "$app_service_id" || "$app_service_id" == "null" ]]; then
     echo "❌ Could not get App Service ID."; exit 1
   fi
+  _persist_secret RESOLVED_APP_SERVICE_ID "$app_service_id"
+  # get_or_create_app_service() marks APP_SERVICE_CREATED_BY_SCRIPT from inside a
+  # command-substitution subshell, so its own `export` never reaches this process -- read
+  # the value it just persisted to provision.env back in explicitly (see _read_persisted).
+  local app_service_created
+  app_service_created="$(_read_persisted APP_SERVICE_CREATED_BY_SCRIPT false)"
 
   # App Endpoint requires App Service to be healthy first
   wait_for_app_service "$org_id" "$project_id" "$cluster_id" "$app_service_id"
@@ -1344,7 +1445,7 @@ main() {
     admin_url="<see Capella UI → App Services → endpoint → Connect → Admin REST tab>"
   fi
 
-  create_admin_credential "$org_id" "$project_id" "$cluster_id" "$app_service_id"
+  create_admin_credential "$org_id" "$project_id" "$cluster_id" "$app_service_id" "$app_service_created"
   setup_allowed_cidr "$org_id" "$project_id" "$cluster_id" "$app_service_id"
 
   if [[ -n "$admin_url" && "$admin_url" != "null" && "$admin_url" != *"see Capella"* ]]; then
@@ -1508,4 +1609,9 @@ main() {
   echo "=================================================="
 }
 
-main "$@"
+# Guarded so teardown-capella.sh can `source` this file to reuse its config loading, api()
+# helper, logging and _persist_secret/_read_persisted -- without this script's own setup
+# flow auto-running as a side effect of being sourced.
+if [[ "${BASH_SOURCE[0]:-$0}" == "${0}" ]]; then
+  main "$@"
+fi
