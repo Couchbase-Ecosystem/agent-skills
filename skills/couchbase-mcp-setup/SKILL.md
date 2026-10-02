@@ -99,7 +99,7 @@ claude mcp add couchbase --scope local \
   -e CB_CONNECTION_STRING="…" -e CB_USERNAME="…" \
   -e CB_PASSWORD="…" \
   -e CB_MCP_READ_ONLY_MODE="true" \
-  -- uvx --from "couchbase-mcp-server>=1.0.0,<1.1.0" couchbase-mcp-server
+  -- uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server
 ```
 
 Pass `CB_MCP_READ_ONLY_MODE` **explicitly** (as above) on this and the other direct-config routes — don't rely on the server default, which is `false` on `1.0+`, so an omitted flag would silently enable writes. To enable writes, pass `-e CB_MCP_READ_ONLY_MODE="false"`.
@@ -149,7 +149,7 @@ Pass `CB_MCP_READ_ONLY_MODE` **explicitly** (as above) on this and the other dir
 | `uvx: command not found` | Install `uv` (`brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh \| sh`). |
 | MCP server in **Docker** can't reach a local cluster | Use `couchbase://host.docker.internal`, not `localhost`. |
 | Server starts but **no tools appear** | Ensure transport is `stdio`; run `/reload-plugins`, then fully restart if they still don't appear. |
-| **Tools missing right after a restart, then present on a later one** (intermittent) | Startup-timing race: `uvx` resolves/downloads the package and the server completes its MCP handshake asynchronously, so a slow launch can exceed the client's startup window. Wait a few seconds and re-check (or `/reload-plugins`) before concluding it's not installed; raise the window by launching with `MCP_TIMEOUT=30000` (ms); for deterministic startups `uv tool install "couchbase-mcp-server>=1.0.0,<1.1.0"` (or pre-warm with `uvx couchbase-mcp-server --version`) so launches skip resolution/download. |
+| **Tools missing right after a restart, then present on a later one** (intermittent) | Startup-timing race: `uvx` resolves/downloads the package and the server completes its MCP handshake asynchronously, so a slow launch can exceed the client's startup window. Wait a few seconds and re-check (or `/reload-plugins`) before concluding it's not installed; raise the window by launching with `MCP_TIMEOUT=30000` (ms); for deterministic startups `uv tool install "couchbase-mcp-server==1.0.1.post1"` (or pre-warm with `uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server --version`) so launches skip resolution/download. |
 | HTTP transport **port in use** | Change `CB_MCP_PORT` (default `8000`). |
 | **Writes are blocked** | Expected — `CB_MCP_READ_ONLY_MODE` is `true` by default. Set it to `false` only if the user wants writes. |
 

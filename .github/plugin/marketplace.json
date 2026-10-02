@@ -7,13 +7,13 @@
   },
   "metadata": {
     "description": "Official Couchbase plugins (MCP Server + Skills) for GitHub Copilot CLI.",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
       "name": "couchbase",
       "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, run SQL++, optimize queries/indexes, and design data models via the Couchbase MCP server.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "keywords": [
         "couchbase",
         "capella",

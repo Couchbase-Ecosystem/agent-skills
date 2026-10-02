@@ -51,8 +51,8 @@ TLS server-cert validation:
 | Runtime | `uv`/`uvx` **or** Docker |
 | PyPI package | `couchbase-mcp-server` |
 | Docker image | `couchbaseecosystem/mcp-server-couchbase` (also `mcp/couchbase` on the Docker MCP catalog) |
-| Version check | `uvx couchbase-mcp-server --version` |
+| Version check | `uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server --version` |
 
-> **First-launch latency:** on a cold cache `uvx` resolves the version range and downloads the package before the server starts, so the first launch (or the first after a cache prune) can be slow enough to miss the client's MCP startup window — the tools then appear only on a later restart. For deterministic startups, `uv tool install "couchbase-mcp-server>=1.0.0,<1.1.0"` or pre-warm with the version-check command above, and/or launch with a larger `MCP_TIMEOUT` (ms). See SKILL.md → Troubleshooting.
+> **First-launch latency:** on a cold cache `uvx` resolves and downloads the package before the server starts, so the first launch (or the first after a cache prune) can be slow enough to miss the client's MCP startup window — the tools then appear only on a later restart. For deterministic startups, `uv tool install "couchbase-mcp-server==1.0.1.post1"` or pre-warm with the version-check command above, and/or launch with a larger `MCP_TIMEOUT` (ms). See SKILL.md → Troubleshooting.
 
 Unsupported services (no tools): Analytics, Sync Gateway, Couchbase Lite, Capella AI Services.
