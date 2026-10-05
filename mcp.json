@@ -2,7 +2,7 @@
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["--from", "couchbase-mcp-server>=1.0.0,<1.1.0", "couchbase-mcp-server"],
+      "args": ["--from", "couchbase-mcp-server==1.0.1.post1", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "${CB_CONNECTION_STRING:-}",
         "CB_USERNAME": "${CB_USERNAME:-}",
