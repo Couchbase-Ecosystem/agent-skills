@@ -2,14 +2,14 @@
 
 Couchbase agent skills bring Couchbase expertise to your coding agents out of the box, so they work from authoritative, Couchbase-maintained knowledge instead of guessing from training data. They come in two families:
 
-- **[Data Skills](#data-skills)** — query, optimize, and model data on a live Couchbase cluster through the Couchbase MCP server.
+- **[Couchbase Server Data Skills](#couchbase-server-data-skills)** — query, optimize, and model data on a live Couchbase cluster through the Couchbase MCP server.
 - **[Couchbase Mobile Skills](#couchbase-mobile-skills)** — build a complete offline-first mobile app with Capella App Services sync.
 
 ---
 
-## Data Skills
+## Couchbase Server Data Skills
 
-Data skills operate on a live cluster through the Couchbase MCP server, grounding every answer in your actual schema, data, and indexes — so agents querying, optimizing, or modeling your data deliver reliable, high-quality results.
+Couchbase Server data skills operate on a live cluster through the Couchbase MCP server, grounding every answer in your actual schema, data, and indexes — so agents querying, optimizing, or modeling your data deliver reliable, high-quality results.
 
 | Skill Name | What it does |
 |------------|--------------|
@@ -62,13 +62,13 @@ If your Claude Desktop UI does not show the plugin marketplace flow, use per-ski
 
 ## Couchbase Mobile Skills
 
-Couchbase Mobile skills build a complete offline-first mobile app — iOS (Swift) or Android (Kotlin/Compose) — capable of syncing data with a fully provisioned backend powered by Capella App Services sync. Apps continue to function even through network disruptions and sync back data when connectivity is restored.
+Couchbase Mobile skills build a fully functioning **offline-first** mobile app — iOS (Swift) or Android (Kotlin/Compose) — that keeps running even with no internet connectivity. They provision a Capella App Services backend (app data, users, roles, and access-control functions), then generate a runnable app project built on the Couchbase Lite SDK as the local database, with bidirectional **cloud-to-edge** sync: the app works through a network drop and reconciles when it reconnects.
 
 You interact with one recipe skill; it pulls in the others and generates a runnable iOS or Android project along with its backend.
 
 | Skill Name | What it does |
 |---|---|
-| `couchbase-mobile-cloud-edge-sync-app` | **Start here** — the recipe that drives the whole build |
+| `couchbase-mobile-cloud-edge-sync-app` | The entry-point recipe — runs when you ask to build an app and drives the whole build |
 | `couchbase-mobile-concepts-patterns` | Concepts: scopes/collections, channels, access patterns |
 | `couchbase-mobile-access-control-function` | The App Services access-control (sync) function |
 | `couchbase-appservices-provisioning` | Provisions the Capella / App Services backend |

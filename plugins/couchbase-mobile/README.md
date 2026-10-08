@@ -1,21 +1,23 @@
 # Couchbase Mobile — Agent Skills
 
-A set of **agent skills** that provisions a Capella App Services (free-tier) backend — ready to go
-with app data, users, and access-control functions — then generates a runnable app project built on
-the Couchbase Lite SDK with bidirectional **cloud-to-edge** data sync: the app keeps working through
-a network drop and reconciles when it reconnects.
+A set of **agent skills** that let you build a fully functioning mobile app with **offline-first**
+data sync capability that allows the app to continue running even with no internet connectivity. It
+provisions a Capella App Services backend — ready to go with app data, users, roles, and
+access-control functions — then generates a runnable app project built on the Couchbase Lite SDK as
+its local database, with bidirectional **cloud-to-edge** data sync: the app keeps working through a
+network drop and reconciles when it reconnects.
 
 **Both iOS (Swift) and Android (Kotlin / Jetpack Compose) are supported, stable client platforms.**
 Other platforms are coming.
 
-> These are **skills**, used directly — no plugin required. (A one-command plugin install is planned
-> once testing wraps; see the end.)
+> These ship as one plugin — **`couchbase-mobile`** — in this repo's `couchbase-plugins` marketplace.
+> See [Install the plugin](#install-the-plugin) below.
 
 ## What's included
 
 | Skill | Role |
 |---|---|
-| `couchbase-mobile-cloud-edge-sync-app` | **Start here** — the recipe that drives the whole build |
+| `couchbase-mobile-cloud-edge-sync-app` | The entry-point recipe — runs when you ask to build an app and drives the whole build |
 | `couchbase-mobile-concepts-patterns` | Concepts: scopes/collections, channels, access patterns |
 | `couchbase-mobile-access-control-function` | The App Services access-control (sync) function |
 | `couchbase-appservices-provisioning` | Provisioning the Capella / App Services backend (`setup-capella.sh`) |
@@ -62,75 +64,75 @@ The recipe reads your Xcode version and picks the matching Couchbase Lite SDK ve
 
 There's no fallback for older toolchains — AGP 8 and JDK 17 are required. If Android Studio is out of date, update it; it brings a compatible JDK and AGP with it.
 
-## Get the skills from GitHub
+## Install the plugin
 
-Clone the repo:
+The six skills ship as one plugin, **`couchbase-mobile`**, in this repo's **`couchbase-plugins`**
+marketplace. Install it in your tool using the steps below, then [build an app](#build-an-app). You
+only ever call the recipe — it pulls in the other skills itself.
 
-```bash
-git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
-```
+> **Anthropic plugin directory — coming soon.** Once `couchbase-mobile` is listed in Claude's built-in
+> plugin directory, you'll add it with no marketplace step (Claude Desktop: Customize → Plugins →
+> search **Couchbase Mobile** → **Add**; Claude Code: browse with `/plugin`). Until then, use the
+> marketplace steps below.
 
-The six skills live in **`agent-skills/plugins/couchbase-mobile/skills/`**.
+### Claude Code (CLI)
 
----
+- Run `/plugin marketplace add Couchbase-Ecosystem/agent-skills`
+- Run `/plugin install couchbase-mobile@couchbase-plugins`
+- Run `/plugin` to confirm **couchbase-mobile** is installed with its six skills
 
-## Use in Claude Code (CLI)
+### Claude Desktop — Code tab
 
-Claude Code loads skills from a `SKILL.md` folder in your **personal** (`~/.claude/skills/`, all
-projects) or **project** (`.claude/skills/`, one repo) skills directory — no plugin needed. Point
-those at the six folders. Symlinks are recommended so a later `git pull` updates them in place.
+- Open the **Code** tab
+- Run `/plugin marketplace add Couchbase-Ecosystem/agent-skills`
+- Run `/plugin install couchbase-mobile@couchbase-plugins`
+- Run `/plugin` to confirm
 
-**Personal (available in every project):**
-```bash
-cd agent-skills                 # the repo you cloned
-mkdir -p "$HOME/.claude/skills" # ensure the personal skills dir exists (first time)
-for s in couchbase-mobile-cloud-edge-sync-app \
-         couchbase-mobile-concepts-patterns \
-         couchbase-mobile-access-control-function \
-         couchbase-appservices-provisioning \
-         couchbase-lite-ios-app \
-         couchbase-lite-android-app; do
-  ln -s "$(pwd)/skills/couchbase-mobile/$s" "$HOME/.claude/skills/$s"
-done
-```
-(Prefer a copy instead of symlinks? Swap the `ln -s` line for
-`cp -R "$(pwd)/skills/couchbase-mobile/$s" "$HOME/.claude/skills/$s"`.)
+### Claude Desktop — Plugins (Customize)
 
-**Project only (just this repo):** `mkdir -p .claude/skills` in your project, then the same loop
-targeting `.claude/skills/` instead of `$HOME/.claude/skills/`.
+- Open **Customize → Plugins**
+- Click **＋ → Add marketplace**, enter `Couchbase-Ecosystem/agent-skills`, click **Sync**
+- Click **＋** next to **couchbase-mobile** to install it
+- Start a new session
 
-**Verify & use:**
-- Start Claude Code (`claude`). Run `/skills` — the six should be listed. (Claude Code hot-reloads
-  new skills mid-session; only a brand-new top-level `~/.claude/skills/` needs a restart.)
-- Then just ask: **"I want to build a Couchbase Mobile app."** The recipe
-  (`couchbase-mobile-cloud-edge-sync-app`) takes over — it asks a couple of questions (platform,
-  domain, access pattern), confirms your toolchain version, and drives the build.
+### Cursor
 
----
+- Add `Couchbase-Ecosystem/agent-skills` as a plugin marketplace
+- Install **couchbase-mobile** via `/add-plugin` or the marketplace UI
 
-## Use in Cowork (Claude desktop app)
+### Codex (CLI)
 
-Cowork doesn't read your local `~/.claude/skills/` — it loads the skills enabled for your
-**claude.ai account** (synced into each session). So you add each skill to your account once.
+- Run `codex plugin marketplace add Couchbase-Ecosystem/agent-skills`
+- Start `codex` and open `/plugins`
+- Install **couchbase-mobile**
 
-1. **Make one ZIP per skill.** Each zip must have `SKILL.md` in its **top-level folder** (i.e.
-   `<skill-name>/SKILL.md`). The trick is to `cd` **into** the skills directory first so the archive
-   is rooted at each skill folder — zipping from the repo root nests `SKILL.md` too deep and the
-   uploader rejects it.
-   ```bash
-   cd agent-skills/skills/couchbase-mobile     # <-- cd IN here (important)
-   mkdir -p ../../skill-zips
-   for s in */; do
-     zip -r "../../skill-zips/${s%/}.zip" "$s" -x '*.DS_Store'
-   done
-   # → six zips in agent-skills/skill-zips/, each containing <skill-name>/SKILL.md at the top
-   ```
-2. In the desktop app, open **Customize** (sidebar) → **Skills** → the **＋** → **Create Skill** →
-   **Upload a Skill**, and pick a skill's ZIP. Repeat for all six.
-3. Start a **new** Cowork session (skills sync at session start) and ask **"I want to build a
-   Couchbase Mobile app."** The recipe drives it from there.
+### Codex (Desktop)
 
-> Manage or remove uploaded skills anytime under **Customize → Skills** (or on claude.ai).
+- Open **Plugins**, click the dropdown next to **＋ → Add marketplace**
+- Enter `Couchbase-Ecosystem/agent-skills`
+- Install **Couchbase Mobile**
+
+### GitHub Copilot (CLI)
+
+- Run `/plugin marketplace add Couchbase-Ecosystem/agent-skills`
+- Run `/plugin install couchbase-mobile@couchbase-plugins`
+
+### Antigravity (CLI)
+
+- Run `agy plugin install https://github.com/Couchbase-Ecosystem/agent-skills`
+- Select **couchbase-mobile**
+
+> **Local development:** to test from a clone instead of GitHub, add your working copy as the
+> marketplace — in Claude Code, `/plugin marketplace add /path/to/agent-skills` (no push needed).
+>
+> **Gemini CLI** isn't supported for this plugin — its extension format is MCP-only, and the mobile
+> plugin is skills-only.
+
+### Build an app
+
+Ask: **"I want to build a Couchbase Mobile app."** The recipe (`couchbase-mobile-cloud-edge-sync-app`)
+takes over — it asks a couple of questions (platform, domain, access pattern), confirms your
+toolchain version, and drives the build.
 
 ---
 
@@ -149,24 +151,3 @@ confirmation before touching anything. It's safe to run even if you've reused a 
 App Service across multiple test apps on the same free-tier account: teardown only ever deletes a
 resource `setup-capella.sh` itself created (tracked automatically in `provision.env`); anything it
 found already existing — and so might be shared with another app — is left completely alone.
-
----
-
-## Coming soon — one-command install (planned)
-
-These will **eventually** also ship as an installable **plugin** in this repo's marketplace
-(`couchbase-plugins`), separate from the existing `couchbase` data plugin. That removes the manual
-clone/upload for the plugin-capable surfaces. Planned experience:
-
-- **Claude Code CLI** (and the Desktop app's **Code** tab): the plugin marketplace fetches straight
-  from GitHub — no manual clone. It can even be pinned to a branch with `#<branch>`:
-  ```
-  /plugin marketplace add Couchbase-Ecosystem/agent-skills           # default branch
-  /plugin marketplace add Couchbase-Ecosystem/agent-skills#<branch>  # a specific branch/tag
-  /plugin install couchbase-mobile@couchbase-plugins
-  ```
-- **Cowork** (Claude desktop app): Cowork loads what's enabled on your **claude.ai account**, so once
-  published you enable the plugin/skills there (Customize) and they sync into your Cowork sessions.
-
-**Until the plugin ships, use the skills directly** (clone + point Claude Code at them, or upload the
-per-skill ZIPs to your account for Cowork) — see the sections above.

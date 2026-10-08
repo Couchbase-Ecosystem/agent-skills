@@ -24,5 +24,21 @@
     "edge",
     "app-services"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Couchbase Mobile",
+    "shortDescription": "Build an offline-first mobile app (iOS or Android) that runs with no connectivity and syncs to Capella App Services.",
+    "developerName": "Couchbase",
+    "category": "Databases",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://www.couchbase.com",
+    "privacyPolicyURL": "https://www.couchbase.com/privacy-policy/",
+    "defaultPrompt": [
+      "I want to build a Couchbase Mobile app.",
+      "Build an offline-first iOS app that syncs with Couchbase Capella App Services.",
+      "Build an offline-first Android app that syncs with Couchbase Capella App Services.",
+      "Provision a Capella App Services backend for my mobile app and generate the client."
+    ],
+    "brandColor": "#EC1218"
+  }
 }
