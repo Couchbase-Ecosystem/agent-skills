@@ -1,0 +1,25 @@
+{
+  "name": "couchbase-mobile",
+  "version": "0.1.0",
+  "description": "Build an offline-first Couchbase Mobile app — iOS (Swift) or Android (Kotlin/Compose) — with Capella App Services sync. Provisions the backend and generates a runnable app project that keeps working through network drops and reconciles on reconnect.",
+  "author": {
+    "name": "Couchbase",
+    "email": "agent-plugins@couchbase.com",
+    "url": "https://www.couchbase.com"
+  },
+  "homepage": "https://docs.couchbase.com/couchbase-lite/current/index.html",
+  "repository": "https://github.com/Couchbase-Ecosystem/agent-skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "couchbase",
+    "capella",
+    "couchbase-lite",
+    "mobile",
+    "ios",
+    "android",
+    "offline-first",
+    "sync",
+    "app-services"
+  ],
+  "skills": "./skills/"
+}

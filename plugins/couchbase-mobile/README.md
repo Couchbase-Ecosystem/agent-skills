@@ -28,39 +28,49 @@ Don't invoke the capability skills directly.
 
 ## Prerequisites
 
-Common:
-- A free **[Couchbase Capella](https://cloud.couchbase.com)** account (no credit card).
+You'll need three things for any build:
 
-For **iOS**:
-- **macOS + Xcode** (the recipe checks your Xcode version and matches the Couchbase Lite SDK to it).
-- At least **two iOS Simulators** (for the offline-sync test).
+- A free **[Couchbase Capella](https://cloud.couchbase.com)** account (no credit card). The backend gets provisioned here.
+- An AI coding agent to run the skills. They're built and tested on **Claude** — **Claude Code** (CLI) or **Cowork** (the desktop app). Other agents that read `SKILL.md` files, like Cursor, can load them too, but we've only tested Claude.
+- **Xcode** (for iOS) or **Android Studio** (for Android), at the versions below.
 
-For **Android**:
-- **Android Studio** (a recent release) with the **Android SDK, API 35** installed.
-- At least **two emulators** — two *separate* AVDs (for the offline-sync test).
+The recipe always pins the newest Couchbase Lite your toolchain can run — today that's the **4.1.x** line (Enterprise Edition) on both platforms.
 
-The recipe checks your toolchain version up front and pins a compatible Couchbase Lite version
-(supports **3.3.x through the latest 4.x**).
+### iOS (Swift)
+
+| | |
+|---|---|
+| Xcode | **16.0 minimum.** 16.3 or newer (including 26.x and 27.x) gets you the latest CBL 4.1.x; 16.0–16.2 pins CBL 4.0.x. Below 16.0 isn't supported. |
+| Couchbase Lite Swift (EE) | 4.1.x on Xcode 16.3+, else 4.0.x |
+| iOS target | 16.0 |
+| Simulators | Two — the offline-sync test runs the app on both at once |
+
+The recipe reads your Xcode version and picks the matching Couchbase Lite SDK version, so you don't have to.
+
+### Android (Kotlin / Jetpack Compose)
+
+| | |
+|---|---|
+| Android Studio | **Ladybug (2024.2.1) or newer.** Koala Feature Drop (2024.1.2) is the oldest that handles `compileSdk 35`. |
+| JDK | **17 to 22.** The project's bundled Gradle (8.9) won't run on JDK 23 or later. Recent Android Studio releases bundle JDK 25, so set the Gradle JVM to 17–21 in **Settings → Build, Execution, Deployment → Build Tools → Gradle**. |
+| Android SDK | API 35 installed |
+| minSdk | 24 (Android 7.0), required by the CBL 4.x library |
+| Gradle / AGP | Gradle 8.x, AGP 8.x |
+| Kotlin | 2.0+ |
+| Couchbase Lite Android (EE) | 4.1.0 |
+| Emulators | Two separate AVDs for the offline-sync test |
+
+There's no fallback for older toolchains — AGP 8 and JDK 17 are required. If Android Studio is out of date, update it; it brings a compatible JDK and AGP with it.
 
 ## Get the skills from GitHub
 
-These skills currently live on the **`add-couchbase-mobile-skills`** branch (not yet merged to
-`main`), so clone that branch directly:
+Clone the repo:
 
 ```bash
-git clone -b add-couchbase-mobile-skills https://github.com/Couchbase-Ecosystem/agent-skills.git
+git clone https://github.com/Couchbase-Ecosystem/agent-skills.git
 ```
 
-Already have the repo cloned? Just fetch and switch to the branch:
-
-```bash
-git fetch origin add-couchbase-mobile-skills
-git checkout add-couchbase-mobile-skills
-```
-
-> Once this is merged to `main`, a plain `git clone https://github.com/Couchbase-Ecosystem/agent-skills.git` is all you need.
-
-The six skills live in **`agent-skills/skills/couchbase-mobile/`**.
+The six skills live in **`agent-skills/plugins/couchbase-mobile/skills/`**.
 
 ---
 
