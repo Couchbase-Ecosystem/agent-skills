@@ -1518,7 +1518,7 @@ main() {
   echo " WSS URL: ${wss_url}"
   echo ""
   echo "=================================================="
-  echo " HOW TO TEST OFFLINE-FIRST SYNC"
+  echo " HOW TO TEST ALWAYS-ON SYNC"
   echo "=================================================="
   echo ""
   if [[ "${wrote_config:-}" == "android" ]]; then
@@ -1537,7 +1537,7 @@ main() {
     echo "   Note: the green Run triangle builds, installs AND launches on the selected emulator. To relaunch"
     echo "   a stopped app without rebuilding, tap its icon in the emulator's app drawer."
     echo ""
-    echo " Offline-first: in the app's Settings use the Offline toggle (or toggle the emulator's network via"
+    echo " Always-on: in the app's Settings use the Offline toggle (or toggle the emulator's network via"
     echo " Extended controls (...) -> Cellular / Wi-Fi, or airplane mode), make changes locally, then go"
     echo " back online — pending changes sync automatically."
   elif [[ "${wrote_config:-}" == "ios" ]]; then
@@ -1555,17 +1555,17 @@ main() {
     echo ""
     echo "   Note: Cmd+B only COMPILES — it does NOT install/launch on a simulator. Use Cmd+R per destination."
     echo ""
-    echo " Offline-first: in the app's Settings use the Offline toggle (or turn the simulator's Wi-Fi off),"
+    echo " Always-on: in the app's Settings use the Offline toggle (or turn the simulator's Wi-Fi off),"
     echo " make changes locally, then go back online — pending changes sync automatically."
   else
-    echo " Test offline-first sync with two client instances (two devices / emulators / simulators):"
+    echo " Test always-on sync with two client instances (two devices / emulators / simulators):"
     echo ""
     echo "   1. Launch the app on client 1, sign in as ${MANAGER_USER} / ${MANAGER_PASS}."
     echo "   2. Launch the app on client 2, sign in as bob / ${BOB_PASS}."
     echo "   3. As ${MANAGER_USER}: create a record, assign it to bob -> watch it sync to bob;"
     echo "      bob updates status -> ${MANAGER_USER} sees it live."
     echo ""
-    echo " Offline-first: take a client offline (the app's Offline toggle or the device's network), make"
+    echo " Always-on: take a client offline (the app's Offline toggle or the device's network), make"
     echo " changes locally, then go back online — pending changes sync automatically."
   fi
   echo ""

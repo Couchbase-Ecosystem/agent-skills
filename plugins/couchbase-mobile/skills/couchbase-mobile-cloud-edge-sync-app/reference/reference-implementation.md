@@ -1,7 +1,7 @@
 ## Reference Implementation
 
 The public **Couchbase Retail Demo** is the reference implementation to point users at:
-https://github.com/couchbase-examples/couchbase-lite-retail-demo — a maintained, multi-platform (iOS, Android, React Native, web) offline-first app with cloud sync *and* peer-to-peer sync. Use its `/iOS` app as the worked example for project structure, replication setup, live queries, and UI patterns.
+https://github.com/couchbase-examples/couchbase-lite-retail-demo — a maintained, multi-platform (iOS, Android, React Native, web) always-on app with cloud sync *and* peer-to-peer sync. Use its `/iOS` app as the worked example for project structure, replication setup, live queries, and UI patterns.
 
 ### The one gap to fill: access-control model
 

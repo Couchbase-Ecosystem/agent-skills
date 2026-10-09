@@ -5,7 +5,7 @@ description: "Build the Android (Kotlin/Jetpack Compose) client of a Couchbase M
 
 # Couchbase Lite Android App
 
-Generate and wire up the Android/Kotlin app for an offline-first Couchbase Mobile app using the Couchbase Lite Android SDK. The goal is a project the user can open in Android Studio and build immediately — never ask them to create the Gradle project manually.
+Generate and wire up the Android/Kotlin app for an always-on Couchbase Mobile app using the Couchbase Lite Android SDK. The goal is a project the user can open in Android Studio and build immediately — never ask them to create the Gradle project manually.
 
 > **⛔ SCOPE GUARD — read first.** The only Couchbase Mobile app buildable with these skills today is **cloud-edge sync on Android**. **Peer-to-peer and Edge Server are NOT built.** Do not offer them, do not ask "which sync topology," and never generate P2P/Edge-Server code. If a user wants to *build* an app, that flow lives in the **`couchbase-mobile-cloud-edge-sync-app`** recipe — this skill is a capability that recipe calls, not an entry point; if you're here without the recipe, load it and follow it.
 
@@ -27,7 +27,7 @@ Building the Android/Kotlin client of a **cloud-edge** Couchbase Mobile app (the
 - `reference/gradle-project-generation.md` — generating the Gradle project (`settings.gradle.kts`, `build.gradle.kts`, `AndroidManifest.xml`), required config, mandatory code-gen rules, and the exact message to give the user afterward.
 - `reference/appconfig-kotlin.md` — the required `AppConfig.kt` constants (the Android surface of the domain parameters).
 - `reference/android-best-practices.md` — state/data flow (ViewModel/StateFlow/Compose), secure credential storage (Android Keystore), coroutines/lifecycle, listener-token cleanup, role-gated UI, and Android requirements.
-- `reference/testing-offline-sync.md` — two-emulator offline-first test procedure and troubleshooting.
+- `reference/testing-offline-sync.md` — two-emulator always-on test procedure and troubleshooting.
 - `reference/diagnostics-view.md` — the Settings/Diagnostics screen to include in every generated app.
 
 ## Assets
@@ -45,7 +45,7 @@ Domain parameters (collection names, assignee field, endpoint name) are supplied
 
 ## Sibling capabilities
 
-`couchbase-lite-ios-app` (Swift) and `couchbase-lite-web-app` (CBL-JS, future) are the offline-first platform peers; `couchbase-rest-web-client` (future) is the online/REST alternative (no local DB). This skill is Android only, and today implements **cloud-edge sync only** (P2P is future/not built — see the scope guard above).
+`couchbase-lite-ios-app` (Swift) and `couchbase-lite-web-app` (CBL-JS, future) are the always-on platform peers; `couchbase-rest-web-client` (future) is the online/REST alternative (no local DB). This skill is Android only, and today implements **cloud-edge sync only** (P2P is future/not built — see the scope guard above).
 
 ## Asking the user questions
 

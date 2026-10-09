@@ -56,10 +56,10 @@ Button("Sign Out", role: .destructive) { authState.logout() }
 
 **Store credentials in the Keychain** (never UserDefaults) — see the `KeychainHelper` in the best-practices section. The app **always shows Login on cold start** (no auto-login — see gen Rule 5a); in-session **Reconnect** uses the current session's credentials, so no re-login while the app is running.
 
-**Always include an Offline-First Demo toggle** — this is the core value proposition of the app. Stopping/starting the replicator demonstrates offline-first without requiring the user to change Wi-Fi settings:
+**Always include an Always-On Demo toggle** — this is the core value proposition of the app. Stopping/starting the replicator demonstrates always-on without requiring the user to change Wi-Fi settings:
 
 ```swift
-// Offline-First Demo section in SettingsView.
+// Always-On Demo section in SettingsView.
 // Bind to the SINGLETON's isManuallyPaused — NOT a local @State — so the toggle
 // reflects real sync state and survives the Settings sheet being dismissed/reopened.
 // Use pause()/reconnect(), NOT stop() (stop() is logout-only). See iOS code-gen Rule 8.
@@ -77,7 +77,7 @@ Toggle(isOn: Binding(
 }
 ```
 
-When paused: replicator stops, sync indicator shows "Offline"; the user's edits save to the local database instantly. Toggle back on: `reconnect()` restarts sync and pending changes flow immediately. This is the offline-first demo in one toggle, no Wi-Fi configuration needed. (Binding-to-singleton is essential — a `@State` copy resets when the sheet closes, which is the bug in troubleshooting rows 20–21.)
+When paused: replicator stops, sync indicator shows "Offline"; the user's edits save to the local database instantly. Toggle back on: `reconnect()` restarts sync and pending changes flow immediately. This is the always-on demo in one toggle, no Wi-Fi configuration needed. (Binding-to-singleton is essential — a `@State` copy resets when the sheet closes, which is the bug in troubleshooting rows 20–21.)
 
 ---
 

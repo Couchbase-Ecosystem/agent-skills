@@ -73,7 +73,7 @@ fun SettingsScreen(
                  trailingContent = { Text("${AppConfig.movementsCollection}, ${AppConfig.stockCollection}") })
         ListItem(headlineContent = { Text("Local documents") }, trailingContent = { Text("${replication.localDocCount}") })
 
-        // Offline-First Demo toggle — binds to the SINGLETON's isManuallyPaused (NOT local state)
+        // Always-On Demo toggle — binds to the SINGLETON's isManuallyPaused (NOT local state)
         ListItem(
             headlineContent = { Text(if (paused) "Offline (simulated)" else "Online") },
             leadingContent = { Icon(if (paused) Icons.Default.CloudOff else Icons.Default.Cloud, null) },
@@ -116,7 +116,7 @@ TopAppBar(
 
 **Store credentials securely in the Android Keystore** (`assets/CredentialStore.kt`, AES-GCM). The app **always shows Login on cold start** (no auto-login — see gen Rule 6a); in-session **Reconnect** and the Offline toggle use the current session's in-memory credentials, so no re-login is needed while the app is running.
 
-**The Offline-First Demo toggle is the core value proposition** — pausing/resuming the replicator demonstrates offline-first without changing the emulator's network. When paused: replicator stops, indicator shows "Offline", the user's edits save to the local database instantly. Toggle back: `reconnect()` restarts sync and pending changes flow immediately.
+**The Always-On Demo toggle is the core value proposition** — pausing/resuming the replicator demonstrates always-on without changing the emulator's network. When paused: replicator stops, indicator shows "Offline", the user's edits save to the local database instantly. Toggle back: `reconnect()` restarts sync and pending changes flow immediately.
 
 > Bind the switch to `replication.isManuallyPaused` (a `StateFlow`), **not** a local `remember { mutableStateOf(...) }`. A local copy resets when the Settings screen leaves composition — the switch would show "Online" while the replicator is actually stopped, with no way back (the Android analogue of the iOS `@State`-resets-on-dismiss bug).
 

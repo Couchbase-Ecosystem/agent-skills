@@ -93,7 +93,7 @@
 
 5. **Keychain for all credentials** — never `UserDefaults`. Store the password on login; the in-session Reconnect uses it (nil → force re-login). Always use single quotes when exporting passwords in bash (avoids `!` expansion).
 
-5a. **ALWAYS show the Login screen on cold start — NO silent auto-login.** The app root must NOT auto-restore a session from the Keychain on launch (don't flip `isLoggedIn = true` from stored creds in `App.init`/`.onAppear`). Offline-first comes from the **local Couchbase Lite database persisting on disk** (data is there after re-login; sync resumes) — NOT from skipping Login. Keeps two-simulator multi-user testing clean: each simulator shows Login and signs in as its own App User.
+5a. **ALWAYS show the Login screen on cold start — NO silent auto-login.** The app root must NOT auto-restore a session from the Keychain on launch (don't flip `isLoggedIn = true` from stored creds in `App.init`/`.onAppear`). Always-on comes from the **local Couchbase Lite database persisting on disk** (data is there after re-login; sync resumes) — NOT from skipping Login. Keeps two-simulator multi-user testing clean: each simulator shows Login and signs in as its own App User.
    ```swift
    // Save on login
    KeychainHelper.save(password: password, for: username)
@@ -165,7 +165,7 @@
    - Endpoint URL (selectable text — for copy-paste debugging)
    - Scope and collection names
    - Local document count
-   - **Offline-First Demo toggle** (binds to `replication.isManuallyPaused` — see Rule 8)
+   - **Always-On Demo toggle** (binds to `replication.isManuallyPaused` — see Rule 8)
    - Reconnect button
    - Sign Out button (destructive) — the view must be a scrolling `Form`/`List` (not a plain `VStack`) so Sign Out is never clipped; pin it prominently with `.safeAreaInset(edge: .bottom)` if the content is long
 

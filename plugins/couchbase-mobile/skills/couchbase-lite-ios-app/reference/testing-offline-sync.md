@@ -1,4 +1,4 @@
-## How to Test Offline-First Sync — Two Simulators
+## How to Test Always-On Sync — Two Simulators
 
 Run the app on **two iOS Simulators** simultaneously (this is the default target — most people don't have two physical devices; a physical device is optional and needs code signing). Requires `CouchbaseLiteSwift.framework` to be properly embedded in the app bundle (see project.pbxproj rules above).
 
@@ -35,7 +35,7 @@ Drive the two apps to see access control + sync live. This is the **Admin-Assign
 - **Simulator 2 — `bob` (regular user):** you see *only* records assigned to you. Open one and change its status / add notes.
 - **Watch it sync:** the record the manager assigns appears on bob's device within a second or two; when bob updates the status, the manager sees the change live. A record assigned to someone else must **not** appear for bob.
 
-### Test offline-first
+### Test always-on
 
 1. Turn off Wi-Fi on either simulator: **Settings → Wi-Fi → off**
 2. Make changes — saved instantly to local database, sync indicator shows "Offline"

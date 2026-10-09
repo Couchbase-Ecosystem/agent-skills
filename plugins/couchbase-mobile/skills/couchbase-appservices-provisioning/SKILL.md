@@ -5,7 +5,7 @@ description: "Automated provisioning of Capella App Services via a generated set
 
 # Couchbase App Services Provisioning
 
-Provision the Capella + App Services backend for an offline-first app with maximum automation, primarily by generating and running `setup-capella.sh`. App Services runs on Capella, so this covers both the Capella control plane (cluster/API) and App Services configuration.
+Provision the Capella + App Services backend for an always-on app with maximum automation, primarily by generating and running `setup-capella.sh`. App Services runs on Capella, so this covers both the Capella control plane (cluster/API) and App Services configuration.
 
 ## When to use
 

@@ -114,7 +114,7 @@ Login uses the App User's username/password via `BasicAuthenticator`; the userna
 
 The role-gated UI needs to know whether the signed-in user is an admin, but the Couchbase Lite SDK does not expose the App Services role list to the client. Don't hardcode it. Recommended approaches, best first:
 
-1. **Synced profile document (recommended, offline-first).** Maintain a `profile::<username>` document routed to the user's own channel, containing `{ "roles": ["admin"] }` (or `"user"`). The app reads it from the local database after first sync and sets `isAdmin`. Works offline once synced, and the role travels with normal replication — no extra network call.
+1. **Synced profile document (recommended, always-on).** Maintain a `profile::<username>` document routed to the user's own channel, containing `{ "roles": ["admin"] }` (or `"user"`). The app reads it from the local database after first sync and sets `isAdmin`. Works offline once synced, and the role travels with normal replication — no extra network call.
 
 ```swift
 // after login + first sync

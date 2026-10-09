@@ -1,6 +1,6 @@
 ---
 name: couchbase-mobile-concepts-patterns
-description: "Foundational concepts, terminology, and patterns for Couchbase Mobile — App Services vs Sync Gateway terminology mapping, core sync concepts (channels, replication, offline-first), data modeling (scopes and collections, key design), the architecture pattern, and the standard access patterns (Admin-Assigns, Shared Read-Only, Team/Group). Use when explaining how Couchbase Mobile sync works, designing the document model, choosing scopes/collections, mapping terms between App Services and self-managed, or deciding an access pattern. Concepts only — it does NOT build apps; to build one use the `couchbase-mobile-cloud-edge-sync-app` recipe. Only cloud-edge sync (on iOS or Android) is buildable today; P2P and Edge Server are described for context but are not implemented — never offer them as build options or ask 'which sync topology'."
+description: "Foundational concepts, terminology, and patterns for Couchbase Mobile — App Services vs Sync Gateway terminology mapping, core sync concepts (channels, replication, always-on), data modeling (scopes and collections, key design), the architecture pattern, and the standard access patterns (Admin-Assigns, Shared Read-Only, Team/Group). Use when explaining how Couchbase Mobile sync works, designing the document model, choosing scopes/collections, mapping terms between App Services and self-managed, or deciding an access pattern. Concepts only — it does NOT build apps; to build one use the `couchbase-mobile-cloud-edge-sync-app` recipe. Only cloud-edge sync (on iOS or Android) is buildable today; P2P and Edge Server are described for context but are not implemented — never offer them as build options or ask 'which sync topology'."
 ---
 
 # Couchbase Mobile Concepts & Patterns
@@ -18,7 +18,7 @@ Reach for this whenever the task involves: the document model, key design, choos
 Read `reference/concepts-and-modeling.md` for the full detail. It contains:
 
 - **Terminology** — App Services vs Sync Gateway, and how the terms map.
-- **Core concepts** — databases, collections, channels, replication, offline-first behavior.
+- **Core concepts** — databases, collections, channels, replication, always-on behavior.
 - **Data modeling** — always use a *named* scope (never `_default`); one collection per document type; how collection names flow through to channels and Access Control Functions.
 - **Architecture pattern** — local-first reads, replicator as background infrastructure.
 - **Standard access patterns** — Admin-Assigns (default), Shared Read-Only, Team/Group. These are the conceptual definitions; the Access Control Function *implementation* of each lives in the `couchbase-mobile-access-control-function` skill.

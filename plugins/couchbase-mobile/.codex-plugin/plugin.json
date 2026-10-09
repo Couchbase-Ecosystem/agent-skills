@@ -1,7 +1,7 @@
 {
   "name": "couchbase-mobile",
   "version": "0.1.0",
-  "description": "Build a fully functioning offline-first mobile app (iOS/Swift or Android/Kotlin) that keeps running with no internet connectivity. Provisions a Capella App Services backend — app data, users, roles, and access-control functions — then generates a runnable Couchbase Lite app with bidirectional cloud-to-edge data sync that reconciles when it reconnects.",
+  "description": "Build a fully functioning always-on mobile app (iOS/Swift or Android/Kotlin) that keeps running with no internet connectivity. Provisions a Capella App Services backend — app data, users, roles, and access-control functions — then generates a runnable Couchbase Lite app with bidirectional cloud-to-edge data sync that reconciles when it reconnects.",
   "author": {
     "name": "Couchbase",
     "email": "agent-plugins@couchbase.com",
@@ -17,7 +17,7 @@
     "mobile",
     "ios",
     "android",
-    "offline-first",
+    "always-on",
     "sync",
     "data-sync",
     "sync-gateway",
@@ -27,7 +27,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Couchbase Mobile",
-    "shortDescription": "Build an offline-first mobile app (iOS or Android) that runs with no connectivity and syncs to Capella App Services.",
+    "shortDescription": "Build an always-on mobile app (iOS or Android) that runs with no connectivity and syncs to Capella App Services.",
     "developerName": "Couchbase",
     "category": "Databases",
     "capabilities": ["Read", "Write"],
@@ -35,8 +35,8 @@
     "privacyPolicyURL": "https://www.couchbase.com/privacy-policy/",
     "defaultPrompt": [
       "I want to build a Couchbase Mobile app.",
-      "Build an offline-first iOS app that syncs with Couchbase Capella App Services.",
-      "Build an offline-first Android app that syncs with Couchbase Capella App Services.",
+      "Build an always-on iOS app that syncs with Couchbase Capella App Services.",
+      "Build an always-on Android app that syncs with Couchbase Capella App Services.",
       "Provision a Capella App Services backend for my mobile app and generate the client."
     ],
     "brandColor": "#EC1218"

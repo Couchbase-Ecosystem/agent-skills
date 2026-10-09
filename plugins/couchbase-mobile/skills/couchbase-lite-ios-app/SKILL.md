@@ -5,7 +5,7 @@ description: "Build the iOS (Swift) client of a Couchbase Mobile app — Couchba
 
 # Couchbase Lite iOS App
 
-Generate and wire up the iOS/Swift app for an offline-first Couchbase Mobile app using the Couchbase Lite Swift SDK. The goal is a project the user can open in Xcode and build immediately — never ask them to create the Xcode project manually.
+Generate and wire up the iOS/Swift app for an always-on Couchbase Mobile app using the Couchbase Lite Swift SDK. The goal is a project the user can open in Xcode and build immediately — never ask them to create the Xcode project manually.
 
 > **⛔ SCOPE GUARD — read first.** The only Couchbase Mobile app buildable with these skills today is **cloud-edge sync on iOS**. **Peer-to-peer and Edge Server are NOT built.** Do not offer them, do not ask "which sync topology," and never generate P2P/Edge-Server code. If a user wants to *build* an app, that flow lives in the **`couchbase-mobile-cloud-edge-sync-app`** recipe — this skill is a capability that recipe calls, not an entry point; if you're here without the recipe, load it and follow it.
 
@@ -27,7 +27,7 @@ Building the iOS/Swift client of a **cloud-edge** Couchbase Mobile app (the only
 - `reference/xcode-project-generation.md` — generating the `.xcodeproj`, required Info.plist keys, `project.pbxproj` rules, and the exact message to give the user afterward.
 - `reference/appconfig-swift.md` — the required `AppConfig.swift` constants (the iOS surface of the domain parameters).
 - `reference/ios-best-practices.md` — state/data flow, Keychain credential storage, async/await, toolbar placement, `[weak self]` in CBL callbacks, privacy manifest, iOS requirements.
-- `reference/testing-offline-sync.md` — two-simulator offline-first test procedure and troubleshooting.
+- `reference/testing-offline-sync.md` — two-simulator always-on test procedure and troubleshooting.
 - `reference/diagnostics-view.md` — the Settings/Diagnostics view to include in every generated app.
 
 ## Assets
@@ -46,7 +46,7 @@ Domain parameters (collection names, assignee field, endpoint name) are supplied
 
 ## Sibling capabilities
 
-`couchbase-lite-android-app` (Kotlin) and `couchbase-lite-web-app` (CBL-JS) are the offline-first platform peers; `couchbase-rest-web-client` is the online/REST alternative (no local DB). This skill is iOS only, and today implements **cloud-edge sync only** (P2P is future/not built — see the scope guard above).
+`couchbase-lite-android-app` (Kotlin) and `couchbase-lite-web-app` (CBL-JS) are the always-on platform peers; `couchbase-rest-web-client` is the online/REST alternative (no local DB). This skill is iOS only, and today implements **cloud-edge sync only** (P2P is future/not built — see the scope guard above).
 
 ## Asking the user questions
 

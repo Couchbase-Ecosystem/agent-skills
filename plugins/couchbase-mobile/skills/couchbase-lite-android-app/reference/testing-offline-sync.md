@@ -1,4 +1,4 @@
-## How to Test Offline-First Sync — Two Emulators
+## How to Test Always-On Sync — Two Emulators
 
 Run the app on **two Android emulators** simultaneously to see access control and sync live. Unlike Xcode, Android Studio can run and keep **both** emulators active at once (each is a separate deployment target), so this is a little less fiddly than the iOS two-simulator dance.
 
@@ -56,11 +56,11 @@ You now have two independent, running emulators — they will appear as run targ
 - **Emulator 2 — `bob` (regular user):** you see *only* records assigned to you. Open one and change its status / add notes.
 - **Watch it sync:** the record the manager assigns appears on bob's device within a second or two; when bob updates it, the manager sees the change live. A record assigned to someone else must **not** appear for bob.
 
-### Test offline-first
+### Test always-on
 
 Two ways to simulate offline:
 
-1. **In-app (preferred):** open **Settings → Offline-First Demo** toggle. This pauses the replicator — edits still save to the local database instantly and the sync indicator shows "Offline". Toggle back on and pending changes sync immediately. (No network config needed — this is the offline-first demo in one switch.)
+1. **In-app (preferred):** open **Settings → Always-On Demo** toggle. This pauses the replicator — edits still save to the local database instantly and the sync indicator shows "Offline". Toggle back on and pending changes sync immediately. (No network config needed — this is the always-on demo in one switch.)
 2. **Emulator network:** extended controls (`•••`) → **Cellular/Wi-Fi → data off**, or toggle Airplane mode. Make changes, then restore the network — changes sync automatically.
 
 ### Troubleshooting
