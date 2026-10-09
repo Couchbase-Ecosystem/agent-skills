@@ -1,10 +1,10 @@
 # Couchbase Mobile — Agent Skills
 
-A set of **agent skills** that let you build a fully functioning mobile app with **offline-first**
-data sync capability that allows the app to continue running even with no internet connectivity. It
-provisions a Capella App Services backend — ready to go with app data, users, roles, and
-access-control functions — then generates a runnable app project built on the Couchbase Lite SDK as
-its local database, with bidirectional **cloud-to-edge** data sync: the app keeps working through a
+Couchbase Mobile agent skills let you build a fully functioning mobile app with **always-on**
+data sync capability that allows the app to continue running in offline mode even with no internet
+connectivity. It provisions a Capella App Services backend — ready to go with app data, users, roles,
+and access-control functions — then generates a runnable app project built on the Couchbase Lite SDK
+as its local database, with bidirectional **cloud-to-edge** data sync: the app keeps working through a
 network drop and reconciles when it reconnects.
 
 **Both iOS (Swift) and Android (Kotlin / Jetpack Compose) are supported, stable client platforms.**
