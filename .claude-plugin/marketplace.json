@@ -13,6 +13,11 @@
       "name": "couchbase",
       "source": "./",
       "description": "Official Couchbase plugin (MCP Server + Skills). Connect to a live Couchbase cluster, explore data, write and run SQL++ queries, optimize queries and GSI indexes, and design data models — grounded in your real cluster via the Couchbase MCP server."
+    },
+    {
+      "name": "couchbase-mobile",
+      "source": "./plugins/couchbase-mobile",
+      "description": "Build a fully functioning always-on mobile app (iOS/Swift or Android/Kotlin) that keeps running with no internet connectivity. Provisions a Capella App Services backend — app data, users, roles, and access-control functions — then generates a runnable Couchbase Lite app with bidirectional cloud-to-edge data sync that reconciles when it reconnects."
     }
   ]
 }

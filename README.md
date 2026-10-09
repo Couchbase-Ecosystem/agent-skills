@@ -1,10 +1,15 @@
 # Couchbase Agent Skills
 
-Couchbase agent skills bring Couchbase expertise to your agents out of the box, letting them operate from authoritative knowledge rather than relying on training data or guesswork. Designed with the enterprise-supported Couchbase MCP server, these skills work against a real, live cluster — grounding every answer in your actual schema, data, and indexes so agents deliver reliable, high-quality results.
+Couchbase agent skills are installable skills for coding agents (Claude Code, Cursor, GitHub Copilot, and others) that bring authoritative, Couchbase-maintained expertise for querying, optimizing, and modeling data, and for building always-on mobile applications, so agents work from reliable knowledge instead of guessing from training data. They come in two families:
 
-Enterprise support for Couchbase MCP Server is available by licensing Couchbase AI Data Plane, which also entitles use and enterprise support of Couchbase Agent Memory and Couchbase Agent Catalog.
+- **[Couchbase Server Data Skills](#couchbase-server-data-skills)** — query, optimize, and model data on a live Couchbase cluster through the Couchbase MCP server.
+- **[Couchbase Mobile Skills](#couchbase-mobile-skills)** — build a complete always-on mobile app that syncs data with a Capella App Services backend and continues to work even if the device is completely offline.
 
-## Available Skills
+---
+
+## Couchbase Server Data Skills
+
+Couchbase Server data skills operate on a live cluster through the Couchbase MCP server, grounding every answer in your actual schema, data, and indexes — so agents querying, optimizing, or modeling your data deliver reliable, high-quality results.
 
 | Skill Name | What it does |
 |------------|--------------|
@@ -13,11 +18,13 @@ Enterprise support for Couchbase MCP Server is available by licensing Couchbase 
 | `couchbase-query-optimizer` | Optimization of EXPLAIN plans, GSI index architecture, and identifying slow query bottlenecks. |
 | `couchbase-data-modeling` | Schema design for JSON, evaluating embedding vs. referencing strategies, and defining document key patterns. |
 
-## Prerequisites
+### Prerequisites
 
-The skills act on a live cluster through the [Couchbase MCP server](https://github.com/couchbase/mcp-server-couchbase) which can be installed via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker. For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/couchbase/mcp-server-couchbase#readme).
+Data skills need the **Couchbase MCP server**. It acts on a live cluster and can be installed via [`uv`](https://docs.astral.sh/uv/) (`uvx`) or Docker. For first-time configuration, use the `couchbase-mcp-setup` skill, or see the [MCP server docs](https://github.com/couchbase/mcp-server-couchbase#readme).
 
-## Installation methods
+Enterprise support for the Couchbase MCP Server is available by licensing Couchbase AI Data Plane, which also entitles use and enterprise support of Couchbase Agent Memory and Couchbase Agent Catalog.
+
+### Installation
 
 The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ecosystem/agent-skills) is itself the plugin / marketplace source — install directly from it:
 
@@ -34,7 +41,7 @@ The repo at [`Couchbase-Ecosystem/agent-skills`](https://github.com/Couchbase-Ec
 
 After installing, run the **`couchbase-mcp-setup`** skill to connect to your cluster — it walks you through setting the `CB_*` environment variables (`CB_CONNECTION_STRING`, `CB_USERNAME`, `CB_PASSWORD`) per harness.
 
-### Install each skill manually (Claude Desktop)
+#### Install each skill manually (Claude Desktop)
 
 If your Claude Desktop UI does not show the plugin marketplace flow, use per-skill uploads instead.
 
@@ -50,6 +57,29 @@ If your Claude Desktop UI does not show the plugin marketplace flow, use per-ski
    ```
 2. **Upload each skill ZIP in Claude Desktop.** For each file in `skill-zips/`, go to **Customize → Skills → + icon → Create Skill → Upload a Skill**.
 3. **Set up the MCP server separately.** Per-skill uploads do not include the bundled MCP server wiring, so follow the quickstart here: https://mcp-server.couchbase.com/get-started/quickstart
+
+---
+
+## Couchbase Mobile Skills
+
+Couchbase Mobile skills build a fully functioning **always-on** mobile app — iOS (Swift) or Android (Kotlin/Compose) — that keeps running even with no internet connectivity. They provision a Capella App Services backend (app data, users, roles, and access-control functions), then generate a runnable app project built on the Couchbase Lite SDK as the local database, with bidirectional **cloud-to-edge** sync: the app works through a network drop and reconciles when it reconnects.
+
+You interact with one recipe skill; it pulls in the others and generates a runnable iOS or Android project along with its backend.
+
+| Skill Name | What it does |
+|---|---|
+| `couchbase-mobile-cloud-edge-sync-app` | The entry-point recipe — runs when you ask to build an app and drives the whole build |
+| `couchbase-mobile-concepts-patterns` | Concepts: scopes/collections, channels, access patterns |
+| `couchbase-mobile-access-control-function` | The App Services access-control (sync) function |
+| `couchbase-appservices-provisioning` | Provisions the Capella / App Services backend |
+| `couchbase-lite-ios-app` | iOS (Swift) client |
+| `couchbase-lite-android-app` | Android (Kotlin / Compose) client |
+
+### Getting started
+
+Full prerequisites, versions, and step-by-step setup are in **[`plugins/couchbase-mobile/README.md`](./plugins/couchbase-mobile/README.md)**.
+
+---
 
 ## Contributing
 
