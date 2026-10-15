@@ -38,7 +38,10 @@
         "ios",
         "android",
         "always-on",
-        "sync"
+        "sync",
+        "database",
+        "sqlite",
+        "embedded database"
       ],
       "license": "Apache-2.0",
       "repository": "https://github.com/Couchbase-Ecosystem/agent-skills",

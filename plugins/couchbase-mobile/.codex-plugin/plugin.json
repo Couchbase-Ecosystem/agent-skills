@@ -22,7 +22,10 @@
     "data-sync",
     "sync-gateway",
     "edge",
-    "app-services"
+    "app-services",
+    "database",
+    "sqlite",
+    "embedded database"
   ],
   "skills": "./skills/",
   "interface": {
