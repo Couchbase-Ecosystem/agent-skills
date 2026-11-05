@@ -10,12 +10,12 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate skill structure
         run: |
           chmod +x tools/validate-skills.sh
           ./tools/validate-skills.sh
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Validate eval suite schema (no API)
