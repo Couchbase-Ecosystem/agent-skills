@@ -8,8 +8,8 @@ How to constrain what the agent can do. **RBAC is the only authoritative control
 
 ## Read-only mode
 
-`CB_MCP_READ_ONLY_MODE=true` is the default in the bundled `mcp.json`. (The server's *own* default is `false` on `1.0+`, so on the `claude mcp add` / direct-config routes **set it explicitly** instead of relying on the default.) Effects of `=true`:
-- The 4 KV write tools (`upsert`/`insert`/`replace`/`delete_document_by_id`) are **not loaded** — absent from tool discovery.
+`CB_MCP_READ_ONLY_MODE=true` is the default in the bundled `mcp.json`. (The server's *own* default is also `true`; on the `claude mcp add` / direct-config routes still **set it explicitly** so the access level is visible instead of implied.) Effects of `=true`:
+- Every `[W]` tool in [`tools.md`](tools.md) — KV writes (`upsert`/`insert`/`replace`/`delete_document_by_id`, `mutate_subdocument`), scope/collection create/delete, GSI create/build/drop, Search-index upsert/drop, and `delete_active_query` — is **not loaded**, so it is absent from tool discovery.
 - `run_sql_plus_plus_query` stays loaded but **rejects** write DML (INSERT/UPDATE/DELETE/MERGE) and DDL.
 
 To allow writes, set `CB_MCP_READ_ONLY_MODE=false`.

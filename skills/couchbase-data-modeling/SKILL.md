@@ -125,7 +125,7 @@ Ground the advice: `get_schema_for_collection` (INFER) for structure; `run_sql_p
 
 ## Step 7 — Writes require approval
 
-Present migrations/restructurings as recommendations. Before any write, **summarize the exact operation** (target keyspace, estimated documents affected) and get an explicit "yes". Couchbase has no create-collection MCP tool: create a collection/scope with `CREATE COLLECTION`/`CREATE SCOPE` DDL via `run_sql_plus_plus_query`, and seed documents with `insert_document_by_id` (or `INSERT`). Writes and DDL run only with `CB_MCP_READ_ONLY_MODE=false`; otherwise output the statements for the user to run. Re-measure after any change.
+Present migrations/restructurings as recommendations. Before any write, **summarize the exact operation** (target keyspace, estimated documents affected) and get an explicit "yes". Create a scope/collection with the `create_scope` / `create_collection` MCP tools (or `CREATE SCOPE`/`CREATE COLLECTION` DDL via `run_sql_plus_plus_query`), and seed documents with `insert_document_by_id` (or `INSERT`). Writes and DDL run only with `CB_MCP_READ_ONLY_MODE=false`; otherwise output the statements for the user to run. Re-measure after any change.
 
 ## What this skill won't help with
 
