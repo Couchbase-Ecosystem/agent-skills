@@ -2,6 +2,8 @@
 
 Exact tool names the server exposes (verified on v1.1.0 by listing tools over stdio; re-check with `get_server_configuration_status` after upgrading). Use these for verification, and for `CB_MCP_DISABLED_TOOLS` / `CB_MCP_CONFIRMATION_REQUIRED_TOOLS` lists (names must match exactly). `[W]` = write tool, not loaded when `CB_MCP_READ_ONLY_MODE=true` (the default, both in the bundled `mcp.json` and in the server itself). See [`safety.md`](safety.md).
 
+`[SM]` = **self-managed only**. When every host in `CB_CONNECTION_STRING` ends in `.cloud.couchbase.com` (Capella), v1.1.0 does not register these 10 tools, whatever the read-only setting. They call Management, Index or Query service REST ports that Capella doesn't expose. On Capella the server loads 42 tools instead of 52, so a missing `[SM]` tool is expected and doesn't mean the install is broken. To verify a Capella setup, use `get_server_configuration_status`, `test_cluster_connection`, `get_cluster_health_and_services` and `get_client_connectivity_report`. A Capella cluster reached through a private endpoint or custom hostname isn't detected, so these tools load and then fail when called.
+
 - [Cluster health & diagnostics](#cluster-health--diagnostics) · use for verification
 - [Schema discovery](#schema-discovery)
 - [Scope & collection management](#scope--collection-management)
@@ -16,13 +18,13 @@ Exact tool names the server exposes (verified on v1.1.0 by listing tools over st
 | `get_server_configuration_status` | MCP server status + config (read-only mode, loaded tools) |
 | `test_cluster_connection` | Verify credentials by connecting |
 | `get_cluster_health_and_services` | Cluster health + running services |
-| `get_cluster_health_snapshot` | Per-node service topology, membership, orchestrator, and health in one call |
+| `get_cluster_health_snapshot` `[SM]` | Per-node service topology, membership, orchestrator, and health in one call |
 | `get_client_connectivity_report` | Whether the client's connections were already broken, and for how long |
-| `get_cluster_metrics` | One or more cluster statistics over a historic time window |
-| `get_cluster_tasks` | Tasks running now: rebalance, compaction, XDCR, index build |
-| `get_cluster_system_events` | System event log: what changed on the cluster, and when |
-| `get_bucket_config` | A bucket's configuration and live state (all buckets if `bucket_name` is omitted) |
-| `discover_tool_input_values` | Exact input values another tool requires, from reference data bundled with the server |
+| `get_cluster_metrics` `[SM]` | One or more cluster statistics over a historic time window |
+| `get_cluster_tasks` `[SM]` | Tasks running now: rebalance, compaction, XDCR, index build |
+| `get_cluster_system_events` `[SM]` | System event log: what changed on the cluster, and when |
+| `get_bucket_config` `[SM]` | A bucket's configuration and live state (all buckets if `bucket_name` is omitted) |
+| `discover_tool_input_values` `[SM]` | Exact input values another tool requires, from reference data bundled with the server |
 
 ## Schema discovery
 | Tool | Does |
@@ -59,7 +61,7 @@ Exact tool names the server exposes (verified on v1.1.0 by listing tools over st
 | `explain_sql_plus_plus_query` | Execution plan: scans, joins, index usage, cost estimates |
 | `list_indexes` | List indexes + definitions; `return_raw_index_stats=true` for raw stats. **Requires Server 8.0+** |
 | `get_index_advisor_recommendations` | Index Advisor recommendations for a query |
-| `get_index_stats` | Per-index statistics (size, fragmentation, scan traffic) from the Index Service |
+| `get_index_stats` `[SM]` | Per-index statistics (size, fragmentation, scan traffic) from the Index Service |
 | `create_query_index` `[W]` | Create a GSI index (scalar, Hyperscale vector, or Composite vector) via SQL++ |
 | `create_index` `[W]` | **Deprecated**: create a scalar GSI index. Use `create_query_index` |
 | `build_index` `[W]` | Build all deferred indexes on a collection |
@@ -80,9 +82,9 @@ These query `system:completed_requests`:
 Live query state:
 | Tool | Does |
 |------|------|
-| `get_active_queries` | Queries executing right now, across every query-service node |
-| `get_cluster_query_vitals` | Query-engine health (vitals) from every query-service node |
-| `delete_active_query` `[W]` | Cancel an in-flight query by its request ID |
+| `get_active_queries` `[SM]` | Queries executing right now, across every query-service node |
+| `get_cluster_query_vitals` `[SM]` | Query-engine health (vitals) from every query-service node |
+| `delete_active_query` `[W]` `[SM]` | Cancel an in-flight query by its request ID |
 
 ## Search & vector search
 | Tool | Does |
