@@ -78,7 +78,7 @@ license: Apache-2.0
 ./tools/validate-skills.sh
 ```
 
-CI runs the same checks (`.github/workflows/validate-skills.yml`).
+It checks every skill under `skills/` and `plugins/*/skills/`. CI runs the same checks (`.github/workflows/validate-skills.yml`).
 
 ## Testing
 
