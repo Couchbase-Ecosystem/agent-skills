@@ -80,7 +80,7 @@ Add this JSON `mcpServers` entry in the client's MCP settings:
 ```
 
 Where to put it:
-- **Cursor:** Settings → Tools & Integrations → MCP Tools.
+- **Cursor:** `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project), or add it from the **Customize** page in the sidebar. MCP servers are managed in **Customize**, not Cursor Settings. To apply a change, open **Customize**, find the `couchbase` server, and click **Reload**. If the tools still don't appear, fully quit and relaunch Cursor.
 - **Windsurf:** Command Palette → Windsurf MCP Configuration (or Settings → Advanced → Cascade → MCP Servers).
 - **Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) / `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
 - **JetBrains** (IntelliJ, PyCharm, etc.): Settings → Tools → AI Assistant (or Junie) → MCP Server → **+**. Requires the AI Assistant or Junie plugin.

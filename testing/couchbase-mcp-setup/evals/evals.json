@@ -34,6 +34,14 @@
       "threshold": 1,
       "scenario": true,
       "expect_skill": "couchbase-mcp-setup"
+    },
+    {
+      "name": "cursor reload: points at Customize, not Settings",
+      "input": "I'm using Cursor and just added my Couchbase credentials to the MCP config. How do I get Cursor to pick them up?",
+      "expect": ["Customize", "Reload", "relaunch"],
+      "reject": ["Tools & MCP", "Tools & Integrations"],
+      "threshold": 2,
+      "expect_skill": "couchbase-mcp-setup"
     }
   ]
 }
