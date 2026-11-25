@@ -2,7 +2,7 @@
 
 The Couchbase MCP server is a standard MCP server — it works with **any MCP-compatible client**, not only the ones below. Every client registers it the same way: a server entry with a `command` (`uvx`), `args`, and an `env` map holding `CB_CONNECTION_STRING` / `CB_USERNAME` / `CB_PASSWORD`. The blocks below differ only in *where* that entry lives and minor syntax (notably VS Code's top-level key). For a client not listed here, drop the same entry into its MCP config file.
 
-How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command is `uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server` — pinned to an exact version, as the Claude plugin directory requires for `uvx` launchers. To upgrade, change the pin (in `mcp.json` and here) to a newer exact release. Note that on `1.0+` the `CB_MCP_READ_ONLY_MODE` default is `false` (writes allowed) — so on the routes below **always set `CB_MCP_READ_ONLY_MODE` explicitly** rather than relying on the server default.
+How to register the Couchbase MCP server in each harness, plus launch alternatives. The default launch command is `uvx --from "couchbase-mcp-server==1.1.0" couchbase-mcp-server` — pinned to an exact version, as the Claude plugin directory requires for `uvx` launchers. To upgrade, change the pin (in `mcp.json` and here) to a newer exact release. The server's own `CB_MCP_READ_ONLY_MODE` default is `true` (read-only), but on the routes below **always set `CB_MCP_READ_ONLY_MODE` explicitly** rather than relying on it, so the access level is visible in the config.
 
 ## Claude Code
 
@@ -16,10 +16,10 @@ claude mcp add couchbase --scope local \
   -e CB_USERNAME="app_user" \
   -e CB_PASSWORD="…" \
   -e CB_MCP_READ_ONLY_MODE="true" \
-  -- uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server
+  -- uvx --from "couchbase-mcp-server==1.1.0" couchbase-mcp-server
 ```
 
-Set `CB_MCP_READ_ONLY_MODE` **explicitly** as shown — don't omit it. The server's own default is `false` on `1.0+`, so relying on it would silently enable writes. To enable writes instead, pass `-e CB_MCP_READ_ONLY_MODE="false"`. Check it with `claude mcp list` / `claude mcp get couchbase`.
+Set `CB_MCP_READ_ONLY_MODE` **explicitly** as shown — don't omit it. The server's own default is `true`, but stating it keeps the access level visible and intentional. To enable writes instead, pass `-e CB_MCP_READ_ONLY_MODE="false"`. Check it with `claude mcp list` / `claude mcp get couchbase`.
 
 **Scopes** (highest precedence first; a same-named server in a higher scope wins outright — entries are *not* merged): `local` (default, this project only — **recommended for credentials**) › `project` (writes a committed `.mcp.json` — **don't put secrets here**) › `user` (all your projects) › plugin-provided. Because `local` outranks the plugin, this registration overrides the plugin's bundled `couchbase` server, so it works the same whether or not the plugin is installed — and needs no `${CB_*}` shell exports.
 
@@ -47,7 +47,7 @@ Add to `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`):
 ```toml
 [mcp_servers.couchbase]
 command = "uvx"
-args = ["--from", "couchbase-mcp-server==1.0.1.post1", "couchbase-mcp-server"]
+args = ["--from", "couchbase-mcp-server==1.1.0", "couchbase-mcp-server"]
 
 [mcp_servers.couchbase.env]
 CB_CONNECTION_STRING = "couchbases://cb.abc.cloud.couchbase.com"
@@ -56,7 +56,7 @@ CB_PASSWORD = "…"
 CB_MCP_READ_ONLY_MODE = "true"
 ```
 
-Fully quit and relaunch Codex to apply (it does not inherit your shell env when launched from a GUI). Set `CB_MCP_READ_ONLY_MODE` explicitly (as above) on every direct-config route — the server's own default is `false` on `1.0+`, so an omitted flag would allow writes.
+Fully quit and relaunch Codex to apply (it does not inherit your shell env when launched from a GUI). Set `CB_MCP_READ_ONLY_MODE` explicitly (as above) on every direct-config route — the server's own default is `true`, but an explicit value keeps the access level visible.
 
 ## Cursor / Windsurf / Claude Desktop / JetBrains
 
@@ -67,7 +67,7 @@ Add this JSON `mcpServers` entry in the client's MCP settings:
   "mcpServers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["--from", "couchbase-mcp-server==1.0.1.post1", "couchbase-mcp-server"],
+      "args": ["--from", "couchbase-mcp-server==1.1.0", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
         "CB_USERNAME": "app_user",
@@ -97,7 +97,7 @@ VS Code (MCP support via GitHub Copilot) registers the server the same way, with
   "servers": {
     "couchbase": {
       "command": "uvx",
-      "args": ["--from", "couchbase-mcp-server==1.0.1.post1", "couchbase-mcp-server"],
+      "args": ["--from", "couchbase-mcp-server==1.1.0", "couchbase-mcp-server"],
       "env": {
         "CB_CONNECTION_STRING": "couchbases://cb.abc.cloud.couchbase.com",
         "CB_USERNAME": "app_user",
@@ -115,7 +115,7 @@ Manage and inspect it with **MCP: List Servers** in the Command Palette (→ Sho
 
 ## Factory and other MCP clients
 
-- **Factory:** `droid mcp add couchbase-mcp 'uvx --from couchbase-mcp-server==1.0.1.post1 couchbase-mcp-server …' --type stdio` (Droid CLI), or add the `mcpServers.couchbase` block to `~/.factory/mcp.json`.
+- **Factory:** `droid mcp add couchbase-mcp 'uvx --from couchbase-mcp-server==1.1.0 couchbase-mcp-server …' --type stdio` (Droid CLI), or add the `mcpServers.couchbase` block to `~/.factory/mcp.json`.
 - **Any other MCP-compatible client:** use the same `mcpServers` entry (command `uvx`, the pinned `--from` args, and the `CB_*` env map) in that client's MCP config file. The only common variant is VS Code's top-level `servers` key (above). Where a client launches from a GUI and doesn't inherit your shell environment, set the `CB_*` values in the entry's `env` map rather than relying on exported shell vars.
 
 ## Switching clusters
@@ -140,7 +140,7 @@ Swap the `command`/`args` in any of the blocks above.
 }
 ```
 
-(Set `CB_MCP_READ_ONLY_MODE` explicitly here too: on the `:1.0` tag the server default is `false`, so omitting it would enable writes.)
+(Set `CB_MCP_READ_ONLY_MODE` explicitly here too, so the access level is visible rather than inherited from the image default.)
 
 **From source** (handy while developing the server):
 
@@ -160,7 +160,7 @@ CB_CONNECTION_STRING="couchbases://cb.abc.cloud.couchbase.com" \
 CB_USERNAME="app_user" CB_PASSWORD="…" \
 CB_MCP_READ_ONLY_MODE="true" \
 CB_MCP_TRANSPORT="http" CB_MCP_HOST="127.0.0.1" CB_MCP_PORT="8000" \
-uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server
+uvx --from "couchbase-mcp-server==1.1.0" couchbase-mcp-server
 ```
 
 - `CB_MCP_TRANSPORT=http` selects Streamable HTTP (the legacy `sse` transport is deprecated).
@@ -183,6 +183,6 @@ Then point a client at the URL instead of giving it a launch command:
 
 ## Useful checks
 
-- Version: `uvx --from "couchbase-mcp-server==1.0.1.post1" couchbase-mcp-server --version`
+- Version: `uvx --from "couchbase-mcp-server==1.1.0" couchbase-mcp-server --version`
 - Access safety (read-only mode, disabling tools, confirmation prompts): [`safety.md`](safety.md).
 - Full env var / auth / transport reference: [`configuration.md`](configuration.md).
